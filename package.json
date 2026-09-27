@@ -1,0 +1,21 @@
+{
+  "name": "agenda-ja-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=20.19.0" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
+  },
+  "dependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "react-router-dom": "^7.0.0" },
+  "devDependencies": {}
+}
