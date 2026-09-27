@@ -15,7 +15,15 @@ pipeline {
     }
     stage('Build e testes') {
       steps {
-        sh 'docker build --target build --tag "${IMAGE_NAME}:ci-${BUILD_NUMBER}" .'
+        sh '''
+          docker build --target build --tag "${IMAGE_NAME}:ci-${BUILD_NUMBER}" .
+          artifact_container="$(docker create "${IMAGE_NAME}:ci-${BUILD_NUMBER}")"
+          mkdir -p "build-artifacts/${BUILD_NUMBER}"
+          docker cp "${artifact_container}:/app/coverage" "build-artifacts/${BUILD_NUMBER}/coverage"
+          docker cp "${artifact_container}:/app/reports" "build-artifacts/${BUILD_NUMBER}/reports"
+          docker cp "${artifact_container}:/app/dist" "build-artifacts/${BUILD_NUMBER}/dist"
+          docker rm "${artifact_container}"
+        '''
       }
     }
     stage('Imagem de produção') {
@@ -40,6 +48,10 @@ pipeline {
   }
   post {
     always {
+      junit testResults: 'build-artifacts/*/reports/unit/junit.xml', allowEmptyResults: true
+      archiveArtifacts artifacts: 'build-artifacts/**', allowEmptyArchive: true
+      recordCoverage tools: [[parser: 'COBERTURA', pattern: 'build-artifacts/*/coverage/cobertura-coverage.xml']]
+      publishHTML(target: [reportDir: "build-artifacts/${env.BUILD_NUMBER}/coverage", reportFiles: 'index.html', reportName: 'Cobertura frontend'])
       sh 'docker image prune --force --filter "label=com.agenda-ja.managed-by=jenkins" || true'
     }
   }
