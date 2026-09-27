@@ -1,7 +1,49 @@
-export type BookingStatus='Confirmado'|'Aguardando confirmação'|'Cancelado'
-export type Service={id:string;name:string;duration:number;price:number}
-export type Professional={id:string;name:string;specialties:string[];serviceIds:string[];offDays:string[]}
-export type Establishment={id:string;name:string;category:string;address:string;rating:number;hours:string}
-export type Customer={id:string;name:string;phone:string;email:string}
-export type Appointment={id:string;serviceId:string;professionalId:string;customerId:string;start:string;status:BookingStatus}
-export type BookingChoice={serviceId?:string;professionalId?:string;date?:string;time?:string;customer?:Omit<Customer,'id'>}
+export type StatusAgendamento = 'Confirmado' | 'Aguardando confirmação' | 'Cancelado'
+
+export type Servico = {
+  id: string
+  nome: string
+  duracao: number
+  valor: number
+}
+
+export type Profissional = {
+  id: string
+  nome: string
+  especialidades: string[]
+  idsServicos: string[]
+  diasDeFolga: string[]
+}
+
+export type Estabelecimento = {
+  id: string
+  nome: string
+  categoria: string
+  endereco: string
+  avaliacao: number
+  horarioDeFuncionamento: string
+}
+
+export type Cliente = {
+  id: string
+  nome: string
+  telefone: string
+  email: string
+}
+
+export type Agendamento = {
+  id: string
+  idServico: string
+  idProfissional: string
+  idCliente: string
+  inicio: string
+  status: StatusAgendamento
+}
+
+export type EscolhasAgendamento = {
+  idServico?: string
+  idProfissional?: string
+  data?: string
+  horario?: string
+  cliente?: Omit<Cliente, 'id'>
+}

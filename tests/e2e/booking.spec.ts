@@ -1,2 +1,15 @@
 import { test, expect } from '@playwright/test'
-test('conclui a jornada pública como demonstração',async({page})=>{await page.goto('/');await page.getByRole('link',{name:/fazer agendamento/i}).click();await page.getByRole('button',{name:/corte feminino/i}).click();await page.getByRole('button',{name:/ana martins/i}).click();await page.locator('.filters .button').nth(1).click();await page.getByRole('button',{name:'09:00'}).click();await page.getByRole('button',{name:/continuar/i}).click();await page.getByLabel('Nome completo').fill('Joana da Silva');await page.getByLabel(/telefone/i).fill('(85) 99999-9999');await page.getByLabel('E-mail').fill('joana@exemplo.com');await page.getByRole('button',{name:/revisar/i}).click();await expect(page.getByText('Agendamento de demonstração')).toBeVisible()})
+test('conclui a jornada pública como demonstração', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: /fazer agendamento/i }).click()
+  await page.getByRole('button', { name: /corte feminino/i }).click()
+  await page.getByRole('button', { name: /ana martins/i }).click()
+  await page.locator('.filters .button').nth(1).click()
+  await page.getByRole('button', { name: '09:00' }).click()
+  await page.getByRole('button', { name: /continuar/i }).click()
+  await page.getByLabel('Nome completo').fill('Joana da Silva')
+  await page.getByLabel(/telefone/i).fill('(85) 99999-9999')
+  await page.getByLabel('E-mail').fill('joana@exemplo.com')
+  await page.getByRole('button', { name: /revisar/i }).click()
+  await expect(page.getByText('Agendamento de demonstração')).toBeVisible()
+})

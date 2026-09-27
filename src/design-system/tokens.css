@@ -1,1 +1,37 @@
-:root{--brand:#0f766e;--brand-light:#14b8a6;--bg:#f8fafc;--surface:#fff;--text:#0f172a;--muted:#475569;--border:#e2e8f0;--selected:#f0fdfa;--danger:#b91c1c;--shadow:0 8px 24px rgb(15 23 42 / 8%);font-family:"DM Sans",Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}:focus-visible{outline:3px solid var(--brand-light);outline-offset:2px}
+:root {
+  --brand: #0f766e;
+  --brand-light: #14b8a6;
+  --bg: #f8fafc;
+  --surface: #fff;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --selected: #f0fdfa;
+  --danger: #b91c1c;
+  --shadow: 0 8px 24px rgb(15 23 42 / 8%);
+  font-family: 'DM Sans', Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+:focus-visible {
+  outline: 3px solid var(--brand-light);
+  outline-offset: 2px;
+}

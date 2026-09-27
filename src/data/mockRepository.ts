@@ -1,10 +1,86 @@
-import type { AgendaRepository } from './repository'
-import type { Appointment, Customer, Establishment, Professional, Service } from '../domain/models'
-import { addDays,toDateKey } from '../domain/availability'
-const today=toDateKey(addDays(new Date(),1)); const tomorrow=toDateKey(addDays(new Date(),2))
-const establishment:Establishment={id:'est-1',name:'Ateliê Aurora',category:'Salão de beleza',address:'Endereço ilustrativo · Centro',rating:4.9,hours:'Seg–Sáb, 9h às 18h'}
-const services:Service[]=[{id:'corte',name:'Corte feminino',duration:60,price:75},{id:'escova',name:'Escova',duration:45,price:55},{id:'sobrancelha',name:'Design de sobrancelha',duration:30,price:40}]
-const professionals:Professional[]=[{id:'ana',name:'Ana Martins',specialties:['Cortes e visagismo'],serviceIds:['corte','escova'],offDays:[]},{id:'bia',name:'Beatriz Lima',specialties:['Escovas e finalização'],serviceIds:['escova','sobrancelha'],offDays:[tomorrow]},{id:'clara',name:'Clara Nunes',specialties:['Sobrancelhas'],serviceIds:['sobrancelha'],offDays:[]}]
-const customers:Customer[]=[{id:'c1',name:'Marina Souza',phone:'(85) 99999-0001',email:'marina@exemplo.com'},{id:'c2',name:'Luana Costa',phone:'(85) 99999-0002',email:'luana@exemplo.com'},{id:'c3',name:'Paula Reis',phone:'(85) 99999-0003',email:'paula@exemplo.com'}]
-const appointments:Appointment[]=[{id:'a1',serviceId:'corte',professionalId:'ana',customerId:'c1',start:`${today}T10:00:00`,status:'Confirmado'},{id:'a2',serviceId:'escova',professionalId:'ana',customerId:'c2',start:`${today}T14:00:00`,status:'Aguardando confirmação'},{id:'a3',serviceId:'sobrancelha',professionalId:'clara',customerId:'c3',start:`${tomorrow}T11:00:00`,status:'Confirmado'}]
-export const mockRepository:AgendaRepository={getEstablishment:()=>establishment,getServices:()=>services,getProfessionals:()=>professionals,getAppointments:()=>appointments,getCustomers:()=>customers}
+import { adicionarDias, paraChaveData } from '../domain/availability'
+import type { Agendamento, Cliente, Estabelecimento, Profissional, Servico } from '../domain/models'
+import type { RepositorioAgenda } from './repository'
+
+const primeiroDiaDaAgenda = paraChaveData(adicionarDias(new Date(), 1))
+const segundoDiaDaAgenda = paraChaveData(adicionarDias(new Date(), 2))
+
+const estabelecimento: Estabelecimento = {
+  id: 'est-1',
+  nome: 'Ateliê Aurora',
+  categoria: 'Salão de beleza',
+  endereco: 'Endereço ilustrativo · Centro',
+  avaliacao: 4.9,
+  horarioDeFuncionamento: 'Seg–Sáb, 9h às 18h',
+}
+
+const servicos: Servico[] = [
+  { id: 'corte', nome: 'Corte feminino', duracao: 60, valor: 75 },
+  { id: 'escova', nome: 'Escova', duracao: 45, valor: 55 },
+  { id: 'sobrancelha', nome: 'Design de sobrancelha', duracao: 30, valor: 40 },
+]
+
+const profissionais: Profissional[] = [
+  {
+    id: 'ana',
+    nome: 'Ana Martins',
+    especialidades: ['Cortes e visagismo'],
+    idsServicos: ['corte', 'escova'],
+    diasDeFolga: [],
+  },
+  {
+    id: 'bia',
+    nome: 'Beatriz Lima',
+    especialidades: ['Escovas e finalização'],
+    idsServicos: ['escova', 'sobrancelha'],
+    diasDeFolga: [segundoDiaDaAgenda],
+  },
+  {
+    id: 'clara',
+    nome: 'Clara Nunes',
+    especialidades: ['Sobrancelhas'],
+    idsServicos: ['sobrancelha'],
+    diasDeFolga: [],
+  },
+]
+
+const clientes: Cliente[] = [
+  { id: 'c1', nome: 'Marina Souza', telefone: '(85) 99999-0001', email: 'marina@exemplo.com' },
+  { id: 'c2', nome: 'Luana Costa', telefone: '(85) 99999-0002', email: 'luana@exemplo.com' },
+  { id: 'c3', nome: 'Paula Reis', telefone: '(85) 99999-0003', email: 'paula@exemplo.com' },
+]
+
+const agendamentos: Agendamento[] = [
+  {
+    id: 'a1',
+    idServico: 'corte',
+    idProfissional: 'ana',
+    idCliente: 'c1',
+    inicio: `${primeiroDiaDaAgenda}T10:00:00`,
+    status: 'Confirmado',
+  },
+  {
+    id: 'a2',
+    idServico: 'escova',
+    idProfissional: 'ana',
+    idCliente: 'c2',
+    inicio: `${primeiroDiaDaAgenda}T14:00:00`,
+    status: 'Aguardando confirmação',
+  },
+  {
+    id: 'a3',
+    idServico: 'sobrancelha',
+    idProfissional: 'clara',
+    idCliente: 'c3',
+    inicio: `${segundoDiaDaAgenda}T11:00:00`,
+    status: 'Confirmado',
+  },
+]
+
+export const repositorioMock: RepositorioAgenda = {
+  buscarEstabelecimento: () => estabelecimento,
+  buscarServicos: () => servicos,
+  buscarProfissionais: () => profissionais,
+  buscarAgendamentos: () => agendamentos,
+  buscarClientes: () => clientes,
+}
