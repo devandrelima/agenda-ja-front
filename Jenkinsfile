@@ -1,27 +1,46 @@
 pipeline {
   agent any
-  options { timestamps() }
-  environment { PUBLISH_OPTIONAL_REPORTS = 'false' }
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+  environment {
+    IMAGE_NAME = 'agenda-ja-front'
+    CONTAINER_NAME = 'agenda-ja-front'
+    HOST_PORT = '8092'
+  }
   stages {
-    stage('Checkout e ambiente') { steps { checkout scm; sh 'node --version && npm --version' } }
-    stage('Instalação reproduzível') { steps { sh 'npm ci' } }
-    stage('Lint') { steps { sh 'npm run lint' } }
-    stage('Tipos') { steps { sh 'npm run typecheck' } }
-    stage('Testes unitários e cobertura') { steps { sh 'npm run test:coverage' } }
-    stage('Build de produção') { steps { sh 'npm run build' } }
-    stage('E2E headless') { steps { sh 'npm run e2e' } }
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Build e testes') {
+      steps {
+        sh 'docker build --target build --tag "${IMAGE_NAME}:ci-${BUILD_NUMBER}" .'
+      }
+    }
+    stage('Imagem de produção') {
+      steps {
+        sh 'docker build --tag "${IMAGE_NAME}:${BUILD_NUMBER}" --tag "${IMAGE_NAME}:latest" .'
+      }
+    }
+    stage('Deploy na VPS') {
+      steps {
+        sh '''
+          docker rm --force "${CONTAINER_NAME}" 2>/dev/null || true
+          docker run --detach \
+            --name "${CONTAINER_NAME}" \
+            --restart unless-stopped \
+            --publish "${HOST_PORT}:80" \
+            --label "com.agenda-ja.managed-by=jenkins" \
+            "${IMAGE_NAME}:${BUILD_NUMBER}"
+          docker inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" | grep -x running
+        '''
+      }
+    }
   }
   post {
     always {
-      junit testResults: 'reports/unit/junit.xml, reports/e2e/junit.xml', allowEmptyResults: false
-      archiveArtifacts artifacts: 'coverage/**,playwright-report/**,test-results/**,reports/**,dist/**', allowEmptyArchive: true
-      script {
-        if (env.PUBLISH_OPTIONAL_REPORTS == 'true') {
-          recordCoverage tools: [[parser: 'COBERTURA', pattern: 'coverage/cobertura-coverage.xml']]
-          publishHTML(target: [reportDir: 'coverage', reportFiles: 'index.html', reportName: 'Cobertura frontend'])
-          publishHTML(target: [reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright frontend'])
-        }
-      }
+      sh 'docker image prune --force --filter "label=com.agenda-ja.managed-by=jenkins" || true'
     }
   }
 }
