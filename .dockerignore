@@ -6,4 +6,5 @@ dist
 playwright-report
 reports
 test-results
+build-artifacts
 *.log
