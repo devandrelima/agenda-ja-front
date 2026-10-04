@@ -48,9 +48,9 @@ pipeline {
   }
   post {
     always {
-      junit testResults: 'build-artifacts/*/reports/unit/junit.xml', allowEmptyResults: true
+      junit testResults: "build-artifacts/${env.BUILD_NUMBER}/reports/unit/junit.xml", allowEmptyResults: true
       archiveArtifacts artifacts: 'build-artifacts/**', allowEmptyArchive: true
-      recordCoverage tools: [[parser: 'COBERTURA', pattern: 'build-artifacts/*/coverage/cobertura-coverage.xml']]
+      recordCoverage tools: [[parser: 'COBERTURA', pattern: "build-artifacts/${env.BUILD_NUMBER}/coverage/cobertura-coverage.xml"]]
       publishHTML(target: [reportDir: "build-artifacts/${env.BUILD_NUMBER}/coverage", reportFiles: 'index.html', reportName: 'Cobertura frontend'])
       sh 'docker image prune --force --filter "label=com.agenda-ja.managed-by=jenkins" || true'
     }
