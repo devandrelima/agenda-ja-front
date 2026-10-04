@@ -17,7 +17,7 @@ npm run build
 npm run e2e
 ```
 
-O portal fica em `/`, o login demonstrativo em `/login`, o cadastro preparado em `/cadastro`, o dashboard em `/painel` e a agenda em `/painel/agenda`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
+A raiz redireciona para o login demonstrativo em `/login`. O portal público do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`; o cadastro preparado fica em `/cadastro`, o dashboard em `/painel` e a agenda em `/painel/agenda`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
 
 ## Arquitetura
 

@@ -21,7 +21,16 @@ export type Estabelecimento = {
   categoria: string
   endereco: string
   avaliacao: number
+  quantidadeAvaliacoes: number
+  avaliacoes: Avaliacao[]
   horarioDeFuncionamento: string
+}
+
+export type Avaliacao = {
+  id: string
+  nomeCliente: string
+  comentario: string
+  estrelas: number
 }
 
 export type Cliente = {

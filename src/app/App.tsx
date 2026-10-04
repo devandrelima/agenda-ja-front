@@ -1,19 +1,30 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { Agendamento, PaginaEstabelecimento } from '../features/booking/Booking'
+import { useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
 import { Button, Card, Field, Logo } from '../design-system/ui'
+import { caminhos } from './paths'
+
+const modulosFuturos = [
+  { caminho: 'profissionais', titulo: 'Profissionais' },
+  { caminho: 'servicos', titulo: 'Serviços' },
+  { caminho: 'clientes', titulo: 'Clientes' },
+  { caminho: 'relatorios', titulo: 'Relatórios' },
+]
+
 function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
+  const navegar = useNavigate()
+  const [email, definirEmail] = useState('')
+  const [senha, definirSenha] = useState('')
+  const podeEntrar = email.trim().length > 0 && senha.length > 0
+
   return (
     <main className="auth">
       <Card>
         <Logo />
         <form className="form" onSubmit={(e) => e.preventDefault()}>
           <h1>{cadastro ? 'Crie sua conta' : 'Acesse sua conta'}</h1>
-          <p className="muted">
-            {cadastro
-              ? 'O envio real depende da integração com o backend.'
-              : 'Modo demonstração: nenhuma senha é armazenada ou validada.'}
-          </p>
+          {cadastro && <p className="muted">O envio real depende da integração com o backend.</p>}
           {cadastro && (
             <>
               <Field label="Nome do negócio" required />
@@ -27,21 +38,40 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
               </label>
             </>
           )}
-          <Field label="E-mail" type="email" required />
-          <Field label="Senha" type="password" required />
+          <Field
+            label="E-mail"
+            type="email"
+            value={email}
+            onChange={(evento) => definirEmail(evento.target.value)}
+            required
+          />
+          <Field
+            label="Senha"
+            type="password"
+            value={senha}
+            onChange={(evento) => definirSenha(evento.target.value)}
+            required
+          />
           <a className="muted" href="#recuperar">
             Esqueci minha senha
           </a>
           {cadastro ? (
-            <Button disabled>Criar conta (aguardando backend)</Button>
+            <Button disabled>Criar conta</Button>
           ) : (
-            <a href="/painel">
-              <Button type="button">Entrar no modo demonstração</Button>
-            </a>
+            <Button
+              className="auth-submit"
+              type="button"
+              disabled={!podeEntrar}
+              onClick={() => navegar(caminhos.painel)}
+            >
+              Entrar
+            </Button>
           )}
           <p className="muted">
             {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
-            <a href={cadastro ? '/login' : '/cadastro'}>{cadastro ? 'Entrar' : 'Criar conta'}</a>
+            <a href={cadastro ? caminhos.login : caminhos.cadastro}>
+              {cadastro ? 'Entrar' : 'Criar conta'}
+            </a>
           </p>
         </form>
       </Card>
@@ -52,12 +82,14 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<PaginaEstabelecimento />} />
-        <Route path="/agendar" element={<Agendamento />} />
-        <Route path="/login" element={<Autenticacao />} />
-        <Route path="/cadastro" element={<Autenticacao cadastro />} />
+        <Route path="/" element={<Navigate to={caminhos.login} replace />} />
+        <Route path={caminhos.login} element={<Autenticacao />} />
+        <Route path={caminhos.cadastro} element={<Autenticacao cadastro />} />
+        <Route path={caminhos.estabelecimento} element={<PaginaEstabelecimento />} />
+        <Route path={caminhos.disponibilidade} element={<Disponibilidade />} />
+        <Route path={caminhos.agendamento} element={<Agendamento />} />
         <Route
-          path="/painel"
+          path={caminhos.painel}
           element={
             <LayoutPrestador>
               <Dashboard />
@@ -72,13 +104,13 @@ export function App() {
             </LayoutPrestador>
           }
         />
-        {['profissionais', 'servicos', 'clientes', 'relatorios'].map((modulo) => (
+        {modulosFuturos.map(({ caminho, titulo }) => (
           <Route
-            key={modulo}
-            path={`/painel/${modulo}`}
+            key={caminho}
+            path={`/painel/${caminho}`}
             element={
               <LayoutPrestador>
-                <ModuloFuturo />
+                <ModuloFuturo titulo={titulo} />
               </LayoutPrestador>
             }
           />

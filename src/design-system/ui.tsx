@@ -8,7 +8,7 @@ export function Logo() {
         <path d="M7 3v4M17 3v4M3 10h18M8 15h4" />
       </svg>
       <span>
-        agenda<strong>Já</strong>
+        Agenda<strong>Já</strong>
       </span>
     </a>
   )
@@ -16,12 +16,13 @@ export function Logo() {
 export function Button({
   children,
   variant = 'primary',
+  className = '',
   ...props
 }: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>> & {
   variant?: 'primary' | 'secondary' | 'ghost'
 }) {
   return (
-    <button className={`button ${variant}`} {...props}>
+    <button className={`button ${variant} ${className}`} {...props}>
       {children}
     </button>
   )

@@ -1,26 +1,56 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { caminhos } from '../../app/paths'
 import { repositorioMock } from '../../data/mockRepository'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
+
+type IconeMenu = 'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios'
+
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const itensDoMenu = [
-  ['/painel', 'Início'],
-  ['/painel/agenda', 'Agenda'],
-  ['/painel/profissionais', 'Profissionais'],
-  ['/painel/servicos', 'Serviços'],
-  ['/painel/clientes', 'Clientes'],
-  ['/painel/relatorios', 'Relatórios'],
+const itensDoMenu: { caminho: string; rotulo: string; icone: IconeMenu }[] = [
+  { caminho: '/painel', rotulo: 'Início', icone: 'inicio' },
+  { caminho: '/painel/agenda', rotulo: 'Agenda', icone: 'agenda' },
+  { caminho: '/painel/profissionais', rotulo: 'Profissionais', icone: 'profissionais' },
+  { caminho: '/painel/servicos', rotulo: 'Serviços', icone: 'servicos' },
+  { caminho: '/painel/clientes', rotulo: 'Clientes', icone: 'clientes' },
+  { caminho: '/painel/relatorios', rotulo: 'Relatórios', icone: 'relatorios' },
 ]
+
+function IconeDaNavegacao({ nome }: { nome: IconeMenu }) {
+  const caminhos = {
+    inicio: <path d="m3 10 9-7 9 7v10H3V10Zm6 10v-6h6v6" />,
+    agenda: (
+      <path d="M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 5h14M8 2v4m8-4v4" />
+    ),
+    profissionais: (
+      <path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1m7-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10 9v-1a4 4 0 0 0-3-3.87m-1-12a4 4 0 0 1 0 7.75" />
+    ),
+    servicos: <path d="M20 13.5 13.5 20 4 10.5V4h6.5L20 13.5ZM7 7h.01" />,
+    clientes: (
+      <path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1m14-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm6 9v-1a4 4 0 0 0-3-3.87" />
+    ),
+    relatorios: <path d="M4 20V10m8 10V4m8 16v-7" />,
+  }
+
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {caminhos[nome]}
+    </svg>
+  )
+}
+
 export function LayoutPrestador({ children }: { children: React.ReactNode }) {
   return (
     <div className="provider">
       <aside className="sidebar">
         <Logo />
         <nav>
-          {itensDoMenu.map(([caminho, rotulo]) => (
+          {itensDoMenu.map(({ caminho, rotulo, icone }) => (
             <NavLink key={caminho} to={caminho} end={caminho === '/painel'}>
-              {rotulo}
+              <IconeDaNavegacao nome={icone} />
+              <span className="nav-label">{rotulo}</span>
             </NavLink>
           ))}
         </nav>
@@ -63,6 +93,8 @@ function ProximosAtendimentos() {
   )
 }
 export function Dashboard() {
+  const navegar = useNavigate()
+  const [linkCopiado, definirLinkCopiado] = useState(false)
   const agendamentos = repositorioMock.buscarAgendamentos()
   const servicos = repositorioMock.buscarServicos()
   const hoje = paraChaveData(new Date())
@@ -75,6 +107,13 @@ export function Dashboard() {
       total + (servicos.find((servico) => servico.id === agendamento.idServico)?.valor ?? 0),
     0,
   )
+
+  async function copiarLinkDoNegocio() {
+    const linkDoNegocio = new URL(caminhos.estabelecimento, window.location.origin).toString()
+    await navigator.clipboard.writeText(linkDoNegocio)
+    definirLinkCopiado(true)
+  }
+
   return (
     <>
       <header className="topbar">
@@ -82,7 +121,26 @@ export function Dashboard() {
           <p className="muted">Visão geral</p>
           <h1>Olá, equipe Aurora</h1>
         </div>
-        <Button>Novo agendamento</Button>
+        <div className="topbar-actions">
+          <Button
+            className="copy-business-link"
+            type="button"
+            onClick={() => void copiarLinkDoNegocio()}
+            aria-label="Copiar link da página do negócio"
+            title="Copiar link da página do negócio"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15" />
+              <path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15" />
+            </svg>
+          </Button>
+          <Button onClick={() => navegar(caminhos.agendamento, { state: { origem: 'painel' } })}>
+            Novo agendamento
+          </Button>
+          <span className="sr-only" role="status">
+            {linkCopiado ? 'Link da página do negócio copiado.' : ''}
+          </span>
+        </div>
       </header>
       <div className="metric-grid">
         {[
@@ -178,16 +236,13 @@ export function Agenda() {
     </>
   )
 }
-export function ModuloFuturo() {
+export function ModuloFuturo({ titulo }: { titulo: string }) {
   return (
     <>
       <header className="topbar">
-        <h1>Módulo em preparação</h1>
+        <h1>{titulo}</h1>
       </header>
-      <Empty>
-        Esta prévia não inclui CRUD ou relatórios fictícios. O módulo será construído em uma próxima
-        etapa.
-      </Empty>
+      <Empty>Em construção</Empty>
     </>
   )
 }
