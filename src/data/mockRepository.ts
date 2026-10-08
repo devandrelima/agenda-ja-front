@@ -102,6 +102,7 @@ const profissionais: Profissional[] = [
     especialidades: ['Cortes e visagismo'],
     idsServicos: ['corte', 'escova'],
     diasDeFolga: [],
+    diasDeAtendimento: [1, 2, 3, 4, 5, 6],
   },
   {
     id: 'bia',
@@ -109,6 +110,7 @@ const profissionais: Profissional[] = [
     especialidades: ['Escovas e finalização'],
     idsServicos: ['escova', 'sobrancelha'],
     diasDeFolga: [segundoDiaDaAgenda],
+    diasDeAtendimento: [1, 2, 3, 4, 5, 6],
   },
   {
     id: 'clara',
@@ -116,6 +118,7 @@ const profissionais: Profissional[] = [
     especialidades: ['Sobrancelhas'],
     idsServicos: ['sobrancelha'],
     diasDeFolga: [],
+    diasDeAtendimento: [1, 2, 3, 4, 5, 6],
   },
 ]
 

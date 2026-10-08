@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { repositorioMock } from '../../data/mockRepository'
 import { paraChaveData } from '../../domain/availability'
-import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
+import type { Profissional, Servico } from '../../domain/models'
+import { Badge, Button, Card, Empty, Field, Logo } from '../../design-system/ui'
 
 type IconeMenu = 'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios'
 
@@ -166,7 +167,10 @@ export function Dashboard() {
   )
 }
 export function Agenda() {
-  const agendamentos = repositorioMock.buscarAgendamentos()
+  const [idProfissional, definirIdProfissional] = useState('')
+  const agendamentos = repositorioMock
+    .buscarAgendamentos()
+    .filter((agendamento) => !idProfissional || agendamento.idProfissional === idProfissional)
   const servicos = repositorioMock.buscarServicos()
   const profissionais = repositorioMock.buscarProfissionais()
   const clientes = repositorioMock.buscarClientes()
@@ -182,10 +186,16 @@ export function Agenda() {
           <p className="muted">Semana atual</p>
           <h1>Agenda</h1>
         </div>
-        <select aria-label="Filtrar por profissional">
-          <option>Todos os profissionais</option>
+        <select
+          aria-label="Filtrar por profissional"
+          value={idProfissional}
+          onChange={(evento) => definirIdProfissional(evento.target.value)}
+        >
+          <option value="">Todos os profissionais</option>
           {profissionais.map((profissional) => (
-            <option key={profissional.id}>{profissional.nome}</option>
+            <option key={profissional.id} value={profissional.id}>
+              {profissional.nome}
+            </option>
           ))}
         </select>
       </header>
@@ -243,6 +253,191 @@ export function ModuloFuturo({ titulo }: { titulo: string }) {
         <h1>{titulo}</h1>
       </header>
       <Empty>Em construção</Empty>
+    </>
+  )
+}
+
+const diasDaSemana = [
+  { valor: 1, rotulo: 'seg' },
+  { valor: 2, rotulo: 'ter' },
+  { valor: 3, rotulo: 'qua' },
+  { valor: 4, rotulo: 'qui' },
+  { valor: 5, rotulo: 'sex' },
+  { valor: 6, rotulo: 'sáb' },
+  { valor: 0, rotulo: 'dom' },
+]
+
+function FormularioProfissional({
+  profissional,
+  servicos,
+  aoSalvar,
+  aoVoltar,
+}: {
+  profissional?: Profissional
+  servicos: Servico[]
+  aoSalvar: (dados: Pick<Profissional, 'nome' | 'idsServicos' | 'diasDeAtendimento'>) => void
+  aoVoltar: () => void
+}) {
+  const [erro, definirErro] = useState('')
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault()
+    const form = new FormData(evento.currentTarget)
+    const idsServicos = form.getAll('servicos').map(String)
+    const diasDeAtendimento = form.getAll('dias').map(Number)
+    if (!idsServicos.length) return definirErro('Selecione ao menos um serviço.')
+    if (!diasDeAtendimento.length) return definirErro('Selecione ao menos um dia de atendimento.')
+    aoSalvar({
+      nome: profissional?.nome ?? String(form.get('nome')).trim(),
+      idsServicos,
+      diasDeAtendimento,
+    })
+  }
+
+  return (
+    <Card>
+      <form className="form" onSubmit={enviar}>
+        {profissional ? (
+          <h2>{profissional.nome}</h2>
+        ) : (
+          <Field name="nome" label="Nome do profissional" required />
+        )}
+        <fieldset className="checkbox-group">
+          <legend>Serviços</legend>
+          {servicos.map((servico) => (
+            <label key={servico.id}>
+              <input
+                type="checkbox"
+                name="servicos"
+                value={servico.id}
+                defaultChecked={profissional?.idsServicos.includes(servico.id)}
+              />
+              {servico.nome}
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="checkbox-group">
+          <legend>Horários</legend>
+          {diasDaSemana.map(({ valor, rotulo }) => (
+            <label key={valor}>
+              <input
+                type="checkbox"
+                name="dias"
+                value={valor}
+                defaultChecked={profissional?.diasDeAtendimento.includes(valor)}
+              />
+              {rotulo}
+            </label>
+          ))}
+        </fieldset>
+        {erro && (
+          <small className="form-error" role="alert">
+            {erro}
+          </small>
+        )}
+        <p className="notice">
+          As alterações valem somente nesta demonstração e não são enviadas ao servidor.
+        </p>
+        <div className="form-actions">
+          <Button type="button" variant="ghost" onClick={aoVoltar}>
+            Voltar
+          </Button>
+          <Button>Salvar</Button>
+        </div>
+      </form>
+    </Card>
+  )
+}
+export function Profissionais() {
+  const servicos = repositorioMock.buscarServicos()
+  const [profissionais, definirProfissionais] = useState(() =>
+    repositorioMock.buscarProfissionais(),
+  )
+  const [emEdicao, definirEmEdicao] = useState<{ id?: string }>()
+  const [mensagem, definirMensagem] = useState('')
+  const profissionalEmEdicao = profissionais.find(
+    (profissional) => profissional.id === emEdicao?.id,
+  )
+
+  function salvar(dados: Pick<Profissional, 'nome' | 'idsServicos' | 'diasDeAtendimento'>) {
+    if (profissionalEmEdicao) {
+      definirProfissionais((atuais) =>
+        atuais.map((profissional) =>
+          profissional.id === profissionalEmEdicao.id
+            ? { ...profissional, ...dados }
+            : profissional,
+        ),
+      )
+      definirMensagem(`Alterações de ${dados.nome} salvas.`)
+    } else {
+      definirProfissionais((atuais) => [
+        ...atuais,
+        {
+          ...dados,
+          id: `profissional-${atuais.length + 1}`,
+          especialidades: servicos
+            .filter((servico) => dados.idsServicos.includes(servico.id))
+            .map((servico) => servico.nome),
+          diasDeFolga: [],
+        },
+      ])
+      definirMensagem(`${dados.nome} adicionado(a) à equipe.`)
+    }
+    definirEmEdicao(undefined)
+  }
+
+  if (emEdicao)
+    return (
+      <>
+        <header className="topbar">
+          <h1>{profissionalEmEdicao ? 'Profissionais' : 'Novo profissional'}</h1>
+        </header>
+        <FormularioProfissional
+          profissional={profissionalEmEdicao}
+          servicos={servicos}
+          aoSalvar={salvar}
+          aoVoltar={() => definirEmEdicao(undefined)}
+        />
+      </>
+    )
+  return (
+    <>
+      <header className="topbar">
+        <h1>Profissionais</h1>
+        <Button
+          onClick={() => {
+            definirMensagem('')
+            definirEmEdicao({})
+          }}
+        >
+          Novo profissional
+        </Button>
+      </header>
+      {mensagem && (
+        <p className="notice" role="status">
+          {mensagem}
+        </p>
+      )}
+      <div className="professional-list">
+        {profissionais.map((profissional) => (
+          <Card className="professional" key={profissional.id}>
+            <div>
+              <strong>{profissional.nome}</strong>
+              <p>{profissional.especialidades.join(', ')}</p>
+            </div>
+            <Button
+              variant="ghost"
+              aria-label={`Ver detalhes de ${profissional.nome}`}
+              onClick={() => {
+                definirMensagem('')
+                definirEmEdicao({ id: profissional.id })
+              }}
+            >
+              Ver detalhes ›
+            </Button>
+          </Card>
+        ))}
+      </div>
     </>
   )
 }
