@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
-import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
+import {
+  Agenda,
+  Dashboard,
+  LayoutPrestador,
+  ModuloFuturo,
+  Profissionais,
+} from '../features/provider/Provider'
 import { Button, Card, Field, Logo } from '../design-system/ui'
 import { caminhos } from './paths'
 
 const modulosFuturos = [
-  { caminho: 'profissionais', titulo: 'Profissionais' },
   { caminho: 'servicos', titulo: 'Serviços' },
   { caminho: 'clientes', titulo: 'Clientes' },
   { caminho: 'relatorios', titulo: 'Relatórios' },
@@ -101,6 +106,14 @@ export function App() {
           element={
             <LayoutPrestador>
               <Agenda />
+            </LayoutPrestador>
+          }
+        />
+        <Route
+          path={caminhos.profissionais}
+          element={
+            <LayoutPrestador>
+              <Profissionais />
             </LayoutPrestador>
           }
         />
