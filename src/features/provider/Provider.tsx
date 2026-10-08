@@ -167,7 +167,10 @@ export function Dashboard() {
   )
 }
 export function Agenda() {
-  const agendamentos = repositorioMock.buscarAgendamentos()
+  const [idProfissional, definirIdProfissional] = useState('')
+  const agendamentos = repositorioMock
+    .buscarAgendamentos()
+    .filter((agendamento) => !idProfissional || agendamento.idProfissional === idProfissional)
   const servicos = repositorioMock.buscarServicos()
   const profissionais = repositorioMock.buscarProfissionais()
   const clientes = repositorioMock.buscarClientes()
@@ -183,10 +186,16 @@ export function Agenda() {
           <p className="muted">Semana atual</p>
           <h1>Agenda</h1>
         </div>
-        <select aria-label="Filtrar por profissional">
-          <option>Todos os profissionais</option>
+        <select
+          aria-label="Filtrar por profissional"
+          value={idProfissional}
+          onChange={(evento) => definirIdProfissional(evento.target.value)}
+        >
+          <option value="">Todos os profissionais</option>
           {profissionais.map((profissional) => (
-            <option key={profissional.id}>{profissional.nome}</option>
+            <option key={profissional.id} value={profissional.id}>
+              {profissional.nome}
+            </option>
           ))}
         </select>
       </header>
