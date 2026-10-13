@@ -47,7 +47,7 @@ test('gestor entra, mantém a sessão após recarregar e sai', async ({ page }) 
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
-  await page.goto('/painel/profissionais')
+  await page.getByRole('link', { name: 'Profissionais' }).click()
   await expect(page).toHaveURL(/\/painel\/profissionais$/)
   await expect(page.getByRole('heading', { name: 'Profissionais' })).toBeVisible()
   await page.getByRole('button', { name: 'Sair' }).click()

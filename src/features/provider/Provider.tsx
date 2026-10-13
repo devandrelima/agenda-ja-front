@@ -70,7 +70,12 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
         <Logo />
         <nav>
           {itensDoMenu.map(({ caminho, rotulo, icone }) => (
-            <NavLink key={caminho} to={caminho} end={caminho === '/painel'}>
+            <NavLink
+              key={caminho}
+              to={caminho}
+              end={caminho === '/painel'}
+              aria-label={rotulo}
+            >
               <IconeDaNavegacao nome={icone} />
               <span className="nav-label">{rotulo}</span>
             </NavLink>
