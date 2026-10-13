@@ -463,6 +463,12 @@
   justify-self: center;
   font-size: 1rem;
 }
+.auth-error,
+.sidebar-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
 .form {
   display: grid;
   gap: 24px;
@@ -491,16 +497,28 @@
   gap: 4px;
   margin-top: 30px;
 }
-.sidebar nav a {
+.sidebar nav a,
+.sidebar nav button {
   padding: 11px;
   border-radius: 8px;
   color: var(--muted);
 }
+.sidebar nav button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
 .sidebar nav a.active,
-.sidebar nav a:hover {
+.sidebar nav a:hover,
+.sidebar nav button:hover {
   color: var(--brand);
   background: var(--selected);
   font-weight: 700;
+}
+.sidebar-error {
+  margin: 12px 11px 0;
 }
 .nav-icon {
   display: none;
@@ -692,12 +710,13 @@
   }
   .sidebar nav {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 2px;
     margin: 0;
     overflow: visible;
   }
-  .sidebar nav a {
+  .sidebar nav a,
+  .sidebar nav button {
     display: grid;
     gap: 3px;
     min-height: 52px;
@@ -710,6 +729,15 @@
   }
   .sidebar nav a:not(.active) .nav-label {
     display: none;
+  }
+  .sidebar-error {
+    position: absolute;
+    right: 8px;
+    bottom: 100%;
+    left: 8px;
+    margin: 0;
+    padding: 10px;
+    background: #fff;
   }
   .sidebar nav a.active {
     grid-column: span 2;

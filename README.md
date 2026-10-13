@@ -1,10 +1,11 @@
 # AgendaJá — base do frontend
 
-Primeira base funcional do portal público e painel do prestador. A aplicação usa dados brasileiros de demonstração, calculados com datas futuras, e não possui backend nesta etapa.
+Portal público e painel do prestador. Cadastro e autenticação do gestor usam o backend Spring Boot; catálogo, agendamento, agenda e indicadores ainda usam dados de demonstração.
 
 ## Requisitos e execução
 
 - Node.js `20.19+` e npm.
+- Para cadastro e login locais, execute o backend em `../../backend/agenda-ja-back/` com PostgreSQL. O Vite encaminha `/api` para `http://localhost:8080` por padrão; configure `API_PROXY_TARGET` se a API usar outro endereço.
 - Para E2E local: `npx playwright install chromium`.
 
 ```bash
@@ -17,20 +18,26 @@ npm run build
 npm run e2e
 ```
 
-A raiz redireciona para o login demonstrativo em `/login`. O portal público do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`; o cadastro preparado fica em `/cadastro`, o dashboard em `/painel` e a agenda em `/painel/agenda`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
+A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em `/cadastro`; após cadastrar, o usuário entra com as credenciais criadas. `/painel` e suas páginas exigem sessão de gestor. O portal público demonstrativo do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
 
 ## Arquitetura
 
-`domain` contém tipos e disponibilidade; `data` define o contrato `AgendaRepository` e sua implementação mock; `features` reúne portal e painel; `design-system` centraliza tokens e componentes. Uma implementação HTTP poderá substituir o repositório mock sem levar arrays aos componentes.
+`domain` contém tipos e disponibilidade; `data/auth.ts` implementa cadastro, sessão e CSRF; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
+
+## Sessão e implantação
+
+As chamadas de escrita obtêm um token em `GET /api/auth/csrf` e enviam `X-CSRF-TOKEN` com o cookie de sessão. O login usa `POST /api/auth/login`, a restauração usa `GET /api/auth/me` e o botão Sair usa `POST /api/auth/logout`. Erros de credenciais, validação e e-mail duplicado são exibidos no formulário.
+
+Em produção, o Nginx encaminha `/api` ao contêiner `agenda-ja-back:8080` na rede Docker `agendaja-net`. O pipeline Jenkins conecta o contêiner frontend a essa rede. O backend precisa estar implantado com esse nome na mesma rede.
 
 ## Jenkins
 
-O `Jenkinsfile` executa checkout/ambiente, `npm ci`, lint, tipos, cobertura, build e E2E. Configure um job **Pipeline** ou **Multibranch Pipeline** apontando ao GitHub e ao `Jenkinsfile`; webhook e credenciais ficam fora deste repositório. O agente precisa de Node 20.19+, navegador Chromium do Playwright e as dependências de sistema correspondentes (em Linux, prepare com `npx playwright install --with-deps chromium`).
+O `Jenkinsfile` constrói a imagem Docker, que executa `npm ci`, lint, tipos, testes unitários com cobertura e build; depois publica o frontend. Os testes E2E rodam separadamente com `npm run e2e` e exigem os navegadores do Playwright. Configure um job **Pipeline** ou **Multibranch Pipeline** apontando ao GitHub e ao `Jenkinsfile`; webhook e credenciais ficam fora deste repositório.
 
-JUnit e artefatos são publicados sem plugins extras. Para gráficos, instale **Coverage** e **HTML Publisher** e habilite `PUBLISH_OPTIONAL_REPORTS=true` no job; então a cobertura Cobertura e as páginas HTML aparecerão no Jenkins. Sem esses plugins a opção fica desativada e o pipeline continua usando apenas recursos padrão.
+O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório HTML. Os passos `recordCoverage` e `publishHTML` exigem os plugins **Coverage** e **HTML Publisher** no Jenkins.
 
 ## Limites e próxima integração
 
-Nenhum horário é reservado, conta criada, senha persistida ou notificação enviada. Também não há CRUD, relatórios operacionais, autenticação real, sincronização, cancelamento ou reagendamento. O fluxo confirma explicitamente uma demonstração.
+O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. Ainda não há CRUD de serviços/profissionais, relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
-Com o backend Spring Boot, alinhar antes do código: endpoints e versões dos recursos de estabelecimento/serviço/profissional/agenda, autenticação e papéis, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes não são contratos de API definitivos.
+Para a próxima integração, alinhar endpoints de estabelecimento público, serviço, profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.

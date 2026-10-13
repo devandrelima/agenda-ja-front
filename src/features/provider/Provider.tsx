@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
+import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 
-type IconeMenu = 'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios'
+type IconeMenu =
+  'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
 
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -32,6 +34,7 @@ function IconeDaNavegacao({ nome }: { nome: IconeMenu }) {
       <path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1m14-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm6 9v-1a4 4 0 0 0-3-3.87" />
     ),
     relatorios: <path d="M4 20V10m8 10V4m8 16v-7" />,
+    sair: <path d="M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />,
   }
 
   return (
@@ -42,6 +45,24 @@ function IconeDaNavegacao({ nome }: { nome: IconeMenu }) {
 }
 
 export function LayoutPrestador({ children }: { children: React.ReactNode }) {
+  const navegar = useNavigate()
+  const { encerrar } = useAutenticacao()
+  const [saindo, definirSaindo] = useState(false)
+  const [erroSaida, definirErroSaida] = useState('')
+
+  async function finalizarSessao() {
+    definirSaindo(true)
+    definirErroSaida('')
+    try {
+      await encerrar()
+      navegar(caminhos.login, { replace: true })
+    } catch {
+      definirErroSaida('Não foi possível sair. Tente novamente.')
+    } finally {
+      definirSaindo(false)
+    }
+  }
+
   return (
     <div className="provider">
       <aside className="sidebar">
@@ -53,7 +74,21 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
               <span className="nav-label">{rotulo}</span>
             </NavLink>
           ))}
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={() => void finalizarSessao()}
+            disabled={saindo}
+          >
+            <IconeDaNavegacao nome="sair" />
+            <span className="nav-label">Sair</span>
+          </button>
         </nav>
+        {erroSaida && (
+          <p className="sidebar-error" role="alert">
+            {erroSaida}
+          </p>
+        )}
       </aside>
       <main className="main">{children}</main>
     </div>
@@ -94,6 +129,7 @@ function ProximosAtendimentos() {
 }
 export function Dashboard() {
   const navegar = useNavigate()
+  const { sessao } = useAutenticacao()
   const [linkCopiado, definirLinkCopiado] = useState(false)
   const agendamentos = repositorioMock.buscarAgendamentos()
   const servicos = repositorioMock.buscarServicos()
@@ -119,7 +155,7 @@ export function Dashboard() {
       <header className="topbar">
         <div>
           <p className="muted">Visão geral</p>
-          <h1>Olá, equipe Aurora</h1>
+          <h1>Olá, {sessao?.nome ?? 'gestor'}</h1>
         </div>
         <div className="topbar-actions">
           <Button

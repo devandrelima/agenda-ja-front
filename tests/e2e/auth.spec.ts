@@ -1,0 +1,86 @@
+import { expect, test } from '@playwright/test'
+
+const sessao = {
+  id: 1,
+  nome: 'Ana Gestora',
+  email: 'ana@aurora.com',
+  role: 'GESTOR',
+  estabelecimentoId: 4,
+}
+
+test('gestor entra, mantém a sessão após recarregar e sai', async ({ page }) => {
+  let autenticado = false
+  await page.route('**/api/auth/me', (rota) =>
+    rota.fulfill(
+      autenticado
+        ? { status: 200, contentType: 'application/json', body: JSON.stringify(sessao) }
+        : { status: 401 },
+    ),
+  )
+  await page.route('**/api/auth/csrf', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ token: 'token-teste' }),
+    }),
+  )
+  await page.route('**/api/auth/login', async (rota) => {
+    expect(rota.request().headers()['x-csrf-token']).toBe('token-teste')
+    autenticado = true
+    await rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(sessao),
+    })
+  })
+  await page.route('**/api/auth/logout', async (rota) => {
+    expect(rota.request().headers()['x-csrf-token']).toBe('token-teste')
+    autenticado = false
+    await rota.fulfill({ status: 204 })
+  })
+
+  await page.goto('/login')
+  await page.getByLabel('E-mail').fill(sessao.email)
+  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+})
+
+test('cadastro envia os dados exigidos e encaminha ao login', async ({ page }) => {
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
+  await page.route('**/api/auth/csrf', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ token: 'token-teste' }),
+    }),
+  )
+  await page.route('**/api/estabelecimentos', async (rota) => {
+    expect(rota.request().postDataJSON()).toMatchObject({
+      nomeNegocio: 'Ateliê Aurora',
+      categoria: 'Salão de beleza',
+      localizacao: 'Centro, Fortaleza',
+      nomeGestor: 'Ana Gestora',
+      email: sessao.email,
+      senha: 'senha-segura',
+    })
+    await rota.fulfill({ status: 201 })
+  })
+
+  await page.goto('/cadastro')
+  await page.getByLabel('Nome do negócio').fill('Ateliê Aurora')
+  await page.getByLabel('Categoria').selectOption('Salão de beleza')
+  await page.getByLabel('Localização').fill('Centro, Fortaleza')
+  await page.getByLabel('Nome do gestor').fill('Ana Gestora')
+  await page.getByLabel('E-mail').fill(sessao.email)
+  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('status')).toContainText('Conta criada.')
+})

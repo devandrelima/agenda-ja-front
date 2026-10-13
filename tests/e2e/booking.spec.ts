@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('habilita o login após preencher e-mail e senha', async ({ page }) => {
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
   await page.goto('/login')
 
   const entrar = page.getByRole('button', { name: 'Entrar', exact: true })
@@ -32,6 +33,7 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
 })
 
 test('redireciona a raiz para o login', async ({ page }) => {
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
   await page.goto('/')
 
   await expect(page).toHaveURL(/\/login$/)
@@ -39,6 +41,19 @@ test('redireciona a raiz para o login', async ({ page }) => {
 })
 
 test('inicia um agendamento pelo painel', async ({ page }) => {
+  await page.route('**/api/auth/me', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 1,
+        nome: 'Ana Gestora',
+        email: 'ana@aurora.com',
+        role: 'GESTOR',
+        estabelecimentoId: 4,
+      }),
+    }),
+  )
   await page.goto('/painel')
   await page.getByRole('button', { name: 'Novo agendamento' }).click()
 

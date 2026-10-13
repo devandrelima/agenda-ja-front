@@ -34,10 +34,12 @@ pipeline {
     stage('Deploy na VPS') {
       steps {
         sh '''
+          docker network inspect agendaja-net >/dev/null 2>&1 || docker network create agendaja-net
           docker rm --force "${CONTAINER_NAME}" 2>/dev/null || true
           docker run --detach \
             --name "${CONTAINER_NAME}" \
             --restart unless-stopped \
+            --network agendaja-net \
             --publish "${HOST_PORT}:80" \
             --label "com.agenda-ja.managed-by=jenkins" \
             "${IMAGE_NAME}:${BUILD_NUMBER}"
