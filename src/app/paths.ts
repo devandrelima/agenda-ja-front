@@ -3,6 +3,7 @@ export const caminhos = {
   cadastro: '/cadastro',
   painel: '/painel',
   profissionais: '/painel/profissionais',
+  servicos: '/painel/servicos',
   estabelecimento: '/estabelecimento/atelie-aurora',
   disponibilidade: '/estabelecimento/atelie-aurora/disponibilidade',
   agendamento: '/estabelecimento/atelie-aurora/agendar',

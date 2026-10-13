@@ -625,6 +625,32 @@
   display: grid;
   gap: 12px;
 }
+.service-list {
+  display: grid;
+  gap: 12px;
+}
+.service-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.service-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+.service-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.service-form-card {
+  max-width: 680px;
+}
+.service-form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
 .professional {
   display: flex;
   justify-content: space-between;
@@ -748,6 +774,13 @@
   margin-top: 24px;
 }
 @media (max-width: 700px) {
+  .service-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .service-form-fields {
+    grid-template-columns: 1fr;
+  }
   .copy-toast {
     right: 16px;
     bottom: 96px;

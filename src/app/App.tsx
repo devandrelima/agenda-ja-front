@@ -18,13 +18,13 @@ import {
   Profissionais,
 } from '../features/provider/Provider'
 import { Button, Card, Field, Logo } from '../design-system/ui'
+import { Servicos } from '../features/provider/Services'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
 import { caminhos } from './paths'
 
 const modulosFuturos = [
-  { caminho: 'servicos', titulo: 'Serviços' },
   { caminho: 'clientes', titulo: 'Clientes' },
   { caminho: 'relatorios', titulo: 'Relatórios' },
 ]
@@ -225,6 +225,16 @@ export function App() {
               <RotaProtegida>
                 <LayoutPrestador>
                   <Profissionais />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={caminhos.servicos}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <Servicos />
                 </LayoutPrestador>
               </RotaProtegida>
             }
