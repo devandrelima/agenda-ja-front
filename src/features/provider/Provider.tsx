@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
@@ -12,6 +12,39 @@ type IconeMenu =
 
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+function copiarComSelecao(texto: string) {
+  const campo = document.createElement('textarea')
+  const elementoAtivo = document.activeElement
+  campo.value = texto
+  campo.style.position = 'fixed'
+  campo.style.opacity = '0'
+  document.body.appendChild(campo)
+  campo.focus()
+  campo.select()
+  campo.setSelectionRange(0, texto.length)
+
+  try {
+    if (!document.execCommand('copy')) throw new Error('Não foi possível copiar o link.')
+  } finally {
+    campo.remove()
+    if (elementoAtivo instanceof HTMLElement) elementoAtivo.focus()
+  }
+}
+
+async function copiarTexto(texto: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(texto)
+      return
+    } catch {
+      copiarComSelecao(texto)
+      return
+    }
+  }
+  copiarComSelecao(texto)
+}
+
 const itensDoMenu: { caminho: string; rotulo: string; icone: IconeMenu }[] = [
   { caminho: '/painel', rotulo: 'Início', icone: 'inicio' },
   { caminho: '/painel/agenda', rotulo: 'Agenda', icone: 'agenda' },
@@ -136,7 +169,17 @@ function ProximosAtendimentos() {
 export function Dashboard() {
   const navegar = useNavigate()
   const { sessao } = useAutenticacao()
-  const [linkCopiado, definirLinkCopiado] = useState(false)
+  const [avisoCopia, definirAvisoCopia] = useState<{ mensagem: string; erro: boolean } | null>(null)
+  const temporizadorAviso = useRef<number | undefined>(undefined)
+
+  useEffect(() => () => window.clearTimeout(temporizadorAviso.current), [])
+
+  function mostrarAviso(mensagem: string, erro = false) {
+    window.clearTimeout(temporizadorAviso.current)
+    definirAvisoCopia({ mensagem, erro })
+    temporizadorAviso.current = window.setTimeout(() => definirAvisoCopia(null), 3500)
+  }
+
   const agendamentos = repositorioMock.buscarAgendamentos()
   const servicos = repositorioMock.buscarServicos()
   const hoje = paraChaveData(new Date())
@@ -152,8 +195,12 @@ export function Dashboard() {
 
   async function copiarLinkDoNegocio() {
     const linkDoNegocio = new URL(caminhos.estabelecimento, window.location.origin).toString()
-    await navigator.clipboard.writeText(linkDoNegocio)
-    definirLinkCopiado(true)
+    try {
+      await copiarTexto(linkDoNegocio)
+      mostrarAviso('Link copiado!')
+    } catch {
+      mostrarAviso('Não foi possível copiar o link.', true)
+    }
   }
 
   return (
@@ -179,11 +226,16 @@ export function Dashboard() {
           <Button onClick={() => navegar(caminhos.agendamento, { state: { origem: 'painel' } })}>
             Novo agendamento
           </Button>
-          <span className="sr-only" role="status">
-            {linkCopiado ? 'Link da página do negócio copiado.' : ''}
-          </span>
         </div>
       </header>
+      {avisoCopia && (
+        <div
+          className={`copy-toast${avisoCopia.erro ? ' copy-toast-error' : ''}`}
+          role={avisoCopia.erro ? 'alert' : 'status'}
+        >
+          {avisoCopia.mensagem}
+        </div>
+      )}
       <div className="metric-grid">
         {[
           ['Agendamentos hoje', agendamentosDeHoje.length],

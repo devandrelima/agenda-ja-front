@@ -8,7 +8,7 @@ const sessao = {
   estabelecimentoId: 4,
 }
 
-test('gestor entra, mantém a sessão após recarregar e sai', async ({ page }) => {
+test('gestor entra, copia o link, mantém a sessão após recarregar e sai', async ({ page }) => {
   let autenticado = false
   await page.route('**/api/auth/me', (rota) =>
     rota.fulfill(
@@ -44,6 +44,24 @@ test('gestor entra, mantém a sessão após recarregar e sai', async ({ page }) 
   await page.getByLabel('Senha').fill('senha-segura')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
+
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  const linkDaPagina = new URL('/estabelecimento/atelie-aurora', page.url()).toString()
+  await page.getByRole('button', { name: 'Copiar link da página do negócio' }).click()
+  await expect(page.getByRole('status')).toHaveText('Link copiado!')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(linkDaPagina)
+
+  await page.evaluate(async () => {
+    await navigator.clipboard.writeText('')
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
+  })
+  await page.getByRole('button', { name: 'Copiar link da página do negócio' }).click()
+  expect(
+    await page.evaluate(async () => {
+      Reflect.deleteProperty(navigator, 'clipboard')
+      return navigator.clipboard.readText()
+    }),
+  ).toBe(linkDaPagina)
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
