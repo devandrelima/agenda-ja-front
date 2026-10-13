@@ -13,6 +13,7 @@ export type Profissional = {
   especialidades: string[]
   idsServicos: string[]
   diasDeFolga: string[]
+  diasDeAtendimento: number[]
 }
 
 export type Estabelecimento = {

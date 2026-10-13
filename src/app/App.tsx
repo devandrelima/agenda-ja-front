@@ -10,7 +10,13 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
-import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
+import {
+  Agenda,
+  Dashboard,
+  LayoutPrestador,
+  ModuloFuturo,
+  Profissionais,
+} from '../features/provider/Provider'
 import { Button, Card, Field, Logo } from '../design-system/ui'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
 import { ProvedorAutenticacao } from './AuthContext'
@@ -18,7 +24,6 @@ import { useAutenticacao } from './useAutenticacao'
 import { caminhos } from './paths'
 
 const modulosFuturos = [
-  { caminho: 'profissionais', titulo: 'Profissionais' },
   { caminho: 'servicos', titulo: 'Serviços' },
   { caminho: 'clientes', titulo: 'Clientes' },
   { caminho: 'relatorios', titulo: 'Relatórios' },
@@ -210,6 +215,16 @@ export function App() {
               <RotaProtegida>
                 <LayoutPrestador>
                   <Agenda />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={caminhos.profissionais}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <Profissionais />
                 </LayoutPrestador>
               </RotaProtegida>
             }
