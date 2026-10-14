@@ -5,7 +5,7 @@ Portal público e painel do prestador. Cadastro, autenticação e gestão admini
 ## Requisitos e execução
 
 - Node.js `20.19+` e npm.
-- Para cadastro e login locais, execute o backend em `../../backend/agenda-ja-back/` com PostgreSQL. A gestão de serviços requer os endpoints da branch `hu03-gerenciar-servicos` do backend, ainda não integrados à `main`. O Vite encaminha `/api` para `http://localhost:8080` por padrão; configure `API_PROXY_TARGET` se a API usar outro endereço.
+- Para cadastro, login e gestão de serviços locais, execute a `main` do backend em `../../backend/agenda-ja-back/` com PostgreSQL. O Vite encaminha `/api` para `http://localhost:8080` por padrão; configure `API_PROXY_TARGET` se a API usar outro endereço.
 - Para E2E local: `npx playwright install chromium`.
 
 ```bash
@@ -28,7 +28,7 @@ A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em
 
 As chamadas de escrita obtêm um token em `GET /api/auth/csrf` e enviam `X-CSRF-TOKEN` com o cookie de sessão. O login usa `POST /api/auth/login`, a restauração usa `GET /api/auth/me` e o botão Sair usa `POST /api/auth/logout`. Erros de credenciais, validação e e-mail duplicado são exibidos no formulário.
 
-Em `/painel/servicos`, o gestor consulta, cadastra e edita serviços em `/api/admin/estabelecimentos/{estabelecimentoId}/servicos`. O ID vem da sessão; nome, duração em minutos e preço são validados no formulário e no backend. Erros da API são exibidos nos campos quando disponíveis.
+Em `/painel/servicos`, o gestor lista, cadastra, edita e desativa serviços em `/api/admin/estabelecimentos/{estabelecimentoId}/servicos`. O ID vem da sessão; nome, duração em minutos e preço são validados no formulário e no backend. A desativação exige confirmação, usa `DELETE /{servicoId}` e retira o serviço da lista após a resposta 204; o backend preserva o registro como inativo. Erros da API são exibidos nos campos ou junto à ação correspondente.
 
 Em produção, o Nginx encaminha `/api` ao contêiner `agenda-ja-back:8080` na rede Docker `agendaja-net`. O pipeline Jenkins conecta o contêiner frontend a essa rede. O backend precisa estar implantado com esse nome na mesma rede.
 
@@ -40,6 +40,6 @@ O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório H
 
 ## Limites e próxima integração
 
-O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços depende da implantação da branch correspondente do backend; o catálogo público e a tela de profissionais continuam demonstrativos. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
+O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços usa a `main` do backend; o catálogo público e a tela de profissionais continuam demonstrativos. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
 Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.
