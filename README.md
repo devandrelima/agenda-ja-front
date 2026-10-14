@@ -1,6 +1,6 @@
 # AgendaJá — base do frontend
 
-Portal público e painel do prestador. Cadastro, autenticação e gestão administrativa de serviços usam o backend Spring Boot; catálogo público, agendamento, agenda e indicadores ainda usam dados de demonstração.
+Portal público e painel do prestador. Cadastro, autenticação e gestão administrativa de serviços e profissionais usam o backend Spring Boot; catálogo público, agendamento, agenda e indicadores ainda usam dados de demonstração.
 
 ## Requisitos e execução
 
@@ -22,13 +22,15 @@ A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em
 
 ## Arquitetura
 
-`domain` contém tipos e disponibilidade; `data/api.ts` centraliza requisições, erros e CSRF; `data/auth.ts` implementa cadastro e sessão; `data/services.ts` integra a gestão de serviços; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
+`domain` contém tipos e disponibilidade; `data/api.ts` centraliza requisições, erros e CSRF; `data/auth.ts` implementa cadastro e sessão; `data/services.ts` e `data/professionals.ts` integram a gestão de serviços e profissionais; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
 
 ## Sessão e implantação
 
 As chamadas de escrita obtêm um token em `GET /api/auth/csrf` e enviam `X-CSRF-TOKEN` com o cookie de sessão. O login usa `POST /api/auth/login`, a restauração usa `GET /api/auth/me` e o botão Sair usa `POST /api/auth/logout`. Erros de credenciais, validação e e-mail duplicado são exibidos no formulário.
 
 Em `/painel/servicos`, o gestor consulta, cadastra e edita serviços em `/api/admin/estabelecimentos/{estabelecimentoId}/servicos`. O ID vem da sessão; nome, duração em minutos e preço são validados no formulário e no backend. Erros da API são exibidos nos campos quando disponíveis.
+
+Em `/painel/profissionais`, o gestor consulta, cadastra e edita profissionais em `/api/admin/estabelecimentos/{estabelecimentoId}/profissionais`, informando nome, serviços e dias de atendimento. As especialidades enviadas ao backend são os nomes dos serviços selecionados. A interface usa a numeração de `Date.getDay()` (domingo = 0) e `data/professionals.ts` converte domingo para 7, como exige o backend. Na edição, as folgas já cadastradas são reenviadas para não serem apagadas.
 
 Em produção, o Nginx encaminha `/api` ao contêiner `agenda-ja-back:8080` na rede Docker `agendaja-net`. O pipeline Jenkins conecta o contêiner frontend a essa rede. O backend precisa estar implantado com esse nome na mesma rede.
 
@@ -40,6 +42,6 @@ O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório H
 
 ## Limites e próxima integração
 
-O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços depende da implantação da branch correspondente do backend; o catálogo público e a tela de profissionais continuam demonstrativos. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
+O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços depende da implantação da branch correspondente do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
 Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.
