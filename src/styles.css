@@ -537,6 +537,12 @@
   padding: 28px;
   max-width: 1250px;
   width: 100%;
+  margin-inline: auto;
+}
+.main:has(> .service-editor) {
+  display: grid;
+  place-items: start center;
+  max-width: none;
 }
 .topbar {
   display: flex;
@@ -664,8 +670,11 @@
 .service-deactivate-button:hover {
   filter: brightness(0.9);
 }
+.service-editor {
+  width: min(100%, 900px);
+}
 .service-form-card {
-  max-width: 680px;
+  width: 100%;
 }
 .service-form-fields {
   display: grid;
@@ -805,6 +814,9 @@
   }
   .service-form-fields {
     grid-template-columns: 1fr;
+  }
+  .main:has(> .service-editor) {
+    display: block;
   }
   .copy-toast {
     right: 16px;
