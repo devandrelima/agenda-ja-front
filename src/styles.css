@@ -657,6 +657,18 @@
   align-items: center;
   gap: 16px;
 }
+.professional-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.day-off-list {
+  display: grid;
+  gap: 8px;
+  max-height: 40dvh;
+  overflow: auto;
+}
 .professional p {
   margin: 4px 0 0;
   color: var(--muted);
@@ -684,6 +696,86 @@
 }
 .form-error {
   color: var(--danger);
+}
+.schedule {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.schedule legend {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.schedule-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.schedule-day {
+  padding-top: 9px;
+  font-weight: 700;
+}
+.schedule-items {
+  display: grid;
+  gap: 8px;
+}
+.schedule-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.schedule-item input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--text);
+}
+.schedule-item input:focus {
+  border-color: var(--brand);
+}
+.day-off {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid var(--brand-light);
+}
+.day-off div {
+  display: grid;
+  gap: 2px;
+}
+.day-off span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+.modal-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(15 23 42 / 45%);
+}
+.modal {
+  width: min(100%, 420px);
+}
+.modal h2 {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+}
+.schedule-empty {
+  padding-top: 9px;
+  color: var(--muted);
 }
 .week {
   overflow: auto;
@@ -889,6 +981,27 @@
   }
 }
 @media (max-width: 520px) {
+  .schedule-row > .button {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .schedule-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .schedule-row .schedule-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .schedule-row .schedule-item input {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 4px;
+  }
+  .schedule-item .button {
+    padding-inline: 8px;
+  }
   .presentation-overview {
     grid-template-columns: 1fr;
   }
