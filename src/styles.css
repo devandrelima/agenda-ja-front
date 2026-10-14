@@ -540,7 +540,7 @@
 }
 .main:has(> .service-editor) {
   display: grid;
-  place-items: center;
+  place-items: start center;
   max-width: none;
 }
 .topbar {
