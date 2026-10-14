@@ -625,6 +625,53 @@
   display: grid;
   gap: 12px;
 }
+.service-list {
+  display: grid;
+  gap: 12px;
+}
+.service-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.service-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+.service-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.service-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.service-card-confirmation {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+  text-align: right;
+}
+.service-card-confirmation .auth-error {
+  color: var(--danger);
+}
+.service-deactivate-button {
+  background: var(--danger);
+  color: #fff;
+}
+.service-deactivate-button:hover {
+  filter: brightness(0.9);
+}
+.service-form-card {
+  max-width: 680px;
+}
+.service-form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
 .professional {
   display: flex;
   justify-content: space-between;
@@ -748,6 +795,17 @@
   margin-top: 24px;
 }
 @media (max-width: 700px) {
+  .service-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .service-card-confirmation {
+    justify-items: stretch;
+    text-align: left;
+  }
+  .service-form-fields {
+    grid-template-columns: 1fr;
+  }
   .copy-toast {
     right: 16px;
     bottom: 96px;
