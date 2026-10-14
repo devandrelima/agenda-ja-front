@@ -191,7 +191,7 @@ export function Servicos() {
   }
 
   return (
-    <>
+    <div className={emEdicao ? 'service-editor' : undefined}>
       <header className="topbar">
         <h1>{emEdicao === 'novo' ? 'Novo serviço' : emEdicao ? 'Editar serviço' : 'Serviços'}</h1>
         {!emEdicao && !carregando && !erroLista && (
@@ -320,6 +320,6 @@ export function Servicos() {
           )}
         </>
       )}
-    </>
+    </div>
   )
 }
