@@ -20,6 +20,33 @@ npm run e2e
 
 A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em `/cadastro`; após cadastrar, o usuário entra com as credenciais criadas. `/painel` e suas páginas exigem sessão de gestor. O portal público demonstrativo do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
 
+## Execução local com Docker
+
+Na pasta raiz `AgendaJa/`, com Docker ativo, inicie o PostgreSQL e conecte-o à rede usada pelo frontend e backend:
+
+```bash
+cd backend/agenda-ja-back
+docker compose up -d postgres
+docker network create agendaja-net 2>/dev/null || true
+docker network connect agendaja-net agendaja-postgres 2>/dev/null || true
+docker build -t agendaja-back:local .
+docker run -d --name agenda-ja-back --network agendaja-net \
+  -e DB_URL=jdbc:postgresql://agendaja-postgres:5432/agendaja \
+  -e DB_USERNAME=agendaja -e DB_PASSWORD=agendaja \
+  agendaja-back:local
+```
+
+Depois, na pasta do frontend:
+
+```bash
+cd ../../frontend/codigo_front
+docker build -t agendaja-front:local .
+docker run -d --name agenda-ja-front --network agendaja-net \
+  -p 127.0.0.1:8092:80 agendaja-front:local
+```
+
+Acesse `http://localhost:8092/login` e, após entrar, `http://localhost:8092/painel/servicos`. Se os contêineres `agenda-ja-front` ou `agenda-ja-back` já existirem, remova-os antes de repetir `docker run`.
+
 ## Arquitetura
 
 `domain` contém tipos e disponibilidade; `data/api.ts` centraliza requisições, erros e CSRF; `data/auth.ts` implementa cadastro e sessão; `data/services.ts` integra a gestão de serviços; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
