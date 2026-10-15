@@ -10,13 +10,8 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
-import {
-  Agenda,
-  Dashboard,
-  LayoutPrestador,
-  ModuloFuturo,
-  Profissionais,
-} from '../features/provider/Provider'
+import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
+import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'

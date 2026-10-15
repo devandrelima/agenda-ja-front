@@ -38,6 +38,9 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
     autenticado = false
     await rota.fulfill({ status: 204 })
   })
+  await page.route('**/api/admin/estabelecimentos/**', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
 
   await page.goto('/login')
   await page.getByLabel('E-mail').fill(sessao.email)
