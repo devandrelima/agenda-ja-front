@@ -35,6 +35,12 @@ test('lista, cadastra e edita serviços do estabelecimento da sessão', async ({
     }
 
     expect(requisicao.headers()['x-csrf-token']).toBe('token-teste')
+    if (requisicao.method() === 'DELETE') {
+      expect(requisicao.url()).toMatch(/\/servicos\/11$/)
+      servicos.splice(1, 1)
+      await rota.fulfill({ status: 204 })
+      return
+    }
     const dados = requisicao.postDataJSON()
     if (requisicao.method() === 'POST') {
       expect(dados).toEqual({ nome: 'Escova', duracaoMinutos: 45, valor: 60.5 })
@@ -81,6 +87,47 @@ test('lista, cadastra e edita serviços do estabelecimento da sessão', async ({
   await expect(page.getByRole('status')).toHaveText('Serviço atualizado com sucesso.')
   await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Escova', exact: true })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Desativar Escova modeladora' }).click()
+  await expect(page.getByText('Desativar Escova modeladora?')).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Desativar Escova modeladora' }).click()
+  await page.getByRole('button', { name: 'Confirmar desativação' }).click()
+  await expect(page.getByRole('status')).toHaveText('Serviço desativado com sucesso.')
+  await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Corte' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toHaveCount(0)
+})
+
+test('mantém o serviço na lista quando a desativação falha', async ({ page }) => {
+  await page.route('**/api/admin/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: 10, nome: 'Corte', duracaoMinutos: 30, valor: 45, estabelecimentoId: 4 },
+      ]),
+    }),
+  )
+  await page.route('**/api/admin/estabelecimentos/4/servicos/10', (rota) => {
+    expect(rota.request().method()).toBe('DELETE')
+    expect(rota.request().headers()['x-csrf-token']).toBe('token-teste')
+    return rota.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ mensagem: 'Serviço não encontrado.' }),
+    })
+  })
+
+  await page.goto('/painel/servicos')
+  await page.getByRole('button', { name: 'Desativar Corte' }).click()
+  await page.getByRole('button', { name: 'Confirmar desativação' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Serviço não encontrado.')
+  await expect(page.getByRole('heading', { name: 'Corte' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirmar desativação' })).toBeEnabled()
 })
 
 test('exibe validação da API e permite tentar novamente após falha na listagem', async ({

@@ -5,7 +5,7 @@ Portal público e painel do prestador. Cadastro, autenticação e gestão admini
 ## Requisitos e execução
 
 - Node.js `20.19+` e npm.
-- Para cadastro e login locais, execute o backend em `../../backend/agenda-ja-back/` com PostgreSQL. A gestão de serviços requer os endpoints da branch `hu03-gerenciar-servicos` do backend, ainda não integrados à `main`. O Vite encaminha `/api` para `http://localhost:8080` por padrão; configure `API_PROXY_TARGET` se a API usar outro endereço.
+- Para cadastro, login e gestão de serviços e profissionais locais, execute a `main` do backend em `../../backend/agenda-ja-back/` com PostgreSQL. O Vite encaminha `/api` para `http://localhost:8080` por padrão; configure `API_PROXY_TARGET` se a API usar outro endereço.
 - Para E2E local: `npx playwright install chromium`.
 
 ```bash
@@ -20,6 +20,33 @@ npm run e2e
 
 A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em `/cadastro`; após cadastrar, o usuário entra com as credenciais criadas. `/painel` e suas páginas exigem sessão de gestor. O portal público demonstrativo do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
 
+## Execução local com Docker
+
+Na pasta raiz `AgendaJa/`, com Docker ativo, inicie o PostgreSQL e conecte-o à rede usada pelo frontend e backend:
+
+```bash
+cd backend/agenda-ja-back
+docker compose up -d postgres
+docker network create agendaja-net 2>/dev/null || true
+docker network connect agendaja-net agendaja-postgres 2>/dev/null || true
+docker build -t agendaja-back:local .
+docker run -d --name agenda-ja-back --network agendaja-net \
+  -e DB_URL=jdbc:postgresql://agendaja-postgres:5432/agendaja \
+  -e DB_USERNAME=agendaja -e DB_PASSWORD=agendaja \
+  agendaja-back:local
+```
+
+Depois, na pasta do frontend:
+
+```bash
+cd ../../frontend/codigo_front
+docker build -t agendaja-front:local .
+docker run -d --name agenda-ja-front --network agendaja-net \
+  -p 127.0.0.1:8092:80 agendaja-front:local
+```
+
+Acesse `http://localhost:8092/login` e, após entrar, `http://localhost:8092/painel/servicos`. Se os contêineres `agenda-ja-front` ou `agenda-ja-back` já existirem, remova-os antes de repetir `docker run`.
+
 ## Arquitetura
 
 `domain` contém tipos e disponibilidade; `data/api.ts` centraliza requisições, erros e CSRF; `data/auth.ts` implementa cadastro e sessão; `data/services.ts` e `data/professionals.ts` integram a gestão de serviços e profissionais; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
@@ -28,7 +55,7 @@ A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em
 
 As chamadas de escrita obtêm um token em `GET /api/auth/csrf` e enviam `X-CSRF-TOKEN` com o cookie de sessão. O login usa `POST /api/auth/login`, a restauração usa `GET /api/auth/me` e o botão Sair usa `POST /api/auth/logout`. Erros de credenciais, validação e e-mail duplicado são exibidos no formulário.
 
-Em `/painel/servicos`, o gestor consulta, cadastra e edita serviços em `/api/admin/estabelecimentos/{estabelecimentoId}/servicos`. O ID vem da sessão; nome, duração em minutos e preço são validados no formulário e no backend. Erros da API são exibidos nos campos quando disponíveis.
+Em `/painel/servicos`, o gestor lista, cadastra, edita e desativa serviços em `/api/admin/estabelecimentos/{estabelecimentoId}/servicos`. O ID vem da sessão; nome, duração em minutos e preço são validados no formulário e no backend. A desativação exige confirmação, usa `DELETE /{servicoId}` e retira o serviço da lista após a resposta 204; o backend preserva o registro como inativo. Erros da API são exibidos nos campos ou junto à ação correspondente.
 
 Em `/painel/profissionais`, o gestor consulta, cadastra e edita profissionais em `/api/admin/estabelecimentos/{estabelecimentoId}/profissionais`, informando nome, serviços e turnos de atendimento por dia da semana. Salvar envia duas requisições: primeiro o profissional (com os dias derivados dos turnos), depois `PUT .../profissionais/{id}/disponibilidade` com os horários exatos. Como esse endpoint substitui turnos e folgas juntos, o formulário reenvia as folgas carregadas sem alterá-las. Turnos sobrepostos ou invertidos são bloqueados antes do envio. As folgas ficam no botão "Folgas" de cada profissional na lista: um popup lista, adiciona e remove folgas, salvando cada alteração na hora com os turnos atuais reenviados sem mudança. Se só a segunda requisição falhar, o formulário continua aberto em modo de edição, para que tentar de novo não duplique o cadastro. As especialidades enviadas ao backend são os nomes dos serviços selecionados. A interface usa a numeração de `Date.getDay()` (domingo = 0) e `data/professionals.ts` converte domingo para 7, como exige o backend.
 
@@ -42,6 +69,6 @@ O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório H
 
 ## Limites e próxima integração
 
-O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços depende da implantação da branch correspondente do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
+O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços e profissionais usa a `main` do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
 Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.

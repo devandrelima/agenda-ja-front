@@ -537,6 +537,12 @@
   padding: 28px;
   max-width: 1250px;
   width: 100%;
+  margin-inline: auto;
+}
+.main:has(> .service-editor) {
+  display: grid;
+  place-items: start center;
+  max-width: none;
 }
 .topbar {
   display: flex;
@@ -643,8 +649,32 @@
   margin: 0;
   color: var(--muted);
 }
+.service-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.service-card-confirmation {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+  text-align: right;
+}
+.service-card-confirmation .auth-error {
+  color: var(--danger);
+}
+.service-deactivate-button {
+  background: var(--danger);
+  color: #fff;
+}
+.service-deactivate-button:hover {
+  filter: brightness(0.9);
+}
+.service-editor {
+  width: min(100%, 900px);
+}
 .service-form-card {
-  max-width: 680px;
+  width: 100%;
 }
 .service-form-fields {
   display: grid;
@@ -870,8 +900,15 @@
     align-items: stretch;
     flex-direction: column;
   }
+  .service-card-confirmation {
+    justify-items: stretch;
+    text-align: left;
+  }
   .service-form-fields {
     grid-template-columns: 1fr;
+  }
+  .main:has(> .service-editor) {
+    display: block;
   }
   .copy-toast {
     right: 16px;

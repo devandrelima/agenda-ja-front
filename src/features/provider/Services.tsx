@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { ErroApi } from '../../data/api'
-import { cadastrarServico, editarServico, listarServicos } from '../../data/services'
+import { cadastrarServico, desativarServico, editarServico, listarServicos } from '../../data/services'
 import type { DadosServico, Servico } from '../../data/services'
 import { Button, Card, Empty, Field } from '../../design-system/ui'
 
@@ -123,6 +123,9 @@ export function Servicos() {
   const [tentativa, definirTentativa] = useState(0)
   const [emEdicao, definirEmEdicao] = useState<Servico | 'novo' | null>(null)
   const [mensagem, definirMensagem] = useState('')
+  const [confirmandoId, definirConfirmandoId] = useState<number | null>(null)
+  const [desativandoId, definirDesativandoId] = useState<number | null>(null)
+  const [erroDesativacao, definirErroDesativacao] = useState('')
 
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -158,6 +161,22 @@ export function Servicos() {
     definirEmEdicao(null)
   }
 
+  async function desativar(servicoId: number) {
+    if (estabelecimentoId == null) return
+    definirDesativandoId(servicoId)
+    definirErroDesativacao('')
+    try {
+      await desativarServico(estabelecimentoId, servicoId)
+      definirServicos((atuais) => atuais.filter((servico) => servico.id !== servicoId))
+      definirConfirmandoId(null)
+      definirMensagem('Serviço desativado com sucesso.')
+    } catch (falha) {
+      definirErroDesativacao(mensagemFalha(falha))
+    } finally {
+      definirDesativandoId(null)
+    }
+  }
+
   if (estabelecimentoId == null) {
     return (
       <>
@@ -172,13 +191,15 @@ export function Servicos() {
   }
 
   return (
-    <>
+    <div className={emEdicao ? 'service-editor' : undefined}>
       <header className="topbar">
         <h1>{emEdicao === 'novo' ? 'Novo serviço' : emEdicao ? 'Editar serviço' : 'Serviços'}</h1>
         {!emEdicao && !carregando && !erroLista && (
           <Button
+            disabled={desativandoId != null}
             onClick={() => {
               definirMensagem('')
+              definirConfirmandoId(null)
               definirEmEdicao('novo')
             }}
           >
@@ -233,23 +254,72 @@ export function Servicos() {
                       {servico.duracaoMinutos} min · {formatarValor(servico.valor)}
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    aria-label={`Editar ${servico.nome}`}
-                    onClick={() => {
-                      definirMensagem('')
-                      definirEmEdicao(servico)
-                    }}
-                  >
-                    Editar
-                  </Button>
+                  {confirmandoId === servico.id ? (
+                    <div className="service-card-confirmation">
+                      <p>Desativar {servico.nome}? Ele deixará de aparecer na lista de serviços.</p>
+                      {erroDesativacao && (
+                        <p className="auth-error" role="alert">
+                          {erroDesativacao}
+                        </p>
+                      )}
+                      <div className="service-card-actions">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={desativandoId === servico.id}
+                          onClick={() => {
+                            definirConfirmandoId(null)
+                            definirErroDesativacao('')
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          type="button"
+                          className="service-deactivate-button"
+                          disabled={desativandoId === servico.id}
+                          onClick={() => void desativar(servico.id)}
+                        >
+                          {desativandoId === servico.id ? 'Desativando...' : 'Confirmar desativação'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="service-card-actions">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        aria-label={`Editar ${servico.nome}`}
+                        disabled={desativandoId != null}
+                        onClick={() => {
+                          definirMensagem('')
+                          definirConfirmandoId(null)
+                          definirEmEdicao(servico)
+                        }}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        aria-label={`Desativar ${servico.nome}`}
+                        disabled={desativandoId != null}
+                        onClick={() => {
+                          definirMensagem('')
+                          definirErroDesativacao('')
+                          definirConfirmandoId(servico.id)
+                        }}
+                      >
+                        Desativar
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
           )}
         </>
       )}
-    </>
+    </div>
   )
 }

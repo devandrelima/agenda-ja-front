@@ -40,3 +40,11 @@ export function cadastrarServico(estabelecimentoId: number, dados: DadosServico)
 export function editarServico(estabelecimentoId: number, servicoId: number, dados: DadosServico) {
   return salvarServico(`${caminhoServicos(estabelecimentoId)}/${servicoId}`, 'PUT', dados)
 }
+
+export async function desativarServico(estabelecimentoId: number, servicoId: number): Promise<void> {
+  const token = await tokenCsrf()
+  await requisitar(`${caminhoServicos(estabelecimentoId)}/${servicoId}`, {
+    method: 'DELETE',
+    headers: { 'X-CSRF-TOKEN': token },
+  })
+}
