@@ -36,7 +36,10 @@ const disponibilidadeVazia: Disponibilidade = { jornadas: [], folgas: [] }
 
 type Turno = Jornada & { chave: string }
 
-const novaChave = () => crypto.randomUUID()
+// Chave só para as listas do React. Não usar crypto.randomUUID(): ele só existe em contexto
+// seguro (HTTPS ou localhost), e em produção via HTTP a chamada derrubava a página.
+let ultimaChave = 0
+const novaChave = () => String(++ultimaChave)
 
 function mensagemFalha(falha: unknown) {
   if (falha instanceof ErroApi) {

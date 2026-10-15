@@ -322,6 +322,16 @@ describe('tela de profissionais', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('adiciona turnos sem crypto.randomUUID, que não existe em HTTP fora de localhost', async () => {
+    vi.stubGlobal('crypto', {})
+    const user = userEvent.setup()
+    stubFetch(rotasPadrao())
+    renderizar()
+    await user.click(await screen.findByRole('button', { name: 'Ver detalhes de Ana Martins' }))
+    await user.click(await screen.findByRole('button', { name: 'Adicionar turno em terça' }))
+    expect(screen.getByLabelText('Início do turno 1 de terça')).toHaveValue('08:00')
+  })
+
   it('não duplica o cadastro quando os horários falham e o usuário tenta de novo', async () => {
     const user = userEvent.setup()
     let falharHorarios = true
