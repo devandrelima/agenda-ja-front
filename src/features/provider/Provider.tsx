@@ -5,6 +5,7 @@ import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
+import { HorariosDoNegocio } from './BusinessHours'
 
 type IconeMenu =
   'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
@@ -102,12 +103,7 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
         <Logo />
         <nav>
           {itensDoMenu.map(({ caminho, rotulo, icone }) => (
-            <NavLink
-              key={caminho}
-              to={caminho}
-              end={caminho === '/painel'}
-              aria-label={rotulo}
-            >
+            <NavLink key={caminho} to={caminho} end={caminho === '/painel'} aria-label={rotulo}>
               <IconeDaNavegacao nome={icone} />
               <span className="nav-label">{rotulo}</span>
             </NavLink>
@@ -252,6 +248,9 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
+      <section className="section">
+        <HorariosDoNegocio />
+      </section>
       <section className="section">
         <ProximosAtendimentos />
       </section>

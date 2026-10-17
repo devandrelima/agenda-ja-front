@@ -891,6 +891,84 @@
   display: block;
   margin-top: 8px;
 }
+.business-hours-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+.business-hours-heading h2 {
+  margin: 0 0 6px;
+}
+.business-hours-heading p {
+  margin: 0;
+}
+.business-hours-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.business-hours-summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.business-hours-summary span {
+  color: var(--muted);
+  text-align: right;
+}
+.business-hours-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.business-hours-row {
+  display: grid;
+  grid-template-columns: minmax(85px, 1fr) 100px repeat(2, minmax(105px, 1fr));
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.business-hours-row label:not(.business-hours-closed) {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.business-hours-row input[type='time'] {
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.business-hours-row input[type='time']:disabled {
+  opacity: 0.5;
+}
+.business-hours-closed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.business-hours-note {
+  margin: 18px 0 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.business-hours-preview {
+  color: var(--brand);
+  font-weight: 700;
+}
 .appointment {
   display: flex;
   gap: 15px;
@@ -1191,6 +1269,18 @@
   margin-top: 24px;
 }
 @media (max-width: 700px) {
+  .business-hours-heading {
+    flex-wrap: wrap;
+  }
+  .business-hours-summary {
+    grid-template-columns: 1fr;
+  }
+  .business-hours-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .business-hours-closed {
+    justify-self: end;
+  }
   .service-card {
     align-items: stretch;
     flex-direction: column;

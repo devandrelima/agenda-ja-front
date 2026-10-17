@@ -22,7 +22,6 @@ export type Estabelecimento = {
   categoria: string
   endereco: string
   avaliacoes: Avaliacao[]
-  horarioDeFuncionamento: string
 }
 
 export type Avaliacao = {

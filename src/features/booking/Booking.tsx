@@ -12,19 +12,11 @@ import { emailValido, telefoneValido } from '../../domain/contact'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
+import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import fotoDoSalao from '../../assets/salao-atelie-aurora.png'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const disponibilidadeSemanal = [
-  ['Segunda', '8:00 – 12:00'],
-  ['Terça', '8:00 – 12:00'],
-  ['Quarta', '8:00 – 12:00'],
-  ['Quinta', '8:00 – 12:00'],
-  ['Sexta', '8:00 – 12:00'],
-  ['Sábado', '8:00 – 10:00'],
-  ['Domingo', 'Fechado'],
-]
 const AVALIACOES_VAZIAS: Avaliacao[] = []
 
 export function MarcaAgendaJa() {
@@ -130,7 +122,7 @@ export function PaginaEstabelecimento({
             <circle cx="18" cy="18" r="3" />
             <path d="m20.2 20.2 1.8 1.8" />
           </svg>
-          <span>{dados ? 'Ver serviços' : 'Ver serviços e disponibilidade'}</span>
+          <span>{dados ? 'Ver serviços' : 'Ver horários e serviços'}</span>
           <span className="presentation-arrow" aria-hidden="true">
             ›
           </span>
@@ -158,6 +150,7 @@ export function PaginaEstabelecimento({
 }
 export function Disponibilidade() {
   const servicos = repositorioMock.buscarServicos()
+  const horarios = useHorariosFuncionamento()
 
   return (
     <main className="availability-page">
@@ -173,16 +166,13 @@ export function Disponibilidade() {
           <MarcaAgendaJa />
         </header>
 
-        <h1 id="availability-title">Disponibilidade</h1>
-        <section aria-labelledby="weekly-hours-title">
-          <h2 id="weekly-hours-title" className="sr-only">
-            Horários de funcionamento
-          </h2>
+        <h1 id="availability-title">Horários de funcionamento</h1>
+        <section aria-label="Horários da semana">
           <ul className="availability-list">
-            {disponibilidadeSemanal.map(([dia, horario]) => (
-              <li key={dia}>
-                <strong>{dia}</strong>
-                <span>{horario}</span>
+            {horarios.map((horario, indice) => (
+              <li key={nomesDias[indice]}>
+                <strong>{nomesDias[indice]}</strong>
+                <span>{resumirHorario(horario)}</span>
               </li>
             ))}
           </ul>

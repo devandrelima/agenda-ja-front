@@ -5,8 +5,9 @@ test('mantém a página pública de demonstração no link existente', async ({ 
   await expect(page.getByRole('heading', { name: 'Ateliê Aurora' })).toBeVisible()
   await expect(page.getByText('Salão de beleza').first()).toBeVisible()
   await expect(page.getByText('Endereço ilustrativo · Centro')).toBeVisible()
-  await page.getByRole('link', { name: 'Ver serviços e disponibilidade' }).click()
+  await page.getByRole('link', { name: 'Ver horários e serviços' }).click()
   await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/disponibilidade$/)
+  await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toBeVisible()
 })
 
 test('abre avaliações em página própria e volta pela seta', async ({ page }) => {

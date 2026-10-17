@@ -84,7 +84,6 @@ const estabelecimento: Estabelecimento = {
     id: `av-${indice + 1}`,
     ...comentariosDeAvaliacao[indice % comentariosDeAvaliacao.length],
   })),
-  horarioDeFuncionamento: 'Seg–Sáb, 9h às 18h',
 }
 
 const servicos: Servico[] = [
