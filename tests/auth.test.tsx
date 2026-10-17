@@ -45,6 +45,9 @@ it('autentica o gestor com CSRF, restaura o painel e encerra a sessão', async (
     if (entrada === '/api/auth/csrf') return resposta({ token: 'token-teste' })
     if (entrada === '/api/auth/login') return resposta(sessao)
     if (entrada === '/api/auth/logout') return resposta(null, 204)
+    if (entrada === '/api/admin/estabelecimentos/4') {
+      return resposta({ nome: 'Ateliê Aurora', categoria: 'Salão de beleza', localizacao: 'Centro' })
+    }
     throw new Error(`Rota inesperada: ${entrada}`)
   })
   vi.stubGlobal('fetch', requisicoes)
@@ -68,7 +71,14 @@ it('autentica o gestor com CSRF, restaura o painel e encerra a sessão', async (
     }),
   )
 
-  await usuario.click(screen.getByRole('button', { name: 'Sair' }))
+  expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
+  await usuario.click(screen.getByRole('button', { name: 'Configurações' }))
+  expect(await screen.findByRole('heading', { name: 'Configurações' })).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/painel/configuracoes')
+  await usuario.click(screen.getByRole('button', { name: /^Sair$/ }))
+  expect(await screen.findByRole('dialog', { name: 'Sair da conta?' })).toBeInTheDocument()
+  expect(requisicoes.mock.calls.some(([entrada]) => entrada === '/api/auth/logout')).toBe(false)
+  await usuario.click(screen.getByRole('button', { name: 'Sair da conta' }))
   expect(await screen.findByRole('heading', { name: 'Acesse sua conta' })).toBeInTheDocument()
   expect(window.location.pathname).toBe('/login')
   expect(requisicoes).toHaveBeenCalledWith(
