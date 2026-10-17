@@ -14,6 +14,7 @@ import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
+import { useDadosNegocioDemo } from '../../data/businessProfile'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -50,7 +51,17 @@ export function PaginaEstabelecimento({
 }) {
   const avaliacoesDemo = useAvaliacoesDemo()
   const capaDemo = useCapaNegocio()
-  const estabelecimento = dados ?? repositorioMock.buscarEstabelecimento()
+  const dadosNegocioDemo = useDadosNegocioDemo()
+  const estabelecimento = dados ?? {
+    ...repositorioMock.buscarEstabelecimento(),
+    ...(dadosNegocioDemo
+      ? {
+          nome: dadosNegocioDemo.nome,
+          categoria: dadosNegocioDemo.categoria,
+          endereco: dadosNegocioDemo.localizacao,
+        }
+      : {}),
+  }
   const avaliacoes = dados ? (dados.avaliacoes ?? AVALIACOES_VAZIAS) : avaliacoesDemo
   const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
   const temAvaliacoes = quantidadeAvaliacoes > 0

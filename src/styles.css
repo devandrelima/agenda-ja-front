@@ -949,6 +949,47 @@
 .business-cover-card .auth-error {
   grid-column: 1 / -1;
 }
+.business-profile-list {
+  display: grid;
+  margin: 18px 0 0;
+}
+.business-profile-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.business-profile-list > div:last-child {
+  border-bottom: 0;
+}
+.business-profile-list dt {
+  font-weight: 700;
+}
+.business-profile-list dd {
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.business-profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+  margin-top: 20px;
+}
+.business-profile-form > .field:nth-child(3),
+.business-profile-form > .auth-error,
+.business-profile-form > .form-actions {
+  grid-column: 1 / -1;
+}
+.business-profile-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
 .business-hours-heading {
   display: flex;
   justify-content: space-between;
@@ -1291,6 +1332,9 @@
   }
 }
 @media (max-width: 700px) {
+  .business-profile-form {
+    grid-template-columns: 1fr;
+  }
   .business-hours-heading {
     flex-wrap: wrap;
   }

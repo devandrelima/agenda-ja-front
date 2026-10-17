@@ -12,6 +12,19 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/me', (rota) =>
     rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sessao) }),
   )
+  await page.route('**/api/admin/estabelecimentos/4', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 4,
+        nome: 'Ateliê Aurora',
+        categoria: 'Salão de beleza',
+        localizacao: 'Endereço ilustrativo · Centro',
+        imagemUrl: null,
+      }),
+    }),
+  )
 })
 
 test('gestor edita os turnos do negócio e a página pública mostra os períodos salvos', async ({

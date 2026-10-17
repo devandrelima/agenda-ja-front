@@ -27,6 +27,7 @@ import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
 import { cadastrarClienteDemo, existeClienteDemo } from '../data/demoClientAuth'
+import { categoriasNegocio } from '../data/businessProfile'
 import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
@@ -167,10 +168,9 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
                   <option value="" disabled>
                     Selecione
                   </option>
-                  <option>Salão de beleza</option>
-                  <option>Clínica de estética</option>
-                  <option>Barbearia</option>
-                  <option>Outro</option>
+                  {categoriasNegocio.map((categoria) => (
+                    <option key={categoria}>{categoria}</option>
+                  ))}
                 </select>
                 {errosCampos.categoria && <small role="alert">{errosCampos.categoria}</small>}
               </label>

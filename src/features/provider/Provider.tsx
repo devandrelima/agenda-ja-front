@@ -8,6 +8,7 @@ import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
 import { HorariosDoNegocio } from './BusinessHours'
+import { DadosDoNegocio } from './BusinessProfile'
 
 type IconeMenu =
   'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
@@ -253,6 +254,9 @@ export function ConfiguracoesDoNegocio() {
       </header>
       <section className="section dashboard-section">
         <CapaDoNegocio />
+      </section>
+      <section className="section dashboard-section">
+        <DadosDoNegocio />
       </section>
       <section className="section dashboard-section">
         <HorariosDoNegocio />
