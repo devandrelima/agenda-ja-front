@@ -10,11 +10,17 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
+import { PaginaAvaliacoes } from '../features/reviews/Reviews'
+import {
+  PaginaEstabelecimentoPublico,
+  ProximaEtapaPublica,
+} from '../features/booking/PublicEstablishment'
 import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
+import { cadastrarClienteDemo, existeClienteDemo } from '../data/demoClientAuth'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
 import { caminhos } from './paths'
@@ -27,6 +33,11 @@ const modulosFuturos = [
 function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const navegar = useNavigate()
   const localizacao = useLocation()
+  const retorno =
+    localizacao.state?.retorno === caminhos.avaliacoes ? caminhos.avaliacoes : caminhos.painel
+  const [perfil, definirPerfil] = useState<'GESTOR' | 'CLIENTE'>(
+    localizacao.state?.perfil === 'CLIENTE' ? 'CLIENTE' : 'GESTOR',
+  )
   const { sessao, carregando, autenticar } = useAutenticacao()
   const [email, definirEmail] = useState('')
   const [senha, definirSenha] = useState('')
@@ -34,7 +45,8 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const [erro, definirErro] = useState('')
   const [errosCampos, definirErrosCampos] = useState<Record<string, string>>({})
 
-  if (sessao?.role === 'GESTOR') return <Navigate to={caminhos.painel} replace />
+  if (sessao?.role === 'GESTOR') return <Navigate to={retorno} replace />
+  if (sessao?.role === 'CLIENTE') return <Navigate to={caminhos.avaliacoes} replace />
 
   async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -45,18 +57,31 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
     try {
       if (cadastro) {
         const formulario = new FormData(evento.currentTarget)
-        await cadastrarEstabelecimento({
-          nomeNegocio: String(formulario.get('nomeNegocio')).trim(),
-          categoria: String(formulario.get('categoria')).trim(),
-          localizacao: String(formulario.get('localizacao')).trim(),
-          nomeGestor: String(formulario.get('nomeGestor')).trim(),
-          email: email.trim(),
-          senha,
+        if (perfil === 'CLIENTE') {
+          await cadastrarClienteDemo({
+            nome: String(formulario.get('nomeCompleto') ?? ''),
+            telefone: String(formulario.get('telefone') ?? ''),
+            email,
+            senha,
+          })
+        } else {
+          await cadastrarEstabelecimento({
+            nomeNegocio: String(formulario.get('nomeNegocio')).trim(),
+            categoria: String(formulario.get('categoria')).trim(),
+            localizacao: String(formulario.get('localizacao')).trim(),
+            nomeGestor: String(formulario.get('nomeGestor')).trim(),
+            email: email.trim(),
+            senha,
+          })
+        }
+        navegar(caminhos.login, {
+          replace: true,
+          state: { cadastroConcluido: true, perfil, retorno: localizacao.state?.retorno },
         })
-        navegar(caminhos.login, { replace: true, state: { cadastroConcluido: true } })
       } else {
-        await autenticar(email, senha)
-        navegar(caminhos.painel, { replace: true })
+        const perfilEntrada = existeClienteDemo(email) ? 'CLIENTE' : 'GESTOR'
+        await autenticar(email, senha, perfilEntrada)
+        navegar(perfilEntrada === 'CLIENTE' ? caminhos.avaliacoes : retorno, { replace: true })
       }
     } catch (falha) {
       if (falha instanceof ErroApi) {
@@ -83,13 +108,32 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
       <Card>
         <Logo />
         <form className="form" onSubmit={(evento) => void enviarFormulario(evento)}>
+          {cadastro && (
+            <div className="auth-profile" role="group" aria-label="Tipo de conta">
+              {(['GESTOR', 'CLIENTE'] as const).map((opcao) => (
+                <button
+                  key={opcao}
+                  type="button"
+                  aria-pressed={perfil === opcao}
+                  onClick={() => {
+                    definirPerfil(opcao)
+                    definirSenha('')
+                    definirErro('')
+                    definirErrosCampos({})
+                  }}
+                >
+                  {opcao === 'GESTOR' ? 'Gestor' : 'Cliente'}
+                </button>
+              ))}
+            </div>
+          )}
           <h1>{cadastro ? 'Crie sua conta' : 'Acesse sua conta'}</h1>
           {!cadastro && localizacao.state?.cadastroConcluido && (
             <p className="notice" role="status">
               Conta criada. Entre com seu e-mail e senha.
             </p>
           )}
-          {cadastro && (
+          {cadastro && perfil === 'GESTOR' && (
             <>
               <Field
                 name="nomeNegocio"
@@ -127,10 +171,32 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
               />
             </>
           )}
+          {cadastro && perfil === 'CLIENTE' && (
+            <>
+              <Field
+                name="nomeCompleto"
+                label="Nome completo"
+                autoComplete="name"
+                maxLength={100}
+                required
+              />
+              <Field
+                name="telefone"
+                label="Telefone/WhatsApp"
+                type="tel"
+                autoComplete="tel"
+                inputMode="tel"
+                minLength={10}
+                maxLength={20}
+                required
+              />
+            </>
+          )}
           <Field
             name="email"
             label="E-mail"
             type="email"
+            autoComplete="email"
             maxLength={100}
             value={email}
             onChange={(evento) => definirEmail(evento.target.value)}
@@ -141,12 +207,18 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
             name="senha"
             label="Senha"
             type="password"
+            autoComplete={cadastro ? 'new-password' : 'current-password'}
             minLength={cadastro ? 8 : undefined}
             value={senha}
             onChange={(evento) => definirSenha(evento.target.value)}
             error={errosCampos.senha}
             required
           />
+          {cadastro && perfil === 'CLIENTE' && (
+            <p className="auth-demo-note">
+              Conta de demonstração salva apenas neste navegador. Use uma senha de teste.
+            </p>
+          )}
           {erro && (
             <p className="auth-error" role="alert">
               {erro}
@@ -161,7 +233,10 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
           </Button>
           <p className="muted">
             {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
-            <Link to={cadastro ? caminhos.login : caminhos.cadastro}>
+            <Link
+              to={cadastro ? caminhos.login : caminhos.cadastro}
+              state={{ perfil, retorno: localizacao.state?.retorno }}
+            >
               {cadastro ? 'Entrar' : 'Criar conta'}
             </Link>
           </p>
@@ -189,9 +264,22 @@ export function App() {
       <ProvedorAutenticacao>
         <Routes>
           <Route path="/" element={<Navigate to={caminhos.login} replace />} />
-          <Route path={caminhos.login} element={<Autenticacao />} />
-          <Route path={caminhos.cadastro} element={<Autenticacao cadastro />} />
+          <Route path={caminhos.login} element={<Autenticacao key="login" />} />
+          <Route path={caminhos.cadastro} element={<Autenticacao key="cadastro" cadastro />} />
           <Route path={caminhos.estabelecimento} element={<PaginaEstabelecimento />} />
+          <Route path={caminhos.avaliacoes} element={<PaginaAvaliacoes />} />
+          <Route
+            path="/estabelecimento/:estabelecimentoId"
+            element={<PaginaEstabelecimentoPublico />}
+          />
+          <Route
+            path="/estabelecimento/:estabelecimentoId/servicos"
+            element={<ProximaEtapaPublica etapa="servicos" />}
+          />
+          <Route
+            path="/estabelecimento/:estabelecimentoId/agendar"
+            element={<ProximaEtapaPublica etapa="agendar" />}
+          />
           <Route path={caminhos.disponibilidade} element={<Disponibilidade />} />
           <Route path={caminhos.agendamento} element={<Agendamento />} />
           <Route

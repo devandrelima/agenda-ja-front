@@ -21,8 +21,6 @@ export type Estabelecimento = {
   nome: string
   categoria: string
   endereco: string
-  avaliacao: number
-  quantidadeAvaliacoes: number
   avaliacoes: Avaliacao[]
   horarioDeFuncionamento: string
 }
@@ -32,6 +30,9 @@ export type Avaliacao = {
   nomeCliente: string
   comentario: string
   estrelas: number
+  autorId?: number
+  publicadoEm?: string
+  editadoEm?: string
 }
 
 export type Cliente = {

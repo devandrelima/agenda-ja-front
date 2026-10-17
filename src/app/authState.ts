@@ -4,7 +4,7 @@ import type { Sessao } from '../data/auth'
 export type EstadoAutenticacao = {
   sessao: Sessao | null
   carregando: boolean
-  autenticar: (email: string, senha: string) => Promise<void>
+  autenticar: (email: string, senha: string, perfil?: 'GESTOR' | 'CLIENTE') => Promise<void>
   encerrar: () => Promise<void>
 }
 

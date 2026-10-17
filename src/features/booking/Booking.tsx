@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { repositorioMock } from '../../data/mockRepository'
 import {
@@ -7,9 +7,10 @@ import {
   buscarProfissionaisDoServico,
   paraChaveData,
 } from '../../domain/availability'
-import type { EscolhasAgendamento } from '../../domain/models'
+import type { Avaliacao, EscolhasAgendamento } from '../../domain/models'
 import { Button, Card, Field, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
+import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import fotoDoSalao from '../../assets/salao-atelie-aurora.png'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -23,10 +24,9 @@ const disponibilidadeSemanal = [
   ['Sábado', '8:00 – 10:00'],
   ['Domingo', 'Fechado'],
 ]
-const AVALIACOES_POR_PAGINA = 10
-type OrdenacaoAvaliacoes = 'mais-estrelas' | 'menos-estrelas'
+const AVALIACOES_VAZIAS: Avaliacao[] = []
 
-function MarcaAgendaJa() {
+export function MarcaAgendaJa() {
   return (
     <div className="presentation-brand" aria-label="AgendaJá">
       <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -40,162 +40,69 @@ function MarcaAgendaJa() {
   )
 }
 
-export function PaginaEstabelecimento() {
-  const estabelecimento = repositorioMock.buscarEstabelecimento()
-  const rotuloAvaliacoes = estabelecimento.quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
-  const [avaliacoesAbertas, definirAvaliacoesAbertas] = useState(false)
-  const [ordenacaoAvaliacoes, definirOrdenacaoAvaliacoes] =
-    useState<OrdenacaoAvaliacoes>('mais-estrelas')
-  const [paginaAvaliacao, definirPaginaAvaliacao] = useState(1)
-  const avaliacoesOrdenadas = useMemo(
-    () =>
-      [...estabelecimento.avaliacoes].sort((primeira, segunda) =>
-        ordenacaoAvaliacoes === 'mais-estrelas'
-          ? segunda.estrelas - primeira.estrelas
-          : primeira.estrelas - segunda.estrelas,
-      ),
-    [estabelecimento.avaliacoes, ordenacaoAvaliacoes],
-  )
-  const totalPaginasAvaliacao = Math.ceil(avaliacoesOrdenadas.length / AVALIACOES_POR_PAGINA)
-  const inicioAvaliacao = (paginaAvaliacao - 1) * AVALIACOES_POR_PAGINA
-  const avaliacoesDaPagina = avaliacoesOrdenadas.slice(
-    inicioAvaliacao,
-    inicioAvaliacao + AVALIACOES_POR_PAGINA,
-  )
+export type DadosPaginaEstabelecimento = {
+  nome: string
+  categoria: string
+  endereco: string
+  imagemUrl?: string | null
+  avaliacoes?: Avaliacao[]
+}
 
-  useEffect(() => {
-    function fecharComEscape(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') definirAvaliacoesAbertas(false)
-    }
-
-    window.addEventListener('keydown', fecharComEscape)
-    return () => window.removeEventListener('keydown', fecharComEscape)
-  }, [])
-
+export function PaginaEstabelecimento({
+  dados,
+  rotaBase = caminhos.estabelecimento,
+}: {
+  dados?: DadosPaginaEstabelecimento
+  rotaBase?: string
+}) {
+  const avaliacoesDemo = useAvaliacoesDemo()
+  const estabelecimento = dados ?? repositorioMock.buscarEstabelecimento()
+  const avaliacoes = dados ? (dados.avaliacoes ?? AVALIACOES_VAZIAS) : avaliacoesDemo
+  const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
+  const temAvaliacoes = quantidadeAvaliacoes > 0
+  const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
+  const caminhoAvaliacoes = dados ? `${rotaBase}/avaliacoes` : caminhos.avaliacoes
+  const imagemUrl = dados ? dados.imagemUrl : fotoDoSalao
+  const caminhoServicos = dados ? `${rotaBase}/servicos` : caminhos.disponibilidade
+  const caminhoAgendamento = dados ? `${rotaBase}/agendar` : caminhos.agendamento
   return (
     <main className="public-presentation">
       <section className="presentation-shell" aria-labelledby="business-name">
         <MarcaAgendaJa />
 
         <div className="presentation-intro">
+          <p className="public-business-category">{estabelecimento.categoria}</p>
           <h1 id="business-name">{estabelecimento.nome}</h1>
           <p>Escolha um horário sem precisar enviar mensagem.</p>
         </div>
 
-        <div className="presentation-overview">
-          <img
-            className="presentation-photo"
-            src={fotoDoSalao}
-            alt={`Interior do ${estabelecimento.nome}`}
-          />
-          <div
-            className="presentation-ratings"
-            aria-label={`Avaliação ${estabelecimento.avaliacao}`}
-          >
-            <div className="rating-score">
-              {estabelecimento.avaliacao.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
+        <div className={`presentation-overview${temAvaliacoes ? '' : ' without-ratings'}`}>
+          {imagemUrl ? (
+            <img
+              className="presentation-photo"
+              src={imagemUrl}
+              alt={`Foto do ${estabelecimento.nome}`}
+            />
+          ) : (
+            <div className="presentation-photo public-business-placeholder" aria-hidden="true">
+              {estabelecimento.nome.trim().charAt(0).toUpperCase()}
             </div>
-            <button
-              className="rating-count"
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded={avaliacoesAbertas}
-              aria-controls="reviews-dialog"
-              onClick={() => {
-                definirPaginaAvaliacao(1)
-                definirAvaliacoesAbertas(true)
-              }}
-            >
-              <strong>{estabelecimento.quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
-            </button>
-          </div>
+          )}
+          {temAvaliacoes && (
+            <div className="presentation-ratings">
+              <Link
+                className="rating-score"
+                to={caminhoAvaliacoes}
+                aria-label={`Ver avaliações, média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
+              >
+                {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
+              </Link>
+              <Link className="rating-count" to={caminhoAvaliacoes}>
+                <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
+              </Link>
+            </div>
+          )}
         </div>
-
-        {avaliacoesAbertas && (
-          <div
-            className="reviews-backdrop"
-            onMouseDown={(evento) => {
-              if (evento.target === evento.currentTarget) definirAvaliacoesAbertas(false)
-            }}
-          >
-            <section
-              id="reviews-dialog"
-              className="reviews-dialog"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="reviews-title"
-            >
-              <header className="reviews-dialog-header">
-                <div>
-                  <p className="reviews-dialog-eyebrow">
-                    {estabelecimento.quantidadeAvaliacoes} {rotuloAvaliacoes}
-                  </p>
-                  <h2 id="reviews-title">Comentários de clientes</h2>
-                </div>
-                <button
-                  className="reviews-close"
-                  type="button"
-                  onClick={() => definirAvaliacoesAbertas(false)}
-                  aria-label="Fechar avaliações"
-                >
-                  ×
-                </button>
-              </header>
-              <div className="reviews-toolbar">
-                <label className="reviews-sort">
-                  Ordenar por
-                  <select
-                    value={ordenacaoAvaliacoes}
-                    onChange={(evento) => {
-                      definirOrdenacaoAvaliacoes(evento.target.value as OrdenacaoAvaliacoes)
-                      definirPaginaAvaliacao(1)
-                    }}
-                  >
-                    <option value="mais-estrelas">Mais estrelas</option>
-                    <option value="menos-estrelas">Menos estrelas</option>
-                  </select>
-                </label>
-                <p className="reviews-summary" aria-live="polite">
-                  Mostrando {inicioAvaliacao + 1}–
-                  {Math.min(inicioAvaliacao + AVALIACOES_POR_PAGINA, avaliacoesOrdenadas.length)} de{' '}
-                  {estabelecimento.quantidadeAvaliacoes}
-                </p>
-              </div>
-              <div className="reviews-list">
-                {avaliacoesDaPagina.map((avaliacao) => (
-                  <article className="review" key={avaliacao.id}>
-                    <div className="review-heading">
-                      <strong>{avaliacao.nomeCliente}</strong>
-                      <span aria-label={`${avaliacao.estrelas} de 5 estrelas`}>
-                        <span aria-hidden="true">{'★'.repeat(avaliacao.estrelas)}</span>
-                      </span>
-                    </div>
-                    <p>{avaliacao.comentario}</p>
-                  </article>
-                ))}
-              </div>
-              <nav className="reviews-pagination" aria-label="Paginação das avaliações">
-                <button
-                  type="button"
-                  onClick={() => definirPaginaAvaliacao((pagina) => pagina - 1)}
-                  disabled={paginaAvaliacao === 1}
-                >
-                  Anterior
-                </button>
-                <span>
-                  Página {paginaAvaliacao} de {totalPaginasAvaliacao}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => definirPaginaAvaliacao((pagina) => pagina + 1)}
-                  disabled={paginaAvaliacao === totalPaginasAvaliacao}
-                >
-                  Próxima
-                </button>
-              </nav>
-            </section>
-          </div>
-        )}
 
         <a
           className="presentation-info-card"
@@ -215,14 +122,14 @@ export function PaginaEstabelecimento() {
           </span>
         </a>
 
-        <Link className="presentation-info-card" to={caminhos.disponibilidade}>
+        <Link className="presentation-info-card" to={caminhoServicos}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="5" width="14" height="16" rx="2" />
             <path d="M7 3v4m6-4v4M6 11h8m-8 4h5m-5 3h4" />
             <circle cx="18" cy="18" r="3" />
             <path d="m20.2 20.2 1.8 1.8" />
           </svg>
-          <span>Ver serviços e disponibilidade</span>
+          <span>{dados ? 'Ver serviços' : 'Ver serviços e disponibilidade'}</span>
           <span className="presentation-arrow" aria-hidden="true">
             ›
           </span>
@@ -231,14 +138,14 @@ export function PaginaEstabelecimento() {
         <div className="presentation-actions">
           <Link
             className="presentation-action"
-            to={caminhos.agendamento}
+            to={caminhoAgendamento}
             state={{ origem: 'apresentacao' }}
           >
             Fazer primeiro agendamento
           </Link>
           <Link
             className="presentation-action"
-            to={caminhos.agendamento}
+            to={caminhoAgendamento}
             state={{ origem: 'apresentacao' }}
           >
             Já sou cliente

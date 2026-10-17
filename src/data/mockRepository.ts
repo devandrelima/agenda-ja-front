@@ -80,8 +80,6 @@ const estabelecimento: Estabelecimento = {
   nome: 'Ateliê Aurora',
   categoria: 'Salão de beleza',
   endereco: 'Endereço ilustrativo · Centro',
-  avaliacao: 4.9,
-  quantidadeAvaliacoes: 126,
   avaliacoes: Array.from({ length: 126 }, (_, indice) => ({
     id: `av-${indice + 1}`,
     ...comentariosDeAvaliacao[indice % comentariosDeAvaliacao.length],

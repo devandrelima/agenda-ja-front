@@ -3,13 +3,18 @@ import type { PropsWithChildren } from 'react'
 import { useLocation } from 'react-router-dom'
 import { buscarSessao, entrar, ErroApi, sair } from '../data/auth'
 import type { Sessao } from '../data/auth'
+import { buscarSessaoClienteDemo, entrarClienteDemo, sairClienteDemo } from '../data/demoClientAuth'
 import { ContextoAutenticacao } from './authState'
+import { caminhos } from './paths'
 
 export function ProvedorAutenticacao({ children }: PropsWithChildren) {
   const { pathname } = useLocation()
   const precisaSessao =
-    pathname === '/login' || pathname === '/cadastro' || pathname.startsWith('/painel')
-  const [sessao, definirSessao] = useState<Sessao | null>(null)
+    pathname === '/login' ||
+    pathname === '/cadastro' ||
+    pathname.startsWith('/painel') ||
+    pathname === caminhos.avaliacoes
+  const [sessao, definirSessao] = useState<Sessao | null>(buscarSessaoClienteDemo)
   const [consultaConcluida, definirConsultaConcluida] = useState(false)
   const carregando = precisaSessao && !consultaConcluida && !sessao
 
@@ -32,13 +37,22 @@ export function ProvedorAutenticacao({ children }: PropsWithChildren) {
     }
   }, [precisaSessao, sessao])
 
-  async function autenticar(email: string, senha: string) {
+  async function autenticar(email: string, senha: string, perfil: 'GESTOR' | 'CLIENTE' = 'GESTOR') {
+    if (perfil === 'CLIENTE') {
+      definirSessao(await entrarClienteDemo(email, senha))
+      return
+    }
     const dados = await entrar(email, senha)
     if (dados.role !== 'GESTOR') throw new Error('Esta conta não tem acesso ao painel do gestor.')
     definirSessao(dados)
   }
 
   async function encerrar() {
+    if (sessao?.role === 'CLIENTE') {
+      sairClienteDemo()
+      definirSessao(null)
+      return
+    }
     try {
       await sair()
     } catch (falha) {

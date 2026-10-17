@@ -5,6 +5,7 @@ export const caminhos = {
   profissionais: '/painel/profissionais',
   servicos: '/painel/servicos',
   estabelecimento: '/estabelecimento/atelie-aurora',
+  avaliacoes: '/estabelecimento/atelie-aurora/avaliacoes',
   disponibilidade: '/estabelecimento/atelie-aurora/disponibilidade',
   agendamento: '/estabelecimento/atelie-aurora/agendar',
 } as const
