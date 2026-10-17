@@ -11,6 +11,7 @@ import {
 } from '../../data/demoReviews'
 import type { Avaliacao } from '../../domain/models'
 import { MarcaAgendaJa } from '../booking/Booking'
+import { ConfirmarSaida } from '../auth/ConfirmLogout'
 
 const porPagina = 10
 type Ordem = 'mais-estrelas' | 'menos-estrelas'
@@ -97,6 +98,9 @@ export function PaginaAvaliacoes() {
   const [confirmandoExclusao, definirConfirmandoExclusao] = useState<string | null>(null)
   const [operacao, definirOperacao] = useState<string | null>(null)
   const [aviso, definirAviso] = useState<{ texto: string; erro: boolean } | null>(null)
+  const [confirmandoSaida, definirConfirmandoSaida] = useState(false)
+  const [saindo, definirSaindo] = useState(false)
+  const [erroSaida, definirErroSaida] = useState('')
   const deslocamento = useDeslocamentoDoTeclado()
   const { quantidade, media } = resumoAvaliacoes(avaliacoes)
   const minhaAvaliacao = sessao
@@ -104,7 +108,11 @@ export function PaginaAvaliacoes() {
     : undefined
 
   const outrasAvaliacoes = useMemo(
-    () => ordenar(avaliacoes.filter((avaliacao) => avaliacao.id !== minhaAvaliacao?.id), ordem),
+    () =>
+      ordenar(
+        avaliacoes.filter((avaliacao) => avaliacao.id !== minhaAvaliacao?.id),
+        ordem,
+      ),
     [avaliacoes, minhaAvaliacao?.id, ordem],
   )
   const quantidadePorPagina = minhaAvaliacao ? porPagina - 1 : porPagina
@@ -173,6 +181,19 @@ export function PaginaAvaliacoes() {
     }
   }
 
+  async function finalizarSessao() {
+    definirSaindo(true)
+    definirErroSaida('')
+    try {
+      await encerrar()
+      definirConfirmandoSaida(false)
+    } catch {
+      definirErroSaida('Não foi possível sair. Tente novamente.')
+    } finally {
+      definirSaindo(false)
+    }
+  }
+
   return (
     <main className="availability-page reviews-page">
       <section
@@ -189,7 +210,11 @@ export function PaginaAvaliacoes() {
           </Link>
           <MarcaAgendaJa />
           {sessao?.role === 'CLIENTE' && (
-            <button className="reviews-logout" type="button" onClick={() => void encerrar()}>
+            <button
+              className="reviews-logout"
+              type="button"
+              onClick={() => definirConfirmandoSaida(true)}
+            >
               Sair
             </button>
           )}
@@ -401,10 +426,7 @@ export function PaginaAvaliacoes() {
         {!carregando && !sessao && (
           <p className="reviews-signin">
             Quer avaliar?{' '}
-            <Link
-              to={caminhos.login}
-              state={{ retorno: caminhos.avaliacoes, perfil: 'CLIENTE' }}
-            >
+            <Link to={caminhos.login} state={{ retorno: caminhos.avaliacoes, perfil: 'CLIENTE' }}>
               Entre na sua conta
             </Link>
             .
@@ -443,6 +465,17 @@ export function PaginaAvaliacoes() {
           </div>
           <small>Prévia local: avaliações salvas neste navegador.</small>
         </form>
+      )}
+      {confirmandoSaida && (
+        <ConfirmarSaida
+          saindo={saindo}
+          erro={erroSaida}
+          aoCancelar={() => {
+            definirConfirmandoSaida(false)
+            definirErroSaida('')
+          }}
+          aoConfirmar={() => void finalizarSessao()}
+        />
       )}
     </main>
   )

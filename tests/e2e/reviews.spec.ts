@@ -157,6 +157,11 @@ test('cliente de demonstração cadastra, entra e só gerencia o próprio coment
   await page.reload()
   await expect(page.locator('.review-manage')).toHaveCount(1)
   await page.getByRole('button', { name: 'Sair' }).click()
+  await expect(page.getByRole('dialog', { name: 'Sair da conta?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.locator('.review-manage')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click()
   await expect(page.locator('.review-manage')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Enviar' })).toHaveCount(0)
 
@@ -168,6 +173,7 @@ test('cliente de demonstração cadastra, entra e só gerencia o próprio coment
   await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/avaliacoes$/)
   await expect(page.locator('.review-manage')).toHaveCount(1)
   await page.getByRole('button', { name: 'Sair' }).click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click()
 
   await page.getByRole('link', { name: 'Entre na sua conta' }).click()
   await page.getByRole('link', { name: 'Criar conta' }).click()
