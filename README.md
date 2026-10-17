@@ -97,3 +97,10 @@ entre usuários dependem dessa integração.
 O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços e profissionais usa a `main` do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
 Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.
+
+## Convenção de commits
+
+Para funcionalidades de uma história de usuário, use
+`feat(HU<número>): <descrição em português>`. A mensagem depois dos dois-pontos
+deve estar em português, por exemplo:
+`feat(HU07): adiciona acesso às avaliações pela nota média`.
