@@ -1,7 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { ErroApi } from '../../data/api'
-import { cadastrarServico, desativarServico, editarServico, listarServicos } from '../../data/services'
+import {
+  cadastrarServico,
+  desativarServico,
+  editarServico,
+  listarServicos,
+} from '../../data/services'
 import type { DadosServico, Servico } from '../../data/services'
 import { Button, Card, Empty, Field } from '../../design-system/ui'
 
@@ -21,10 +27,12 @@ function FormularioServico({
   servico,
   aoSalvar,
   aoCancelar,
+  aoApagar,
 }: {
   servico?: Servico
   aoSalvar: (dados: DadosServico) => Promise<void>
   aoCancelar: () => void
+  aoApagar?: () => void
 }) {
   const [enviando, definirEnviando] = useState(false)
   const [erro, definirErro] = useState('')
@@ -105,9 +113,22 @@ function FormularioServico({
           <Button type="button" variant="ghost" onClick={aoCancelar} disabled={enviando}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={enviando}>
-            {enviando ? 'Salvando...' : servico ? 'Salvar alterações' : 'Cadastrar serviço'}
-          </Button>
+          <div className="service-edit-actions">
+            {servico && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="service-delete-trigger"
+                onClick={aoApagar}
+                disabled={enviando}
+              >
+                Apagar
+              </Button>
+            )}
+            <Button type="submit" disabled={enviando}>
+              {enviando ? 'Salvando...' : servico ? 'Salvar alterações' : 'Cadastrar serviço'}
+            </Button>
+          </div>
         </div>
       </form>
     </Card>
@@ -126,6 +147,18 @@ export function Servicos() {
   const [confirmandoId, definirConfirmandoId] = useState<number | null>(null)
   const [desativandoId, definirDesativandoId] = useState<number | null>(null)
   const [erroDesativacao, definirErroDesativacao] = useState('')
+
+  useEffect(() => {
+    if (confirmandoId == null || desativandoId != null) return
+    function fecharComEscape(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') {
+        definirConfirmandoId(null)
+        definirErroDesativacao('')
+      }
+    }
+    document.addEventListener('keydown', fecharComEscape)
+    return () => document.removeEventListener('keydown', fecharComEscape)
+  }, [confirmandoId, desativandoId])
 
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -169,7 +202,8 @@ export function Servicos() {
       await desativarServico(estabelecimentoId, servicoId)
       definirServicos((atuais) => atuais.filter((servico) => servico.id !== servicoId))
       definirConfirmandoId(null)
-      definirMensagem('Serviço desativado com sucesso.')
+      definirEmEdicao(null)
+      definirMensagem('Serviço apagado com sucesso.')
     } catch (falha) {
       definirErroDesativacao(mensagemFalha(falha))
     } finally {
@@ -213,6 +247,14 @@ export function Servicos() {
           servico={emEdicao === 'novo' ? undefined : emEdicao}
           aoSalvar={salvar}
           aoCancelar={() => definirEmEdicao(null)}
+          aoApagar={
+            emEdicao === 'novo'
+              ? undefined
+              : () => {
+                  definirErroDesativacao('')
+                  definirConfirmandoId(emEdicao.id)
+                }
+          }
         />
       ) : carregando ? (
         <p role="status">Carregando serviços...</p>
@@ -254,72 +296,81 @@ export function Servicos() {
                       {servico.duracaoMinutos} min · {formatarValor(servico.valor)}
                     </p>
                   </div>
-                  {confirmandoId === servico.id ? (
-                    <div className="service-card-confirmation">
-                      <p>Desativar {servico.nome}? Ele deixará de aparecer na lista de serviços.</p>
-                      {erroDesativacao && (
-                        <p className="auth-error" role="alert">
-                          {erroDesativacao}
-                        </p>
-                      )}
-                      <div className="service-card-actions">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          disabled={desativandoId === servico.id}
-                          onClick={() => {
-                            definirConfirmandoId(null)
-                            definirErroDesativacao('')
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          type="button"
-                          className="service-deactivate-button"
-                          disabled={desativandoId === servico.id}
-                          onClick={() => void desativar(servico.id)}
-                        >
-                          {desativandoId === servico.id ? 'Desativando...' : 'Confirmar desativação'}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="service-card-actions">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        aria-label={`Editar ${servico.nome}`}
-                        disabled={desativandoId != null}
-                        onClick={() => {
-                          definirMensagem('')
-                          definirConfirmandoId(null)
-                          definirEmEdicao(servico)
-                        }}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        aria-label={`Desativar ${servico.nome}`}
-                        disabled={desativandoId != null}
-                        onClick={() => {
-                          definirMensagem('')
-                          definirErroDesativacao('')
-                          definirConfirmandoId(servico.id)
-                        }}
-                      >
-                        Desativar
-                      </Button>
-                    </div>
-                  )}
+                  <div className="service-card-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      aria-label={`Editar ${servico.nome}`}
+                      onClick={() => {
+                        definirMensagem('')
+                        definirEmEdicao(servico)
+                      }}
+                    >
+                      Editar
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>
           )}
         </>
       )}
+      {emEdicao &&
+        emEdicao !== 'novo' &&
+        confirmandoId === emEdicao.id &&
+        createPortal(
+          <div
+            className="modal-backdrop"
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget && desativandoId == null) {
+                definirConfirmandoId(null)
+                definirErroDesativacao('')
+              }
+            }}
+          >
+            <section
+              className="card modal service-delete-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="service-delete-title"
+              aria-describedby="service-delete-description"
+            >
+              <h2 id="service-delete-title">Apagar serviço?</h2>
+              <p id="service-delete-description">
+                Tem certeza de que deseja apagar “{emEdicao.nome}”? O serviço deixará de aparecer na
+                lista de serviços.
+              </p>
+              {erroDesativacao && (
+                <p className="auth-error" role="alert">
+                  {erroDesativacao}
+                </p>
+              )}
+              <div className="form-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={desativandoId != null}
+                  onClick={() => {
+                    definirConfirmandoId(null)
+                    definirErroDesativacao('')
+                  }}
+                  autoFocus
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  className="service-delete-button"
+                  disabled={desativandoId != null}
+                  onClick={() => void desativar(emEdicao.id)}
+                >
+                  {desativandoId != null ? 'Apagando...' : 'Apagar serviço'}
+                </Button>
+              </div>
+            </section>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

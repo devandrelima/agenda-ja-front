@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   )
 })
 
-test('lista, cadastra e edita serviços do estabelecimento da sessão', async ({ page }) => {
+test('lista, cadastra, edita e apaga serviços do estabelecimento da sessão', async ({ page }) => {
   const servicos = [{ id: 10, nome: 'Corte', duracaoMinutos: 30, valor: 45, estabelecimentoId: 4 }]
   await page.route(/\/api\/admin\/estabelecimentos\/4\/servicos(?:\/\d+)?$/, async (rota) => {
     const requisicao = rota.request()
@@ -88,21 +88,29 @@ test('lista, cadastra e edita serviços do estabelecimento da sessão', async ({
   await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Escova', exact: true })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Desativar Escova modeladora' }).click()
-  await expect(page.getByText('Desativar Escova modeladora?')).toBeVisible()
-  await page.getByRole('button', { name: 'Cancelar' }).click()
-  await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Desativar/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Editar Escova modeladora' }).click()
+  await page.getByRole('button', { name: 'Apagar', exact: true }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Apagar serviço?' })
+  await expect(
+    dialogo.getByText(
+      'Tem certeza de que deseja apagar “Escova modeladora”? O serviço deixará de aparecer na lista de serviços.',
+    ),
+  ).toBeVisible()
+  await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(dialogo).toHaveCount(0)
+  await expect(page.getByLabel('Nome do serviço')).toHaveValue('Escova modeladora')
 
-  await page.getByRole('button', { name: 'Desativar Escova modeladora' }).click()
-  await page.getByRole('button', { name: 'Confirmar desativação' }).click()
-  await expect(page.getByRole('status')).toHaveText('Serviço desativado com sucesso.')
+  await page.getByRole('button', { name: 'Apagar', exact: true }).click()
+  await dialogo.getByRole('button', { name: 'Apagar serviço' }).click()
+  await expect(page.getByRole('status')).toHaveText('Serviço apagado com sucesso.')
   await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toHaveCount(0)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Corte' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Escova modeladora' })).toHaveCount(0)
 })
 
-test('mantém o serviço na lista quando a desativação falha', async ({ page }) => {
+test('mantém o serviço na edição quando a exclusão falha', async ({ page }) => {
   await page.route('**/api/admin/estabelecimentos/4/servicos', (rota) =>
     rota.fulfill({
       status: 200,
@@ -123,11 +131,14 @@ test('mantém o serviço na lista quando a desativação falha', async ({ page }
   })
 
   await page.goto('/painel/servicos')
-  await page.getByRole('button', { name: 'Desativar Corte' }).click()
-  await page.getByRole('button', { name: 'Confirmar desativação' }).click()
-  await expect(page.getByRole('alert')).toHaveText('Serviço não encontrado.')
-  await expect(page.getByRole('heading', { name: 'Corte' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Confirmar desativação' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Editar Corte' }).click()
+  await page.getByRole('button', { name: 'Apagar', exact: true }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Apagar serviço?' })
+  await dialogo.getByRole('button', { name: 'Apagar serviço' }).click()
+  await expect(dialogo.getByRole('alert')).toHaveText('Serviço não encontrado.')
+  await expect(dialogo.getByRole('button', { name: 'Apagar serviço' })).toBeEnabled()
+  await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.getByLabel('Nome do serviço')).toHaveValue('Corte')
 })
 
 test('exibe validação da API e permite tentar novamente após falha na listagem', async ({

@@ -938,21 +938,32 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.service-card-confirmation {
-  display: grid;
-  gap: 12px;
-  justify-items: end;
-  text-align: right;
+.service-edit-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
-.service-card-confirmation .auth-error {
+.button.ghost.service-delete-trigger,
+.button.ghost.service-delete-trigger:hover,
+.button.ghost.service-delete-trigger:focus-visible {
   color: var(--danger);
 }
-.service-deactivate-button {
+.button.primary.service-delete-button {
   background: var(--danger);
   color: #fff;
 }
-.service-deactivate-button:hover {
+.button.primary.service-delete-button:hover {
   filter: brightness(0.9);
+}
+.service-delete-dialog > p {
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+.service-delete-dialog .auth-error {
+  margin-bottom: 16px;
+  color: var(--danger);
 }
 .service-editor {
   width: min(100%, 900px);
@@ -1183,10 +1194,6 @@
   .service-card {
     align-items: stretch;
     flex-direction: column;
-  }
-  .service-card-confirmation {
-    justify-items: stretch;
-    text-align: left;
   }
   .service-form-fields {
     grid-template-columns: 1fr;
