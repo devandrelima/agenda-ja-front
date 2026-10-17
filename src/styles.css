@@ -770,6 +770,9 @@
   grid-template-columns: 230px 1fr;
   min-height: 100vh;
 }
+.provider.without-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
 .sidebar {
   padding: 22px 14px;
   background: #fff;
@@ -1412,6 +1415,9 @@
   }
   .main {
     padding: 20px 16px 92px;
+  }
+  .provider.without-sidebar .main {
+    padding-bottom: 28px;
   }
   .metric-grid {
     grid-template-columns: repeat(2, 1fr);

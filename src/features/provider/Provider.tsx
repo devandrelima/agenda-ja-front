@@ -81,7 +81,13 @@ function IconeDaNavegacao({ nome }: { nome: IconeMenu }) {
   )
 }
 
-export function LayoutPrestador({ children }: { children: React.ReactNode }) {
+export function LayoutPrestador({
+  children,
+  semBarraLateral = false,
+}: {
+  children: React.ReactNode
+  semBarraLateral?: boolean
+}) {
   const navegar = useNavigate()
   const { encerrar } = useAutenticacao()
   const [saindo, definirSaindo] = useState(false)
@@ -103,30 +109,32 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="provider">
-      <aside className="sidebar">
-        <Logo />
-        <nav>
-          {itensDoMenu.map(({ caminho, rotulo, icone }) => (
-            <NavLink key={caminho} to={caminho} end={caminho === '/painel'} aria-label={rotulo}>
-              <IconeDaNavegacao nome={icone} />
-              <span className="nav-label">{rotulo}</span>
-            </NavLink>
-          ))}
-          <button
-            type="button"
-            className="sidebar-logout"
-            onClick={() => {
-              definirErroSaida('')
-              definirConfirmandoSaida(true)
-            }}
-            disabled={saindo}
-          >
-            <IconeDaNavegacao nome="sair" />
-            <span className="nav-label">Sair</span>
-          </button>
-        </nav>
-      </aside>
+    <div className={`provider${semBarraLateral ? ' without-sidebar' : ''}`}>
+      {!semBarraLateral && (
+        <aside className="sidebar">
+          <Logo />
+          <nav>
+            {itensDoMenu.map(({ caminho, rotulo, icone }) => (
+              <NavLink key={caminho} to={caminho} end={caminho === '/painel'} aria-label={rotulo}>
+                <IconeDaNavegacao nome={icone} />
+                <span className="nav-label">{rotulo}</span>
+              </NavLink>
+            ))}
+            <button
+              type="button"
+              className="sidebar-logout"
+              onClick={() => {
+                definirErroSaida('')
+                definirConfirmandoSaida(true)
+              }}
+              disabled={saindo}
+            >
+              <IconeDaNavegacao nome="sair" />
+              <span className="nav-label">Sair</span>
+            </button>
+          </nav>
+        </aside>
+      )}
       <main className="main">{children}</main>
       {confirmandoSaida && (
         <ConfirmarSaida

@@ -329,7 +329,7 @@ export function App() {
             path={caminhos.configuracoes}
             element={
               <RotaProtegida>
-                <LayoutPrestador>
+                <LayoutPrestador semBarraLateral>
                   <ConfiguracoesDoNegocio />
                 </LayoutPrestador>
               </RotaProtegida>
