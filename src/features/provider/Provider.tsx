@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
 import { prepararCapa, salvarCapaNegocio, useCapaNegocio } from '../../data/businessCover'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
+import { ConfirmarSaida } from '../auth/ConfirmLogout'
 import { HorariosDoNegocio } from './BusinessHours'
 
 type IconeMenu =
@@ -83,6 +84,7 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
   const navegar = useNavigate()
   const { encerrar } = useAutenticacao()
   const [saindo, definirSaindo] = useState(false)
+  const [confirmandoSaida, definirConfirmandoSaida] = useState(false)
   const [erroSaida, definirErroSaida] = useState('')
 
   async function finalizarSessao() {
@@ -90,6 +92,7 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
     definirErroSaida('')
     try {
       await encerrar()
+      definirConfirmandoSaida(false)
       navegar(caminhos.login, { replace: true })
     } catch {
       definirErroSaida('Não foi possível sair. Tente novamente.')
@@ -112,20 +115,29 @@ export function LayoutPrestador({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             className="sidebar-logout"
-            onClick={() => void finalizarSessao()}
+            onClick={() => {
+              definirErroSaida('')
+              definirConfirmandoSaida(true)
+            }}
             disabled={saindo}
           >
             <IconeDaNavegacao nome="sair" />
             <span className="nav-label">Sair</span>
           </button>
         </nav>
-        {erroSaida && (
-          <p className="sidebar-error" role="alert">
-            {erroSaida}
-          </p>
-        )}
       </aside>
       <main className="main">{children}</main>
+      {confirmandoSaida && (
+        <ConfirmarSaida
+          saindo={saindo}
+          erro={erroSaida}
+          aoCancelar={() => {
+            definirConfirmandoSaida(false)
+            definirErroSaida('')
+          }}
+          aoConfirmar={() => void finalizarSessao()}
+        />
+      )}
     </div>
   )
 }
@@ -226,6 +238,28 @@ function CapaDoNegocio() {
     </Card>
   )
 }
+export function ConfiguracoesDoNegocio() {
+  return (
+    <>
+      <header className="settings-header">
+        <Link
+          className="availability-back settings-back"
+          to={caminhos.painel}
+          aria-label="Voltar ao início do painel"
+        >
+          ‹
+        </Link>
+        <h1>Configurações</h1>
+      </header>
+      <section className="section dashboard-section">
+        <CapaDoNegocio />
+      </section>
+      <section className="section dashboard-section">
+        <HorariosDoNegocio />
+      </section>
+    </>
+  )
+}
 export function Dashboard() {
   const navegar = useNavigate()
   const { sessao } = useAutenticacao()
@@ -272,6 +306,19 @@ export function Dashboard() {
         </div>
         <div className="topbar-actions">
           <Button
+            className="settings-trigger"
+            type="button"
+            variant="ghost"
+            onClick={() => navegar(caminhos.configuracoes)}
+            aria-label="Configurações"
+            title="Configurações"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10.4 2.5h3.2l.5 2.1c.5.2 1 .4 1.4.8l2-.9 2.3 2.3-.9 2c.3.4.6.9.8 1.4l2.1.5v3.2l-2.1.5c-.2.5-.5 1-.8 1.4l.9 2-2.3 2.3-2-.9c-.4.3-.9.6-1.4.8l-.5 2.1h-3.2l-.5-2.1c-.5-.2-1-.5-1.4-.8l-2 .9-2.3-2.3.9-2c-.3-.4-.6-.9-.8-1.4l-2.1-.5v-3.2l2.1-.5c.2-.5.5-1 .8-1.4l-.9-2 2.3-2.3 2 .9c.4-.4.9-.6 1.4-.8l.5-2.1Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </Button>
+          <Button
             className="copy-business-link"
             type="button"
             onClick={() => void copiarLinkDoNegocio()}
@@ -313,12 +360,6 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
-      <section className="section dashboard-section">
-        <CapaDoNegocio />
-      </section>
-      <section className="section dashboard-section">
-        <HorariosDoNegocio />
-      </section>
       <section className="section dashboard-section">
         <ProximosAtendimentos />
       </section>

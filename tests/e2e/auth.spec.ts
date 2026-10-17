@@ -55,6 +55,7 @@ test('aplica máscara e valida celular e e-mail no cadastro do cliente', async (
 
 test('gestor entra, copia o link, mantém a sessão após recarregar e sai', async ({ page }) => {
   let autenticado = false
+  let chamadasDeSaida = 0
   await page.route('**/api/auth/me', (rota) =>
     rota.fulfill(
       autenticado
@@ -80,6 +81,7 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
   })
   await page.route('**/api/auth/logout', async (rota) => {
     expect(rota.request().headers()['x-csrf-token']).toBe('token-teste')
+    chamadasDeSaida += 1
     autenticado = false
     await rota.fulfill({ status: 204 })
   })
@@ -117,7 +119,15 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
   await expect(page).toHaveURL(/\/painel\/profissionais$/)
   await expect(page.getByRole('heading', { name: 'Profissionais' })).toBeVisible()
   await page.getByRole('button', { name: 'Sair' }).click()
+  await expect(page.getByRole('dialog', { name: 'Sair da conta?' })).toBeVisible()
+  expect(chamadasDeSaida).toBe(0)
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page).toHaveURL(/\/painel\/profissionais$/)
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click()
   await expect(page).toHaveURL(/\/login$/)
+  expect(chamadasDeSaida).toBe(1)
   await page.goto('/painel/profissionais')
   await expect(page).toHaveURL(/\/login$/)
 })

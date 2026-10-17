@@ -18,6 +18,9 @@ test('gestor edita os turnos do negócio e a página pública mostra os período
   page,
 }) => {
   await page.goto('/painel')
+  await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Configurações' }).click()
+  await expect(page).toHaveURL(/\/painel\/configuracoes$/)
   await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Ver página de horários' })).toHaveCount(0)
   await expect(page.getByText('Prévia local:')).toHaveCount(0)
@@ -62,6 +65,8 @@ test('gestor edita os turnos do negócio e a página pública mostra os período
 
 test('foto escolhida no painel aparece na apresentação pública', async ({ page }) => {
   await page.goto('/painel')
+  await expect(page.getByRole('img', { name: 'Foto de capa do negócio' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Configurações' }).click()
   const imagem = await page.evaluate(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 32
@@ -88,4 +93,13 @@ test('foto escolhida no painel aparece na apresentação pública', async ({ pag
     (imagem) => imagem.getBoundingClientRect().height,
   )
   expect(alturaPainel).toBe(alturaPublica)
+})
+
+test('configurações retorna ao início pela seta', async ({ page }) => {
+  await page.goto('/painel')
+  await page.getByRole('button', { name: 'Configurações' }).click()
+  await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible()
+  await page.getByRole('link', { name: 'Voltar ao início do painel' }).click()
+  await expect(page).toHaveURL(/\/painel$/)
+  await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
 })

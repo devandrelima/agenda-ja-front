@@ -747,8 +747,7 @@
   justify-self: center;
   font-size: 1rem;
 }
-.auth-error,
-.sidebar-error {
+.auth-error {
   margin: 0;
   color: var(--danger);
   font-size: 0.9rem;
@@ -811,9 +810,6 @@
   background: #fef2f2;
   font-weight: 700;
 }
-.sidebar-error {
-  margin: 12px 11px 0;
-}
 .nav-icon {
   display: none;
 }
@@ -842,6 +838,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.button.ghost.settings-trigger {
+  width: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #475569;
+  background: #e5e7eb;
+}
+.button.ghost.settings-trigger:hover,
+.button.ghost.settings-trigger:focus-visible {
+  color: #334155;
+  background: #d1d5db;
+}
+.settings-trigger svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .copy-business-link {
   width: 44px;
@@ -890,6 +908,19 @@
   font-size: 1.7rem;
   display: block;
   margin-top: 8px;
+}
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.settings-header h1 {
+  margin: 0;
+}
+.settings-back:hover,
+.settings-back:focus-visible {
+  color: var(--brand);
 }
 .dashboard-section {
   padding: 20px 0;
@@ -1152,6 +1183,13 @@
   margin: 0 0 16px;
   font-size: 1.15rem;
 }
+.logout-dialog > p {
+  margin: 0 0 24px;
+  color: var(--muted);
+}
+.logout-dialog .auth-error {
+  margin-bottom: 18px;
+}
 .schedule-empty {
   padding-top: 9px;
   color: var(--muted);
@@ -1314,15 +1352,6 @@
   }
   .sidebar nav a:not(.active) .nav-label {
     display: none;
-  }
-  .sidebar-error {
-    position: absolute;
-    right: 8px;
-    bottom: 100%;
-    left: 8px;
-    margin: 0;
-    padding: 10px;
-    background: #fff;
   }
   .sidebar nav a.active {
     grid-column: span 2;

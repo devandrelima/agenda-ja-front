@@ -15,7 +15,13 @@ import {
   PaginaEstabelecimentoPublico,
   ProximaEtapaPublica,
 } from '../features/booking/PublicEstablishment'
-import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
+import {
+  Agenda,
+  ConfiguracoesDoNegocio,
+  Dashboard,
+  LayoutPrestador,
+  ModuloFuturo,
+} from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
@@ -315,6 +321,16 @@ export function App() {
               <RotaProtegida>
                 <LayoutPrestador>
                   <Dashboard />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={caminhos.configuracoes}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <ConfiguracoesDoNegocio />
                 </LayoutPrestador>
               </RotaProtegida>
             }
