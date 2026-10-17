@@ -69,6 +69,31 @@ O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório H
 
 ## Limites e próxima integração
 
+O frontend da HU7 espera `GET /api/estabelecimentos/{id}` sem autenticação, retornando
+`{ id, nome, categoria, localizacao, imagemUrl }` (a imagem pode ser `null`). O ID já
+presente na sessão do gestor poderá compor o link público. Enquanto esse endpoint é entregue
+pelo backend, a página existente em `/estabelecimento/atelie-aurora` continua usando
+dados de demonstração e serve de prévia local da mesma interface. As rotas de serviços
+e início do agendamento para estabelecimentos reais estão preparadas para a HU8.
+
+### Avaliações de demonstração
+
+O cadastro apresenta as opções **Gestor** e **Cliente**; o login reconhece o tipo de conta
+pelo e-mail informado. Gestor continua usando o backend; Cliente é uma conta de demonstração
+salva no `localStorage`, com nome completo,
+telefone/WhatsApp, e-mail e senha. Use somente uma senha de teste: a conta local não oferece
+segurança de produção e não é compartilhada entre navegadores.
+
+Em `/estabelecimento/atelie-aurora/avaliacoes`, usuários com sessão ativa podem publicar,
+editar e excluir sua própria avaliação. Cada ID pode ter uma avaliação; o comentário do
+usuário conectado fica no topo em todas as páginas, e o campo de publicação desaparece
+enquanto ele já tiver uma avaliação. A identificação usa o ID da sessão.
+As alterações desta página são salvas apenas no `localStorage` do navegador e a interface
+as identifica como prévia local. Total e média são calculados a partir da lista completa.
+O backend atual não possui
+autenticação de clientes nem endpoints de avaliações; autorização no servidor e sincronização
+entre usuários dependem dessa integração.
+
 O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços e profissionais usa a `main` do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
 
 Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.
