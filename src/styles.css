@@ -1359,14 +1359,21 @@
 @media (max-width: 850px) {
   .topbar-dashboard {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    column-gap: 8px;
+    row-gap: 12px;
   }
   .topbar-dashboard > div:first-child {
-    min-width: 0;
+    display: contents;
+  }
+  .topbar-dashboard .muted {
     grid-column: 1;
     grid-row: 1;
+    margin: 0;
   }
   .topbar-dashboard h1 {
+    grid-column: 1;
+    grid-row: 2;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -1374,20 +1381,20 @@
     display: contents;
   }
   .topbar-dashboard .new-booking-button {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: start;
+    min-height: 44px;
+    padding-inline: 18px;
+    font-size: 1rem;
   }
-  .topbar-dashboard .settings-trigger,
-  .topbar-dashboard .copy-business-link {
+  .topbar-dashboard .settings-trigger {
     grid-column: 2;
     grid-row: 2;
   }
-  .topbar-dashboard .settings-trigger {
-    justify-self: end;
-    margin-right: 52px;
-  }
   .topbar-dashboard .copy-business-link {
-    justify-self: end;
+    grid-column: 3;
+    grid-row: 2;
   }
 }
 @media (min-width: 701px) and (max-width: 850px) {

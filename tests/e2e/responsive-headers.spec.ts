@@ -22,7 +22,6 @@ test.beforeEach(async ({ page }) => {
 for (const { caminho, titulo, acao } of [
   { caminho: '/painel/profissionais', titulo: 'Profissionais', acao: 'Novo profissional' },
   { caminho: '/painel/servicos', titulo: 'Serviços', acao: 'Novo serviço' },
-  { caminho: '/painel', titulo: 'Olá, Ana Gestora', acao: 'Novo agendamento' },
 ]) {
   test(`mantém ${acao} ao lado do título em telas pequenas`, async ({ page }) => {
     const cabecalho = page.locator('.topbar-with-create')
@@ -53,3 +52,34 @@ for (const { caminho, titulo, acao } of [
     }
   })
 }
+
+test('alinha os atalhos ao nome do gestor e o novo agendamento abaixo no início', async ({ page }) => {
+  const cabecalho = page.locator('.topbar-dashboard')
+  const nome = cabecalho.getByRole('heading', { name: 'Olá, Ana Gestora' })
+  const configuracoes = cabecalho.getByRole('button', { name: 'Configurações' })
+  const link = cabecalho.getByRole('button', { name: 'Copiar link da página do negócio' })
+  const novo = cabecalho.getByRole('button', { name: 'Novo agendamento' })
+
+  for (const largura of [320, 390, 700, 701, 850]) {
+    await page.setViewportSize({ width: largura, height: 800 })
+    await page.goto('/painel')
+    await expect(novo).toBeVisible()
+
+    const nomeBox = (await nome.boundingBox())!
+    const configuracoesBox = (await configuracoes.boundingBox())!
+    const linkBox = (await link.boundingBox())!
+    const novoBox = (await novo.boundingBox())!
+
+    expect(configuracoesBox.x).toBeGreaterThanOrEqual(nomeBox.x + nomeBox.width)
+    expect(linkBox.x).toBeGreaterThan(configuracoesBox.x + configuracoesBox.width)
+    for (const icone of [configuracoesBox, linkBox]) {
+      expect(icone.y).toBeLessThan(nomeBox.y + nomeBox.height)
+      expect(icone.y + icone.height).toBeGreaterThan(nomeBox.y)
+    }
+    expect(novoBox.y).toBeGreaterThanOrEqual(nomeBox.y + nomeBox.height)
+    expect(novoBox.x).toBe(nomeBox.x)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      largura,
+    )
+  }
+})
