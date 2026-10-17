@@ -8,7 +8,8 @@ import {
   paraChaveData,
 } from '../../domain/availability'
 import type { Avaliacao, EscolhasAgendamento } from '../../domain/models'
-import { Button, Card, Field, Steps } from '../../design-system/ui'
+import { emailValido, telefoneValido } from '../../domain/contact'
+import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import fotoDoSalao from '../../assets/salao-atelie-aurora.png'
@@ -206,6 +207,7 @@ export function Agendamento() {
   const localizacao = useLocation()
   const [etapa, definirEtapa] = useState(1)
   const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>({})
+  const [errosContato, definirErrosContato] = useState<Record<string, string>>({})
   const servicos = repositorioMock.buscarServicos()
   const profissionais = repositorioMock.buscarProfissionais()
   const servicoSelecionado = servicos.find((servico) => servico.id === escolhas.idServico)
@@ -400,15 +402,25 @@ export function Agendamento() {
             </p>
             <form
               className="form"
+              noValidate
               onSubmit={(e) => {
                 e.preventDefault()
                 const form = new FormData(e.currentTarget)
+                const erros: Record<string, string> = {}
+                if (!telefoneValido(String(form.get('phone')))) {
+                  erros.phone = 'Informe um celular válido com DDD.'
+                }
+                if (!emailValido(String(form.get('email')))) {
+                  erros.email = 'Informe um e-mail válido.'
+                }
+                definirErrosContato(erros)
+                if (Object.keys(erros).length || !e.currentTarget.reportValidity()) return
                 definirEscolhas((atual) => ({
                   ...atual,
                   cliente: {
                     nome: String(form.get('name')),
                     telefone: String(form.get('phone')),
-                    email: String(form.get('email')),
+                    email: String(form.get('email')).trim(),
                   },
                 }))
                 irParaEtapa(5)
@@ -420,11 +432,21 @@ export function Agendamento() {
                 defaultValue={escolhas.cliente?.nome}
                 required
               />
-              <Field
+              <PhoneField
                 name="phone"
                 label="Telefone / WhatsApp"
-                inputMode="tel"
                 defaultValue={escolhas.cliente?.telefone}
+                placeholder="(84) 9 9429-1683"
+                onChange={() => definirErrosContato((atual) => ({ ...atual, phone: '' }))}
+                onBlur={(evento) => {
+                  if (evento.target.value && !telefoneValido(evento.target.value)) {
+                    definirErrosContato((atual) => ({
+                      ...atual,
+                      phone: 'Informe um celular válido com DDD.',
+                    }))
+                  }
+                }}
+                error={errosContato.phone}
                 required
               />
               <Field
@@ -432,6 +454,16 @@ export function Agendamento() {
                 label="E-mail"
                 type="email"
                 defaultValue={escolhas.cliente?.email}
+                onChange={() => definirErrosContato((atual) => ({ ...atual, email: '' }))}
+                onBlur={(evento) => {
+                  if (evento.target.value && !emailValido(evento.target.value)) {
+                    definirErrosContato((atual) => ({
+                      ...atual,
+                      email: 'Informe um e-mail válido.',
+                    }))
+                  }
+                }}
+                error={errosContato.email}
                 required
               />
               <div className="form-actions">

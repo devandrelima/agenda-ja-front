@@ -79,7 +79,9 @@ test('publica, fixa no topo, edita e exclui a própria avaliação', async ({ pa
   await expect(page.locator('.review').first()).toContainText('Editado')
   await expect(page.locator('.reviews-page-heading')).toContainText('127 avaliações')
   await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
-  await expect(page.getByRole('link', { name: 'Ver avaliações, média 4,3 de 5 estrelas' })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Ver avaliações, média 4,3 de 5 estrelas' }),
+  ).toBeVisible()
   await page.getByRole('link', { name: 'Ver avaliações, média 4,3 de 5 estrelas' }).click()
 
   await page.reload()
@@ -98,7 +100,9 @@ test('publica, fixa no topo, edita e exclui a própria avaliação', async ({ pa
   await expect(page.getByRole('button', { name: 'Enviar' })).toBeVisible()
   await expect(page.locator('.review')).toHaveCount(10)
   await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
-  await expect(page.getByRole('link', { name: 'Ver avaliações, média 4,3 de 5 estrelas' })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Ver avaliações, média 4,3 de 5 estrelas' }),
+  ).toBeVisible()
   await expect(page.getByRole('link', { name: '126 avaliações' })).toBeVisible()
 })
 
@@ -110,7 +114,9 @@ test('não mostra controles dos comentários de outros usuários', async ({ page
   await expect(page.locator('.review')).toHaveCount(10)
 })
 
-test('cliente de demonstração cadastra, entra e só gerencia o próprio comentário', async ({ page }) => {
+test('cliente de demonstração cadastra, entra e só gerencia o próprio comentário', async ({
+  page,
+}) => {
   test.setTimeout(30000)
   await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
   await page.goto('/estabelecimento/atelie-aurora/avaliacoes')
@@ -118,22 +124,25 @@ test('cliente de demonstração cadastra, entra e só gerencia o próprio coment
   await page.getByRole('link', { name: 'Entre na sua conta' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.getByRole('link', { name: 'Criar conta' }).click()
-  await expect(page.getByRole('button', { name: 'Cliente' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Cliente' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await expect(page.getByLabel('Nome do negócio')).toHaveCount(0)
   await page.getByLabel('Nome completo').fill('Marina Silva')
   await page.getByLabel('Telefone/WhatsApp').fill('85999990000')
   await page.getByLabel('E-mail').fill('marina@exemplo.com')
-  await page.getByLabel('Senha').fill('senha-teste')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
   await page.getByRole('button', { name: 'Criar conta' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible()
   await expect(page.getByRole('group', { name: 'Tipo de conta' })).toHaveCount(0)
 
   await page.getByLabel('E-mail').fill('marina@exemplo.com')
-  await page.getByLabel('Senha').fill('senha-errada')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-errada')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('E-mail ou senha inválidos')
-  await page.getByLabel('Senha').fill('senha-teste')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/avaliacoes$/)
   await expect(page.locator('.review-manage')).toHaveCount(0)
@@ -154,7 +163,7 @@ test('cliente de demonstração cadastra, entra e só gerencia o próprio coment
   await page.getByRole('link', { name: 'Entre na sua conta' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.getByLabel('E-mail').fill('marina@exemplo.com')
-  await page.getByLabel('Senha').fill('senha-teste')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/avaliacoes$/)
   await expect(page.locator('.review-manage')).toHaveCount(1)
@@ -162,15 +171,18 @@ test('cliente de demonstração cadastra, entra e só gerencia o próprio coment
 
   await page.getByRole('link', { name: 'Entre na sua conta' }).click()
   await page.getByRole('link', { name: 'Criar conta' }).click()
-  await expect(page.getByRole('button', { name: 'Cliente' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Cliente' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await page.getByLabel('Nome completo').fill('Outro Cliente')
   await page.getByLabel('Telefone/WhatsApp').fill('85988880000')
   await page.getByLabel('E-mail').fill('outro@exemplo.com')
-  await page.getByLabel('Senha').fill('outra-senha')
+  await page.getByLabel('Senha', { exact: true }).fill('outra-senha')
   await page.getByRole('button', { name: 'Criar conta' }).click()
   await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible()
   await page.getByLabel('E-mail').fill('outro@exemplo.com')
-  await page.getByLabel('Senha').fill('outra-senha')
+  await page.getByLabel('Senha', { exact: true }).fill('outra-senha')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.locator('.review-manage')).toHaveCount(0)
   await expect(page.getByLabel('Mostrar')).toHaveCount(0)
@@ -207,7 +219,7 @@ test('abre o login e retorna às avaliações após autenticar', async ({ page }
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('group', { name: 'Tipo de conta' })).toHaveCount(0)
   await page.getByLabel('E-mail').fill(sessao.email)
-  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-segura')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/avaliacoes$/)
   await expect(page.getByRole('button', { name: 'Enviar' })).toBeVisible()

@@ -8,7 +8,7 @@ test('habilita o login após preencher e-mail e senha', async ({ page }) => {
   await expect(entrar).toBeDisabled()
 
   await page.getByLabel('E-mail').fill('equipe@aurora.com')
-  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-segura')
 
   await expect(entrar).toBeEnabled()
 })
@@ -22,7 +22,13 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   await page.getByRole('button', { name: '09:00' }).click()
   await page.getByRole('button', { name: /continuar/i }).click()
   await page.getByLabel('Nome completo').fill('Joana da Silva')
-  await page.getByLabel(/telefone/i).fill('(85) 99999-9999')
+  await page.getByLabel(/telefone/i).fill('8599999999')
+  await page.getByLabel('E-mail').fill('joana@invalido')
+  await page.getByRole('button', { name: /revisar/i }).click()
+  await expect(page.getByText('Informe um celular válido com DDD.')).toBeVisible()
+  await expect(page.getByText('Informe um e-mail válido.')).toBeVisible()
+  await page.getByLabel(/telefone/i).fill('85999999999')
+  await expect(page.getByLabel(/telefone/i)).toHaveValue('(85) 9 9999-9999')
   await page.getByLabel('E-mail').fill('joana@exemplo.com')
   await page.getByRole('button', { name: /revisar/i }).click()
   await expect(page.getByText('Agendamento de demonstração')).toBeVisible()

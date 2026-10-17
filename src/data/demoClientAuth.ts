@@ -1,4 +1,5 @@
 import type { Sessao } from './auth'
+import { emailValido, telefoneValido } from '../domain/contact'
 
 const chaveContas = 'agendaja-demo-clientes-v1'
 const chaveSessao = 'agendaja-demo-cliente-sessao-v1'
@@ -44,7 +45,7 @@ export async function cadastrarClienteDemo(dados: CadastroClienteDemo) {
   const nome = dados.nome.trim()
   const telefone = dados.telefone.trim()
   const email = emailNormalizado(dados.email)
-  if (!nome || telefone.replace(/\D/g, '').length < 10 || !email || dados.senha.length < 8)
+  if (!nome || !telefoneValido(telefone) || !emailValido(email) || dados.senha.length < 8)
     throw new Error('Preencha nome, telefone válido, e-mail e senha com pelo menos 8 caracteres.')
 
   const contas = lerContas()

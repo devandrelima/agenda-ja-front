@@ -17,10 +17,11 @@ import {
 } from '../features/booking/PublicEstablishment'
 import { Agenda, Dashboard, LayoutPrestador, ModuloFuturo } from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
-import { Button, Card, Field, Logo } from '../design-system/ui'
+import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
 import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
 import { cadastrarClienteDemo, existeClienteDemo } from '../data/demoClientAuth'
+import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
 import { caminhos } from './paths'
@@ -50,26 +51,38 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
 
   async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
-    definirEnviando(true)
+    const formulario = evento.currentTarget
+    const dadosFormulario = new FormData(formulario)
+    const erros: Record<string, string> = {}
+    if (!emailValido(email)) erros.email = 'Informe um e-mail válido.'
+    if (
+      cadastro &&
+      perfil === 'CLIENTE' &&
+      !telefoneValido(String(dadosFormulario.get('telefone')))
+    ) {
+      erros.telefone = 'Informe um celular válido com DDD.'
+    }
     definirErro('')
-    definirErrosCampos({})
+    definirErrosCampos(erros)
+    if (Object.keys(erros).length) return
+    if (!formulario.reportValidity()) return
+    definirEnviando(true)
 
     try {
       if (cadastro) {
-        const formulario = new FormData(evento.currentTarget)
         if (perfil === 'CLIENTE') {
           await cadastrarClienteDemo({
-            nome: String(formulario.get('nomeCompleto') ?? ''),
-            telefone: String(formulario.get('telefone') ?? ''),
+            nome: String(dadosFormulario.get('nomeCompleto') ?? ''),
+            telefone: String(dadosFormulario.get('telefone') ?? ''),
             email,
             senha,
           })
         } else {
           await cadastrarEstabelecimento({
-            nomeNegocio: String(formulario.get('nomeNegocio')).trim(),
-            categoria: String(formulario.get('categoria')).trim(),
-            localizacao: String(formulario.get('localizacao')).trim(),
-            nomeGestor: String(formulario.get('nomeGestor')).trim(),
+            nomeNegocio: String(dadosFormulario.get('nomeNegocio')).trim(),
+            categoria: String(dadosFormulario.get('categoria')).trim(),
+            localizacao: String(dadosFormulario.get('localizacao')).trim(),
+            nomeGestor: String(dadosFormulario.get('nomeGestor')).trim(),
             email: email.trim(),
             senha,
           })
@@ -107,7 +120,7 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
     <main className="auth">
       <Card>
         <Logo />
-        <form className="form" onSubmit={(evento) => void enviarFormulario(evento)}>
+        <form className="form" noValidate onSubmit={(evento) => void enviarFormulario(evento)}>
           {cadastro && (
             <div className="auth-profile" role="group" aria-label="Tipo de conta">
               {(['GESTOR', 'CLIENTE'] as const).map((opcao) => (
@@ -180,14 +193,20 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
                 maxLength={100}
                 required
               />
-              <Field
+              <PhoneField
                 name="telefone"
                 label="Telefone/WhatsApp"
-                type="tel"
-                autoComplete="tel"
-                inputMode="tel"
-                minLength={10}
-                maxLength={20}
+                placeholder="(84) 9 9429-1683"
+                onChange={() => definirErrosCampos((atual) => ({ ...atual, telefone: '' }))}
+                onBlur={(evento) => {
+                  if (evento.target.value && !telefoneValido(evento.target.value)) {
+                    definirErrosCampos((atual) => ({
+                      ...atual,
+                      telefone: 'Informe um celular válido com DDD.',
+                    }))
+                  }
+                }}
+                error={errosCampos.telefone}
                 required
               />
             </>
@@ -199,7 +218,15 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
             autoComplete="email"
             maxLength={100}
             value={email}
-            onChange={(evento) => definirEmail(evento.target.value)}
+            onChange={(evento) => {
+              definirEmail(evento.target.value)
+              definirErrosCampos((atual) => ({ ...atual, email: '' }))
+            }}
+            onBlur={() => {
+              if (email && !emailValido(email)) {
+                definirErrosCampos((atual) => ({ ...atual, email: 'Informe um e-mail válido.' }))
+              }
+            }}
             error={errosCampos.email}
             required
           />

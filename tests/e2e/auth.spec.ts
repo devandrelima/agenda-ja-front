@@ -8,6 +8,51 @@ const sessao = {
   estabelecimentoId: 4,
 }
 
+test('mostra e oculta a senha sem enviar o formulário e valida e-mail no login', async ({
+  page,
+}) => {
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
+  let tentativasDeLogin = 0
+  await page.route('**/api/auth/login', (rota) => {
+    tentativasDeLogin += 1
+    return rota.fulfill({ status: 401 })
+  })
+  await page.goto('/login')
+
+  await page.getByLabel('E-mail').fill('ana@invalido')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-segura')
+  await page.getByRole('button', { name: 'Mostrar senha' }).click()
+  await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'text')
+  await expect(page.getByLabel('Senha', { exact: true })).toHaveValue('senha-segura')
+  await page.getByRole('button', { name: 'Ocultar senha' }).click()
+  await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'password')
+
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByText('Informe um e-mail válido.')).toBeVisible()
+  expect(tentativasDeLogin).toBe(0)
+})
+
+test('aplica máscara e valida celular e e-mail no cadastro do cliente', async ({ page }) => {
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
+  await page.goto('/cadastro')
+  await page.getByRole('button', { name: 'Cliente' }).click()
+  await page.getByLabel('Nome completo').fill('Marina Silva')
+  await page.getByLabel('Telefone/WhatsApp').fill('8499429168')
+  await page.getByLabel('E-mail').fill('marina@invalido')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
+  await expect(page.getByRole('button', { name: 'Mostrar senha' })).toBeVisible()
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page.getByText('Informe um celular válido com DDD.')).toBeVisible()
+  await expect(page.getByText('Informe um e-mail válido.')).toBeVisible()
+  await expect(page).toHaveURL(/\/cadastro$/)
+
+  await page.getByLabel('Telefone/WhatsApp').fill('84994291683')
+  await expect(page.getByLabel('Telefone/WhatsApp')).toHaveValue('(84) 9 9429-1683')
+  await page.getByLabel('E-mail').fill('marina@exemplo.com')
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+})
+
 test('gestor entra, copia o link, mantém a sessão após recarregar e sai', async ({ page }) => {
   let autenticado = false
   await page.route('**/api/auth/me', (rota) =>
@@ -44,7 +89,7 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
 
   await page.goto('/login')
   await page.getByLabel('E-mail').fill(sessao.email)
-  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-segura')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
 
@@ -104,7 +149,7 @@ test('cadastro envia os dados exigidos e encaminha ao login', async ({ page }) =
   await page.getByLabel('Localização').fill('Centro, Fortaleza')
   await page.getByLabel('Nome do gestor').fill('Ana Gestora')
   await page.getByLabel('E-mail').fill(sessao.email)
-  await page.getByLabel('Senha').fill('senha-segura')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-segura')
   await page.getByRole('button', { name: 'Criar conta' }).click()
 
   await expect(page).toHaveURL(/\/login$/)
