@@ -311,7 +311,7 @@ export function Dashboard() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar topbar-with-create topbar-dashboard">
         <div>
           <p className="muted">Visão geral</p>
           <h1>Olá, {sessao?.nome ?? 'gestor'}</h1>
@@ -342,7 +342,10 @@ export function Dashboard() {
               <path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15" />
             </svg>
           </Button>
-          <Button onClick={() => navegar(caminhos.agendamento, { state: { origem: 'painel' } })}>
+          <Button
+            className="new-booking-button"
+            onClick={() => navegar(caminhos.agendamento, { state: { origem: 'painel' } })}
+          >
             Novo agendamento
           </Button>
         </div>

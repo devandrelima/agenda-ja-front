@@ -226,7 +226,7 @@ export function Servicos() {
 
   return (
     <div className={emEdicao ? 'service-editor' : undefined}>
-      <header className="topbar">
+      <header className={`topbar${emEdicao ? '' : ' topbar-with-create'}`}>
         <h1>{emEdicao === 'novo' ? 'Novo serviço' : emEdicao ? 'Editar serviço' : 'Serviços'}</h1>
         {!emEdicao && !carregando && !erroLista && (
           <Button

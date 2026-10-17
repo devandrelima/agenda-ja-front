@@ -608,7 +608,7 @@ export function Profissionais() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar topbar-with-create">
         <h1>Profissionais</h1>
         {!carregando && !erroLista && <Button onClick={abrirCadastro}>Novo profissional</Button>}
       </header>

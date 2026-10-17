@@ -767,7 +767,7 @@
 }
 .provider {
   display: grid;
-  grid-template-columns: 230px 1fr;
+  grid-template-columns: 230px minmax(0, 1fr);
   min-height: 100vh;
 }
 .provider.without-sidebar {
@@ -1327,11 +1327,72 @@
   margin-top: 24px;
 }
 @media (max-width: 1000px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .business-cover-card {
     grid-template-columns: 1fr;
   }
   .business-cover-photo {
     max-width: 436px;
+  }
+  .topbar.topbar-with-create {
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+  }
+  .topbar-with-create h1 {
+    min-width: 0;
+    font-size: clamp(1rem, 5.7vw, 1.9rem);
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .topbar-with-create > .button,
+  .topbar-with-create .new-booking-button {
+    flex: none;
+    min-height: 40px;
+    padding-inline: clamp(8px, 2vw, 14px);
+    font-size: clamp(0.75rem, 3.2vw, 0.95rem);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 850px) {
+  .topbar-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .topbar-dashboard > div:first-child {
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .topbar-dashboard h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-dashboard .topbar-actions {
+    display: contents;
+  }
+  .topbar-dashboard .new-booking-button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .topbar-dashboard .settings-trigger,
+  .topbar-dashboard .copy-business-link {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .topbar-dashboard .settings-trigger {
+    justify-self: end;
+    margin-right: 52px;
+  }
+  .topbar-dashboard .copy-business-link {
+    justify-self: end;
+  }
+}
+@media (min-width: 701px) and (max-width: 850px) {
+  .topbar-dashboard h1 {
+    font-size: clamp(1rem, 3vw, 1.6rem);
   }
 }
 @media (max-width: 700px) {
@@ -1419,12 +1480,12 @@
   .provider.without-sidebar .main {
     padding-bottom: 28px;
   }
-  .metric-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .topbar {
     align-items: start;
     flex-direction: column;
+  }
+  .topbar-dashboard h1 {
+    font-size: clamp(0.95rem, 5.2vw, 1.9rem);
   }
   .steps li {
     font-size: 0;
