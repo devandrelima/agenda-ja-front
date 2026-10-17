@@ -88,26 +88,6 @@ export function LayoutPrestador({
   children: React.ReactNode
   semBarraLateral?: boolean
 }) {
-  const navegar = useNavigate()
-  const { encerrar } = useAutenticacao()
-  const [saindo, definirSaindo] = useState(false)
-  const [confirmandoSaida, definirConfirmandoSaida] = useState(false)
-  const [erroSaida, definirErroSaida] = useState('')
-
-  async function finalizarSessao() {
-    definirSaindo(true)
-    definirErroSaida('')
-    try {
-      await encerrar()
-      definirConfirmandoSaida(false)
-      navegar(caminhos.login, { replace: true })
-    } catch {
-      definirErroSaida('Não foi possível sair. Tente novamente.')
-    } finally {
-      definirSaindo(false)
-    }
-  }
-
   return (
     <div className={`provider${semBarraLateral ? ' without-sidebar' : ''}`}>
       {!semBarraLateral && (
@@ -120,33 +100,10 @@ export function LayoutPrestador({
                 <span className="nav-label">{rotulo}</span>
               </NavLink>
             ))}
-            <button
-              type="button"
-              className="sidebar-logout"
-              onClick={() => {
-                definirErroSaida('')
-                definirConfirmandoSaida(true)
-              }}
-              disabled={saindo}
-            >
-              <IconeDaNavegacao nome="sair" />
-              <span className="nav-label">Sair</span>
-            </button>
           </nav>
         </aside>
       )}
       <main className="main">{children}</main>
-      {confirmandoSaida && (
-        <ConfirmarSaida
-          saindo={saindo}
-          erro={erroSaida}
-          aoCancelar={() => {
-            definirConfirmandoSaida(false)
-            definirErroSaida('')
-          }}
-          aoConfirmar={() => void finalizarSessao()}
-        />
-      )}
     </div>
   )
 }
@@ -248,6 +205,26 @@ function CapaDoNegocio() {
   )
 }
 export function ConfiguracoesDoNegocio() {
+  const navegar = useNavigate()
+  const { encerrar } = useAutenticacao()
+  const [saindo, definirSaindo] = useState(false)
+  const [confirmandoSaida, definirConfirmandoSaida] = useState(false)
+  const [erroSaida, definirErroSaida] = useState('')
+
+  async function finalizarSessao() {
+    definirSaindo(true)
+    definirErroSaida('')
+    try {
+      await encerrar()
+      definirConfirmandoSaida(false)
+      navegar(caminhos.login, { replace: true })
+    } catch {
+      definirErroSaida('Não foi possível sair. Tente novamente.')
+    } finally {
+      definirSaindo(false)
+    }
+  }
+
   return (
     <>
       <header className="settings-header">
@@ -269,6 +246,32 @@ export function ConfiguracoesDoNegocio() {
       <section className="section dashboard-section">
         <HorariosDoNegocio />
       </section>
+      <footer className="settings-footer">
+        <Button
+          className="settings-logout"
+          type="button"
+          variant="ghost"
+          disabled={saindo}
+          onClick={() => {
+            definirErroSaida('')
+            definirConfirmandoSaida(true)
+          }}
+        >
+          <IconeDaNavegacao nome="sair" />
+          Sair
+        </Button>
+      </footer>
+      {confirmandoSaida && (
+        <ConfirmarSaida
+          saindo={saindo}
+          erro={erroSaida}
+          aoCancelar={() => {
+            definirConfirmandoSaida(false)
+            definirErroSaida('')
+          }}
+          aoConfirmar={() => void finalizarSessao()}
+        />
+      )}
     </>
   )
 }
