@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 
-export type HorarioDia = {
-  aberto: boolean
-  abertura: string
-  fechamento: string
-}
+export type TurnoNegocio = { inicio: string; fim: string }
+export type HorarioDia = { turnos: TurnoNegocio[] }
 
 export const nomesDias = [
   'Segunda',
@@ -21,47 +18,58 @@ const eventoAtualizacao = 'agendaja:horarios-funcionamento-atualizados'
 const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export const horariosPadrao: HorarioDia[] = nomesDias.map((_, indice) => ({
-  aberto: indice < 6,
-  abertura: '08:00',
-  fechamento: indice === 5 ? '10:00' : '12:00',
+  turnos: indice < 6 ? [{ inicio: '08:00', fim: indice === 5 ? '10:00' : '12:00' }] : [],
 }))
 
 export function validarHorariosFuncionamento(horarios: HorarioDia[]): string | null {
   if (horarios.length !== nomesDias.length) return 'Preencha os horários dos sete dias da semana.'
   for (const [indice, horario] of horarios.entries()) {
-    if (!horario || typeof horario.aberto !== 'boolean') return 'Horários inválidos.'
-    if (!horario.aberto) continue
-    if (!horaValida.test(horario.abertura) || !horaValida.test(horario.fechamento)) {
-      return `Informe abertura e fechamento válidos para ${nomesDias[indice]}.`
+    if (!horario || !Array.isArray(horario.turnos)) return 'Horários inválidos.'
+    for (const turno of horario.turnos) {
+      if (!turno || !horaValida.test(turno.inicio) || !horaValida.test(turno.fim)) {
+        return `Preencha o início e o fim de todos os turnos de ${nomesDias[indice]}.`
+      }
+      if (turno.inicio >= turno.fim) {
+        return `Os turnos de ${nomesDias[indice]} devem começar antes de terminar.`
+      }
     }
-    if (horario.aberto && horario.abertura >= horario.fechamento) {
-      return `O fechamento de ${nomesDias[indice]} deve ser depois da abertura.`
+    const ordenados = [...horario.turnos].sort((a, b) => a.inicio.localeCompare(b.inicio))
+    if (
+      ordenados.some((turno, posicao) => posicao > 0 && turno.inicio < ordenados[posicao - 1].fim)
+    ) {
+      return `Há turnos sobrepostos em ${nomesDias[indice]}.`
     }
+  }
+  return null
+}
+
+function converterDadosAntigos(dados: unknown): HorarioDia[] | null {
+  if (!Array.isArray(dados) || dados.length !== nomesDias.length) return null
+  if (dados.every((dia) => dia && Array.isArray(dia.turnos))) return dados as HorarioDia[]
+  if (
+    dados.every(
+      (dia) =>
+        dia &&
+        typeof dia.aberto === 'boolean' &&
+        typeof dia.abertura === 'string' &&
+        typeof dia.fechamento === 'string',
+    )
+  ) {
+    return dados.map((dia) => ({
+      turnos: dia.aberto ? [{ inicio: dia.abertura, fim: dia.fechamento }] : [],
+    }))
   }
   return null
 }
 
 export function lerHorariosFuncionamento(): HorarioDia[] {
   try {
-    const dados: unknown = JSON.parse(localStorage.getItem(chave) ?? 'null')
-    if (
-      Array.isArray(dados) &&
-      dados.length === nomesDias.length &&
-      dados.every(
-        (dia) =>
-          dia &&
-          typeof dia.aberto === 'boolean' &&
-          typeof dia.abertura === 'string' &&
-          typeof dia.fechamento === 'string',
-      ) &&
-      !validarHorariosFuncionamento(dados)
-    ) {
-      return dados
-    }
+    const dados = converterDadosAntigos(JSON.parse(localStorage.getItem(chave) ?? 'null'))
+    if (dados && !validarHorariosFuncionamento(dados)) return dados
   } catch {
-    // Dados locais antigos ou indisponíveis retornam para a prévia inicial.
+    // Dados locais antigos ou indisponíveis retornam para os horários iniciais.
   }
-  return horariosPadrao.map((dia) => ({ ...dia }))
+  return horariosPadrao.map((dia) => ({ turnos: dia.turnos.map((turno) => ({ ...turno })) }))
 }
 
 export function salvarHorariosFuncionamento(horarios: HorarioDia[]) {
@@ -91,5 +99,10 @@ export function useHorariosFuncionamento() {
 }
 
 export function resumirHorario(horario: HorarioDia) {
-  return horario.aberto ? `${horario.abertura} às ${horario.fechamento}` : 'Fechado'
+  return horario.turnos.length
+    ? [...horario.turnos]
+        .sort((a, b) => a.inicio.localeCompare(b.inicio))
+        .map((turno) => `${turno.inicio} às ${turno.fim}`)
+        .join(' · ')
+    : 'Fechado'
 }

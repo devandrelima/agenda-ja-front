@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
+import { prepararCapa, salvarCapaNegocio, useCapaNegocio } from '../../data/businessCover'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { HorariosDoNegocio } from './BusinessHours'
@@ -161,6 +162,70 @@ function ProximosAtendimentos() {
     </Card>
   )
 }
+function CapaDoNegocio() {
+  const capa = useCapaNegocio()
+  const campoArquivo = useRef<HTMLInputElement>(null)
+  const [erro, definirErro] = useState('')
+  const [salvando, definirSalvando] = useState(false)
+
+  async function escolherFoto(evento: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!arquivo) return
+    definirErro('')
+    definirSalvando(true)
+    try {
+      salvarCapaNegocio(await prepararCapa(arquivo))
+    } catch (falha) {
+      definirErro(
+        falha instanceof DOMException && falha.name === 'QuotaExceededError'
+          ? 'Não há espaço neste navegador para salvar a foto.'
+          : falha instanceof Error
+            ? falha.message
+            : 'Não foi possível salvar a foto.',
+      )
+    } finally {
+      definirSalvando(false)
+    }
+  }
+
+  return (
+    <Card className="business-cover-card">
+      <div className="business-cover-heading">
+        <div>
+          <h2>Foto de capa</h2>
+          <p className="muted">Imagem da página de apresentação do negócio.</p>
+        </div>
+        <input
+          className="sr-only"
+          ref={campoArquivo}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Escolher foto de capa"
+          onChange={(evento) => void escolherFoto(evento)}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={salvando}
+          onClick={() => campoArquivo.current?.click()}
+        >
+          {salvando ? 'Salvando...' : 'Trocar foto'}
+        </Button>
+      </div>
+      <img
+        className="presentation-photo business-cover-photo"
+        src={capa}
+        alt="Foto de capa do negócio"
+      />
+      {erro && (
+        <p className="auth-error" role="alert">
+          {erro}
+        </p>
+      )}
+    </Card>
+  )
+}
 export function Dashboard() {
   const navegar = useNavigate()
   const { sessao } = useAutenticacao()
@@ -248,10 +313,13 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
-      <section className="section">
+      <section className="section dashboard-section">
+        <CapaDoNegocio />
+      </section>
+      <section className="section dashboard-section">
         <HorariosDoNegocio />
       </section>
-      <section className="section">
+      <section className="section dashboard-section">
         <ProximosAtendimentos />
       </section>
     </>

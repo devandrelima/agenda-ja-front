@@ -13,7 +13,7 @@ import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
-import fotoDoSalao from '../../assets/salao-atelie-aurora.png'
+import { useCapaNegocio } from '../../data/businessCover'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -49,13 +49,14 @@ export function PaginaEstabelecimento({
   rotaBase?: string
 }) {
   const avaliacoesDemo = useAvaliacoesDemo()
+  const capaDemo = useCapaNegocio()
   const estabelecimento = dados ?? repositorioMock.buscarEstabelecimento()
   const avaliacoes = dados ? (dados.avaliacoes ?? AVALIACOES_VAZIAS) : avaliacoesDemo
   const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
   const temAvaliacoes = quantidadeAvaliacoes > 0
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
   const caminhoAvaliacoes = dados ? `${rotaBase}/avaliacoes` : caminhos.avaliacoes
-  const imagemUrl = dados ? dados.imagemUrl : fotoDoSalao
+  const imagemUrl = dados ? dados.imagemUrl : capaDemo
   const caminhoServicos = dados ? `${rotaBase}/servicos` : caminhos.disponibilidade
   const caminhoAgendamento = dados ? `${rotaBase}/agendar` : caminhos.agendamento
   return (

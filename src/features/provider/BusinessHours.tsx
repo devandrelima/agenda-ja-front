@@ -1,6 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { caminhos } from '../../app/paths'
 import {
   nomesDias,
   resumirHorario,
@@ -8,8 +6,10 @@ import {
   useHorariosFuncionamento,
   validarHorariosFuncionamento,
 } from '../../data/businessHours'
-import type { HorarioDia } from '../../data/businessHours'
+import type { HorarioDia, TurnoNegocio } from '../../data/businessHours'
 import { Button, Card } from '../../design-system/ui'
+
+const diasCurtos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 
 export function HorariosDoNegocio() {
   const horarios = useHorariosFuncionamento()
@@ -17,14 +17,22 @@ export function HorariosDoNegocio() {
   const [erro, definirErro] = useState('')
   const [mensagem, definirMensagem] = useState('')
 
-  function alterarDia(indice: number, alteracoes: Partial<HorarioDia>) {
+  function alterarTurnos(indiceDia: number, turnos: TurnoNegocio[]) {
     definirEdicao(
       (atual) =>
-        atual?.map((horario, posicao) =>
-          posicao === indice ? { ...horario, ...alteracoes } : horario,
-        ) ?? null,
+        atual?.map((dia, indice) => (indice === indiceDia ? { ...dia, turnos } : dia)) ?? null,
     )
     definirErro('')
+  }
+
+  function adicionarTurno(indiceDia: number) {
+    if (!edicao) return
+    const turnos = edicao[indiceDia].turnos
+    const ultimo = turnos.at(-1)
+    alterarTurnos(indiceDia, [
+      ...turnos,
+      { inicio: ultimo ? ultimo.fim : '08:00', fim: ultimo ? '' : '18:00' },
+    ])
   }
 
   function salvar(evento: FormEvent<HTMLFormElement>) {
@@ -36,7 +44,7 @@ export function HorariosDoNegocio() {
       salvarHorariosFuncionamento(edicao)
       definirEdicao(null)
       definirErro('')
-      definirMensagem('Horários atualizados nesta prévia.')
+      definirMensagem('Horários atualizados.')
     } catch {
       definirErro('Não foi possível salvar os horários neste navegador.')
     }
@@ -47,14 +55,16 @@ export function HorariosDoNegocio() {
       <div className="business-hours-heading">
         <div>
           <h2>Horários de funcionamento</h2>
-          <p className="muted">Defina quando o negócio abre e fecha.</p>
+          <p className="muted">Defina os turnos de funcionamento do negócio.</p>
         </div>
         {!edicao && (
           <Button
             type="button"
             variant="secondary"
             onClick={() => {
-              definirEdicao(horarios.map((dia) => ({ ...dia })))
+              definirEdicao(
+                horarios.map((dia) => ({ turnos: dia.turnos.map((turno) => ({ ...turno })) })),
+              )
               definirMensagem('')
             }}
           >
@@ -65,44 +75,75 @@ export function HorariosDoNegocio() {
 
       {edicao ? (
         <form className="business-hours-form" onSubmit={salvar} noValidate>
-          {edicao.map((horario, indice) => (
-            <div
-              className="business-hours-row"
-              role="group"
-              aria-label={nomesDias[indice]}
-              key={nomesDias[indice]}
-            >
-              <strong>{nomesDias[indice]}</strong>
-              <label className="business-hours-closed">
-                <input
-                  type="checkbox"
-                  checked={!horario.aberto}
-                  onChange={(evento) => alterarDia(indice, { aberto: !evento.target.checked })}
-                />
-                Fechado
-              </label>
-              <label>
-                Abre
-                <input
-                  type="time"
-                  aria-label={`Abertura de ${nomesDias[indice]}`}
-                  value={horario.abertura}
-                  disabled={!horario.aberto}
-                  onChange={(evento) => alterarDia(indice, { abertura: evento.target.value })}
-                />
-              </label>
-              <label>
-                Fecha
-                <input
-                  type="time"
-                  aria-label={`Fechamento de ${nomesDias[indice]}`}
-                  value={horario.fechamento}
-                  disabled={!horario.aberto}
-                  onChange={(evento) => alterarDia(indice, { fechamento: evento.target.value })}
-                />
-              </label>
-            </div>
-          ))}
+          <fieldset className="schedule">
+            <legend>Turnos do negócio</legend>
+            {edicao.map((dia, indiceDia) => (
+              <div className="schedule-row" key={nomesDias[indiceDia]}>
+                <span className="schedule-day" title={nomesDias[indiceDia]}>
+                  {diasCurtos[indiceDia]}
+                </span>
+                <div className="schedule-items">
+                  {dia.turnos.length === 0 && <small className="schedule-empty">Fechado</small>}
+                  {dia.turnos.map((turno, indiceTurno) => (
+                    <div className="schedule-item" key={indiceTurno}>
+                      <input
+                        type="time"
+                        aria-label={`Início do turno ${indiceTurno + 1} de ${nomesDias[indiceDia]}`}
+                        value={turno.inicio}
+                        onChange={(evento) =>
+                          alterarTurnos(
+                            indiceDia,
+                            dia.turnos.map((atual, indice) =>
+                              indice === indiceTurno
+                                ? { ...atual, inicio: evento.target.value }
+                                : atual,
+                            ),
+                          )
+                        }
+                      />
+                      <span>às</span>
+                      <input
+                        type="time"
+                        aria-label={`Fim do turno ${indiceTurno + 1} de ${nomesDias[indiceDia]}`}
+                        value={turno.fim}
+                        onChange={(evento) =>
+                          alterarTurnos(
+                            indiceDia,
+                            dia.turnos.map((atual, indice) =>
+                              indice === indiceTurno
+                                ? { ...atual, fim: evento.target.value }
+                                : atual,
+                            ),
+                          )
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        aria-label={`Remover turno ${indiceTurno + 1} de ${nomesDias[indiceDia]}`}
+                        onClick={() =>
+                          alterarTurnos(
+                            indiceDia,
+                            dia.turnos.filter((_, indice) => indice !== indiceTurno),
+                          )
+                        }
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label={`Adicionar turno em ${nomesDias[indiceDia]}`}
+                  onClick={() => adicionarTurno(indiceDia)}
+                >
+                  + turno
+                </Button>
+              </div>
+            ))}
+          </fieldset>
           {erro && (
             <p className="auth-error" role="alert">
               {erro}
@@ -123,7 +164,7 @@ export function HorariosDoNegocio() {
           </div>
         </form>
       ) : (
-        <ul className="business-hours-summary">
+        <ul className="availability-list business-hours-list">
           {horarios.map((horario, indice) => (
             <li key={nomesDias[indice]}>
               <strong>{nomesDias[indice]}</strong>
@@ -138,13 +179,6 @@ export function HorariosDoNegocio() {
           {mensagem}
         </p>
       )}
-      <p className="business-hours-note">
-        Prévia local: estes horários ficam salvos apenas neste navegador até a integração com o
-        backend.
-      </p>
-      <Link className="business-hours-preview" to={caminhos.disponibilidade}>
-        Ver página de horários
-      </Link>
     </Card>
   )
 }
