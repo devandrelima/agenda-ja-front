@@ -63,7 +63,7 @@ test('abre o link público e mostra somente dados do estabelecimento', async ({ 
   await expect(page.getByRole('link', { name: 'Ver serviços' })).toBeVisible()
   await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
-  await expect(page.getByRole('heading', { name: 'Agendamento' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Escolha o serviço' })).toBeVisible()
 })
 
 test('mostra mensagem quando o link não existe', async ({ page }) => {
@@ -72,4 +72,33 @@ test('mostra mensagem quando o link não existe', async ({ page }) => {
   )
   await page.goto(`/estabelecimento/${publicId}`)
   await expect(page.getByRole('heading', { name: 'Estabelecimento não encontrado.' })).toBeVisible()
+})
+
+test('lista os serviços públicos com duração e preço e permite escolher um', async ({ page }) => {
+  await prepararPortal(page)
+  await page.goto(`/estabelecimento/${publicId}`)
+  await page.getByRole('link', { name: 'Ver serviços' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/servicos`)
+  await expect(page.getByRole('heading', { name: 'Corte masculino' })).toBeVisible()
+  await expect(page.getByText('40 min')).toBeVisible()
+  await expect(page.getByText('R$ 55,00')).toBeVisible()
+  await expect(page.getByText('R$ 35,50')).toBeVisible()
+  await page.getByRole('link', { name: 'Escolher Barba' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=13`)
+  await expect(page.getByRole('button', { name: /Barba.*30 min.*R\$ 35,50/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
+  await expect(page.getByRole('status')).toContainText('Serviço selecionado: Corte masculino')
+})
+
+test('mostra estado vazio quando não há serviços ativos', async ({ page }) => {
+  await prepararPortal(page)
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
+  await page.goto(`/estabelecimento/${publicId}/servicos`)
+  await expect(page.getByText('Nenhum serviço disponível no momento.')).toBeVisible()
 })

@@ -1,4 +1,5 @@
 import { requisitar } from './api'
+import type { Servico } from './services'
 
 export type EstabelecimentoPublico = {
   id: number
@@ -26,4 +27,9 @@ export async function buscarIdentificadorPublico(estabelecimentoId: number): Pro
     throw new Error('O estabelecimento ainda não possui link público.')
   }
   return dados.publicId
+}
+
+export async function listarServicosPublicos(estabelecimentoId: number): Promise<Servico[]> {
+  const resposta = await requisitar(`/api/estabelecimentos/${estabelecimentoId}/servicos`)
+  return resposta.json()
 }

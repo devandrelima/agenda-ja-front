@@ -1,6 +1,6 @@
 # AgendaJá — base do frontend
 
-Portal público e painel do prestador. Cadastro, autenticação e gestão administrativa de serviços e profissionais usam o backend Spring Boot; catálogo público, agendamento, agenda e indicadores ainda usam dados de demonstração.
+Portal público e painel do prestador. Cadastro, autenticação, gestão administrativa de serviços e profissionais, apresentação pública e catálogo público de serviços usam o backend Spring Boot; o agendamento após a escolha do serviço, a agenda e os indicadores ainda usam dados de demonstração.
 
 ## Requisitos e execução
 
@@ -18,7 +18,7 @@ npm run build
 npm run e2e
 ```
 
-A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em `/cadastro`; após cadastrar, o usuário entra com as credenciais criadas. `/painel` e suas páginas exigem sessão de gestor. O portal público demonstrativo do Ateliê Aurora fica em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
+A raiz redireciona para `/login`. O cadastro de estabelecimento e gestor fica em `/cadastro`; após cadastrar, o usuário entra com as credenciais criadas. `/painel` e suas páginas exigem sessão de gestor. O botão de copiar no início do painel obtém o `publicId` do negócio e gera `/estabelecimento/{publicId}`. O portal público demonstrativo do Ateliê Aurora continua em `/estabelecimento/atelie-aurora`, com agendamento em `/estabelecimento/atelie-aurora/agendar`. Os testes geram `reports/unit/junit.xml`, `reports/e2e/junit.xml`, `coverage/cobertura-coverage.xml`, `coverage/index.html` e `playwright-report/index.html`.
 
 ## Execução local com Docker
 
@@ -71,14 +71,9 @@ O `Jenkinsfile` constrói a imagem Docker, que executa `npm ci`, lint, tipos, te
 
 O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório HTML. Os passos `recordCoverage` e `publishHTML` exigem os plugins **Coverage** e **HTML Publisher** no Jenkins.
 
-## Limites e próxima integração
+## Portal público e limites
 
-O frontend da HU7 espera `GET /api/estabelecimentos/{id}` sem autenticação, retornando
-`{ id, nome, categoria, localizacao, imagemUrl }` (a imagem pode ser `null`). O ID já
-presente na sessão do gestor poderá compor o link público. Enquanto esse endpoint é entregue
-pelo backend, a página existente em `/estabelecimento/atelie-aurora` continua usando
-dados de demonstração e serve de prévia local da mesma interface. As rotas de serviços
-e início do agendamento para estabelecimentos reais estão preparadas para a HU8.
+O painel consulta `GET /api/admin/estabelecimentos/{id}` para obter o `publicId` do negócio. O link gerado abre `GET /api/estabelecimentos/publico/{publicId}` sem autenticação, que retorna `id`, `publicId`, nome, categoria, localização e imagem. A lista em `/estabelecimento/{publicId}/servicos` e o primeiro passo de `/estabelecimento/{publicId}/agendar` usam `GET /api/estabelecimentos/{id}/servicos`, que retorna somente serviços ativos com nome, duração e preço. A escolha fica identificada por `?servico={id}` na URL. O fluxo de agendamento real após a escolha do serviço depende das histórias seguintes.
 
 ### Avaliações de demonstração
 
@@ -98,9 +93,9 @@ O backend atual não possui
 autenticação de clientes nem endpoints de avaliações; autorização no servidor e sincronização
 entre usuários dependem dessa integração.
 
-O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços e profissionais usa a `main` do backend; o catálogo público continua demonstrativo. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo público de agendamento confirma explicitamente uma demonstração.
+O cadastro do gestor e o hash de sua senha são persistidos pelo backend, e o acesso ao painel usa sessão real. Nenhum horário é reservado e nenhuma notificação é enviada. A gestão administrativa de serviços e profissionais e o catálogo público real usam a `main` do backend. Ainda não há relatórios operacionais, autenticação de clientes, sincronização, cancelamento ou reagendamento. O fluxo demonstrativo do Ateliê Aurora confirma explicitamente que não cria reservas.
 
-Para a próxima integração, alinhar endpoints públicos de estabelecimento e serviço, além de profissional e agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação. Estes ainda não são contratos de API definitivos.
+Para a próxima integração, alinhar o uso dos endpoints públicos de profissional e disponibilidade, além de agenda, fuso horário e serialização de datas, prevenção transacional de reservas simultâneas, regras de cancelamento, ciclo de estados do agendamento e contratos de notificação.
 
 ## Convenção de commits
 
