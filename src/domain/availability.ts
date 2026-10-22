@@ -23,7 +23,7 @@ export function buscarHorariosDisponiveis(
   if (profissional.diasDeFolga.includes(data)) return []
 
   const dataSelecionada = new Date(`${data}T12:00:00`)
-  if (dataSelecionada.getDay() === 0) return []
+  if (!profissional.diasDeAtendimento.includes(dataSelecionada.getDay())) return []
 
   const horariosOcupados = agendamentos
     .filter(
@@ -61,4 +61,20 @@ export function buscarHorariosDisponiveis(
       )
     )
   })
+}
+
+/** Une os horários livres de todos os profissionais, sem identificar quem atende cada um. */
+export function buscarHorariosDeQualquerProfissional(
+  data: string,
+  profissionais: Profissional[],
+  servico: Servico,
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+) {
+  const horarios = new Set(
+    profissionais.flatMap((profissional) =>
+      buscarHorariosDisponiveis(data, profissional, servico, agendamentos, servicos),
+    ),
+  )
+  return [...horarios].sort()
 }

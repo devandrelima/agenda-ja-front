@@ -53,6 +53,8 @@ export type Agendamento = {
 export type EscolhasAgendamento = {
   idServico?: string
   idProfissional?: string
+  /** O cliente aceitou qualquer profissional; `idProfissional` é definido ao escolher o horário. */
+  qualquerProfissional?: boolean
   data?: string
   horario?: string
   cliente?: Omit<Cliente, 'id'>

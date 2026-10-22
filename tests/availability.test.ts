@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buscarHorariosDisponiveis, buscarProfissionaisDoServico } from '../src/domain/availability'
+import {
+  adicionarDias,
+  buscarHorariosDeQualquerProfissional,
+  buscarHorariosDisponiveis,
+  buscarProfissionaisDoServico,
+  paraChaveData,
+} from '../src/domain/availability'
 import { repositorioMock } from '../src/data/mockRepository'
 describe('regras de disponibilidade', () => {
   const servicos = repositorioMock.buscarServicos()
@@ -30,5 +36,32 @@ describe('regras de disponibilidade', () => {
         servicos,
       ),
     ).toEqual([])
+  })
+  it('só oferece horários nos dias de atendimento do profissional', () => {
+    const data = paraChaveData(adicionarDias(new Date(), 1))
+    const diaDaSemana = new Date(`${data}T12:00:00`).getDay()
+    const profissional = { ...profissionais[2], diasDeAtendimento: [diaDaSemana] }
+    expect(buscarHorariosDisponiveis(data, profissional, servicos[2], [], servicos)).toContain(
+      '09:00',
+    )
+    const outroDia = { ...profissional, diasDeAtendimento: [(diaDaSemana + 1) % 7] }
+    expect(buscarHorariosDisponiveis(data, outroDia, servicos[2], [], servicos)).toEqual([])
+  })
+  it('une os horários livres de todos os profissionais, sem repetir', () => {
+    const agendamentos = repositorioMock.buscarAgendamentos()
+    const data = agendamentos[0].inicio.slice(0, 10)
+    const ana = { ...profissionais[0], diasDeAtendimento: [0, 1, 2, 3, 4, 5, 6] }
+    const bia = { ...profissionais[1], diasDeAtendimento: [0, 1, 2, 3, 4, 5, 6], diasDeFolga: [] }
+    const horarios = buscarHorariosDeQualquerProfissional(
+      data,
+      [ana, bia],
+      servicos[1],
+      agendamentos,
+      servicos,
+    )
+    // Ana tem agendamentos às 10:00 e às 14:00 nesse dia; Beatriz cobre esses horários.
+    expect(horarios).toEqual(expect.arrayContaining(['09:00', '10:00', '14:00']))
+    expect(new Set(horarios).size).toBe(horarios.length)
+    expect(horarios).toEqual([...horarios].sort())
   })
 })

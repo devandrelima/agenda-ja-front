@@ -35,7 +35,7 @@ export type Disponibilidade = {
 
 // O backend numera os dias de 1 a 7 (domingo = 7); a interface usa o padrão de getDay().
 const paraApi = (dia: number) => (dia === 0 ? 7 : dia)
-const daApi = (dia: number) => (dia === 7 ? 0 : dia)
+export const daApi = (dia: number) => (dia === 7 ? 0 : dia)
 // O backend serializa LocalTime como HH:mm:ss; os campos de horário usam HH:mm.
 const paraHoraCurta = (hora: string) => hora.slice(0, 5)
 
