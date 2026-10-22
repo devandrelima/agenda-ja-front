@@ -319,54 +319,79 @@ export function Agendamento({
   const profissionalSelecionado = profissionaisDisponiveis.find(
     (profissional) => profissional.id === escolhas.idProfissional,
   )
-  const datas = Array.from({ length: 6 }, (_, indice) =>
-    paraChaveData(adicionarDias(new Date(), indice + 1)),
+  const hoje = paraChaveData(new Date())
+  const datas = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, indice) =>
+        paraChaveData(adicionarDias(new Date(`${hoje}T12:00`), indice + 1)),
+      ),
+    [hoje],
   )
   const podeConsultarHorarios =
-    Boolean(servicoSelecionado && escolhas.data) &&
+    Boolean(servicoSelecionado) &&
     (escolhas.qualquerProfissional || Boolean(profissionalSelecionado))
+  // Consulta todas as datas de uma vez para exibir somente as que têm horário livre.
   const horariosRemotos = useDadosRemotos(
     estabelecimentoId && podeConsultarHorarios
-      ? `${estabelecimentoId}/${servicoSelecionado!.id}/${escolhas.data}/${escolhas.idProfissional ?? ''}`
+      ? `${estabelecimentoId}/${servicoSelecionado!.id}/${escolhas.idProfissional ?? ''}/${hoje}`
       : null,
-    () =>
-      listarHorariosDisponiveis(
-        estabelecimentoId!,
-        servicoSelecionado!.id,
-        escolhas.data!,
-        escolhas.qualquerProfissional ? undefined : escolhas.idProfissional,
+    async () =>
+      Object.fromEntries(
+        await Promise.all(
+          datas.map(
+            async (data) =>
+              [
+                data,
+                await listarHorariosDisponiveis(
+                  estabelecimentoId!,
+                  servicoSelecionado!.id,
+                  data,
+                  escolhas.qualquerProfissional ? undefined : escolhas.idProfissional,
+                ),
+              ] as const,
+          ),
+        ),
       ),
     'Não foi possível carregar os horários. Tente novamente.',
   )
   const horariosDemo = useMemo(() => {
-    if (estabelecimentoId || !podeConsultarHorarios) return []
+    if (estabelecimentoId || !podeConsultarHorarios) return {}
     const agendamentos = repositorioMock.buscarAgendamentos()
-    return escolhas.qualquerProfissional
-      ? buscarHorariosDeQualquerProfissional(
-          escolhas.data!,
-          profissionaisDisponiveis,
-          servicoSelecionado!,
-          agendamentos,
-          servicos,
-        )
-      : buscarHorariosDisponiveis(
-          escolhas.data!,
-          profissionalSelecionado!,
-          servicoSelecionado!,
-          agendamentos,
-          servicos,
-        )
+    return Object.fromEntries(
+      datas.map((data) => [
+        data,
+        escolhas.qualquerProfissional
+          ? buscarHorariosDeQualquerProfissional(
+              data,
+              profissionaisDisponiveis,
+              servicoSelecionado!,
+              agendamentos,
+              servicos,
+            )
+          : buscarHorariosDisponiveis(
+              data,
+              profissionalSelecionado!,
+              servicoSelecionado!,
+              agendamentos,
+              servicos,
+            ),
+      ]),
+    )
   }, [
     estabelecimentoId,
     podeConsultarHorarios,
-    escolhas.data,
+    datas,
     escolhas.qualquerProfissional,
     servicoSelecionado,
     profissionalSelecionado,
     profissionaisDisponiveis,
     servicos,
   ])
-  const times = estabelecimentoId ? (horariosRemotos.dados ?? []) : horariosDemo
+  const horariosPorData: Record<string, string[]> = estabelecimentoId
+    ? (horariosRemotos.dados ?? {})
+    : horariosDemo
+  const datasDisponiveis = datas.filter((data) => horariosPorData[data]?.length)
+  const times = escolhas.data ? (horariosPorData[escolhas.data] ?? []) : []
   const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
   const caminhoDeVolta =
     localizacao.state?.origem === 'painel'
@@ -515,8 +540,12 @@ export function Agendamento({
         {etapa === 3 && (
           <Card>
             <h2>Data e horário</h2>
+            <MensagemDeCarga carregamento={horariosRemotos} texto="Carregando horários..." />
+            {!datasDisponiveis.length && !horariosRemotos.carregando && !horariosRemotos.erro && (
+              <p className="notice">Não há horários disponíveis nos próximos dias.</p>
+            )}
             <div className="filters">
-              {datas.map((data) => (
+              {datasDisponiveis.map((data) => (
                 <Button
                   variant={escolhas.data === data ? 'primary' : 'secondary'}
                   key={data}
@@ -547,10 +576,6 @@ export function Agendamento({
                     </button>
                   ))}
                 </div>
-                <MensagemDeCarga carregamento={horariosRemotos} texto="Carregando horários..." />
-                {!times.length && !horariosRemotos.carregando && !horariosRemotos.erro && (
-                  <p className="notice">Não há horários disponíveis nesta data.</p>
-                )}
               </>
             )}
             <div className="form-actions">

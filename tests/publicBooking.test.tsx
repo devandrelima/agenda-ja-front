@@ -9,6 +9,7 @@ const caminhoProfissionais = '/api/estabelecimentos/4/servicos/1/profissionais'
 
 // Datas relativas a hoje, como no assistente, para não depender do dia em que o teste roda.
 const amanha = paraChaveData(adicionarDias(new Date(), 1))
+const depoisDeAmanha = paraChaveData(adicionarDias(new Date(), 2))
 const rotuloDaData = (data: string) =>
   new Date(`${data}T12:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' })
 
@@ -165,15 +166,30 @@ describe('agendamento de um estabelecimento real', () => {
     )
   })
 
-  it('avisa quando não há horários na data', async () => {
+  it('mostra somente as datas com horários livres', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: (parametros) =>
+        resposta(parametros.get('data') === depoisDeAmanha ? ['10:00'] : []),
+    })
+    const user = await abrirProfissionais()
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(depoisDeAmanha) }))
+    expect(screen.queryByRole('button', { name: rotuloDaData(amanha) })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '10:00' })).toBeInTheDocument()
+  })
+
+  it('avisa quando não há horários nos próximos dias', async () => {
     stubApi({
       profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
       disponibilidade: () => resposta([]),
     })
     const user = await abrirProfissionais()
     await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
-    await user.click(screen.getByRole('button', { name: rotuloDaData(amanha) }))
-    expect(await screen.findByText('Não há horários disponíveis nesta data.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Não há horários disponíveis nos próximos dias.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: rotuloDaData(amanha) })).not.toBeInTheDocument()
   })
 
   it('permite tentar novamente quando a busca de horários falha', async () => {
@@ -184,14 +200,16 @@ describe('agendamento de um estabelecimento real', () => {
     })
     const user = await abrirProfissionais()
     await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
-    await user.click(screen.getByRole('button', { name: rotuloDaData(amanha) }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Não foi possível carregar os horários. Tente novamente.',
     )
-    expect(screen.queryByText('Não há horários disponíveis nesta data.')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Não há horários disponíveis nos próximos dias.'),
+    ).not.toBeInTheDocument()
     falhar = false
     await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-    expect(await screen.findByRole('button', { name: '09:00' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    expect(screen.getByRole('button', { name: '09:00' })).toBeInTheDocument()
   })
 
   it('consulta a agenda de todos e não revela o profissional quando aceita qualquer um', async () => {
