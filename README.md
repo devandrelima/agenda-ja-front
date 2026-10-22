@@ -73,7 +73,7 @@ O pipeline publica JUnit, artefatos de build, cobertura Cobertura e relatório H
 
 ## Portal público e limites
 
-O painel consulta `GET /api/admin/estabelecimentos/{id}` para obter o `publicId` do negócio. O link gerado abre `GET /api/estabelecimentos/publico/{publicId}` sem autenticação, que retorna `id`, `publicId`, nome, categoria, localização, imagem e horários de funcionamento. A lista em `/estabelecimento/{publicId}/servicos` e o primeiro passo de `/estabelecimento/{publicId}/agendar` usam `GET /api/estabelecimentos/{id}/servicos`, que retorna somente serviços ativos com nome, duração e preço. A escolha fica identificada por `?servico={id}` na URL. O fluxo de agendamento real após a escolha do serviço depende das histórias seguintes.
+O painel consulta `GET /api/admin/estabelecimentos/{id}` para obter o `publicId` do negócio. O link gerado abre `GET /api/estabelecimentos/publico/{publicId}` sem autenticação, que retorna `id`, `publicId`, nome, categoria, localização, imagem e horários de funcionamento. Na apresentação, “Ver horários e serviços” abre `/estabelecimento/{publicId}/servicos`, onde os horários aparecem antes do catálogo, como na página de demonstração. Essa página e o primeiro passo de `/estabelecimento/{publicId}/agendar` usam `GET /api/estabelecimentos/{id}/servicos`, que retorna somente serviços ativos com nome, duração e preço. A escolha fica identificada por `?servico={id}` na URL. O fluxo de agendamento real após a escolha do serviço depende das histórias seguintes.
 
 ### Avaliações de demonstração
 

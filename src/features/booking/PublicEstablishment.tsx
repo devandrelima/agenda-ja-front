@@ -9,6 +9,7 @@ import {
 } from '../../data/publicEstablishment'
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
+import { nomesDias, resumirHorario } from '../../data/businessHours'
 import { MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
 import { PaginaAvaliacoes } from '../reviews/Reviews'
 
@@ -86,7 +87,6 @@ export function PaginaEstabelecimentoPublico() {
         categoria: estabelecimento.categoria,
         endereco: estabelecimento.localizacao,
         imagemUrl: estabelecimento.imagemUrl,
-        horariosFuncionamento: estabelecimento.horariosFuncionamento,
       }}
       rotaBase={`/estabelecimento/${publicId}`}
       identificadorPublico={publicId}
@@ -206,9 +206,25 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
 
         <div className="public-services-heading">
           <p>{resultado.estabelecimento.nome}</p>
-          <h1>{etapa === 'servicos' ? 'Serviços' : 'Escolha o serviço'}</h1>
-          <p>Confira a duração e o preço de cada atendimento.</p>
+          <h1>{etapa === 'servicos' ? 'Horários de funcionamento' : 'Escolha o serviço'}</h1>
+          {etapa === 'agendar' && <p>Confira a duração e o preço de cada atendimento.</p>}
         </div>
+
+        {etapa === 'servicos' && (
+          <>
+            <section aria-label="Horários da semana">
+              <ul className="availability-list">
+                {resultado.estabelecimento.horariosFuncionamento?.map((dia, indice) => (
+                  <li key={nomesDias[indice]}>
+                    <strong>{nomesDias[indice]}</strong>
+                    <span>{resumirHorario(dia)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <h2 className="public-services-section-title">Serviços</h2>
+          </>
+        )}
 
         {resultado.servicos.length === 0 ? (
           <p className="public-services-empty">Nenhum serviço disponível no momento.</p>

@@ -47,6 +47,9 @@ test('configurações salvam dados, capa e horários na API e atualizam a vitrin
   await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
     rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(negocio) }),
   )
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
 
   await page.goto('/painel/configuracoes')
   await page.getByRole('button', { name: 'Editar dados' }).click()
@@ -86,10 +89,10 @@ test('configurações salvam dados, capa e horários na API e atualizam a vitrin
     'src',
     negocio.imagemUrl!,
   )
+  await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Ver horários e serviços' }).click()
   await expect(
-    page
-      .getByRole('region', { name: 'Horários de funcionamento' })
-      .getByText('08:00 às 12:00 · 14:00 às 18:00'),
+    page.getByRole('region', { name: 'Horários da semana' }).getByText('08:00 às 12:00 · 14:00 às 18:00'),
   ).toBeVisible()
 })
 

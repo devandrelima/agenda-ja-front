@@ -8,6 +8,9 @@ const estabelecimento = {
   categoria: 'Barbearia',
   localizacao: 'Rua das Flores, 120',
   imagemUrl: null,
+  horariosFuncionamento: Array.from({ length: 7 }, (_, indice) => ({
+    turnos: indice === 0 ? [{ inicio: '09:00', fim: '18:00' }] : [],
+  })),
 }
 const servicos = [
   { id: 12, nome: 'Corte masculino', duracaoMinutos: 40, valor: 55, estabelecimentoId: 4 },
@@ -74,7 +77,8 @@ test('abre o link público e mostra somente dados do estabelecimento', async ({ 
   await page.getByRole('link', { name: '0 avaliações' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/avaliacoes`)
   await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
-  await expect(page.getByRole('link', { name: 'Ver serviços' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ver horários e serviços' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toHaveCount(0)
   await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
   await expect(page.getByRole('heading', { name: 'Escolha o serviço' })).toBeVisible()
@@ -91,8 +95,11 @@ test('mostra mensagem quando o link não existe', async ({ page }) => {
 test('lista os serviços públicos com duração e preço e permite escolher um', async ({ page }) => {
   await prepararPortal(page)
   await page.goto(`/estabelecimento/${publicId}`)
-  await page.getByRole('link', { name: 'Ver serviços' }).click()
+  await page.getByRole('link', { name: 'Ver horários e serviços' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/servicos`)
+  await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Horários da semana' }).getByText('09:00 às 18:00')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Serviços' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Corte masculino' })).toBeVisible()
   await expect(page.getByText('40 min')).toBeVisible()
   await expect(page.getByText('R$ 55,00')).toBeVisible()

@@ -124,6 +124,11 @@
   font-size: clamp(1.8rem, 7vw, 2.3rem);
   letter-spacing: -0.03em;
 }
+.public-services-section-title {
+  margin: 56px 6px 20px;
+  font-size: clamp(1.8rem, 7vw, 2.3rem);
+  letter-spacing: -0.03em;
+}
 .public-services-list {
   display: grid;
   gap: 12px;
@@ -278,13 +283,6 @@
   display: grid;
   grid-template-rows: 1fr 1fr;
   gap: 16px;
-}
-.public-business-hours {
-  margin-top: 28px;
-}
-.public-business-hours h2 {
-  margin: 0 0 14px;
-  font-size: 1.4rem;
 }
 .rating-score,
 .rating-count,
