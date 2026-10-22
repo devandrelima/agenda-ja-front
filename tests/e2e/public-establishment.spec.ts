@@ -110,7 +110,9 @@ test('lista os serviços sem ação de escolha e mantém a seleção no agendame
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
   await page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
-  await expect(page.getByRole('status')).toContainText('Serviço selecionado: Corte masculino')
+  await expect(page.getByRole('status').filter({ hasText: 'Serviço selecionado' })).toContainText(
+    'Serviço selecionado: Corte masculino',
+  )
 })
 
 test('mostra estado vazio quando não há serviços ativos', async ({ page }) => {

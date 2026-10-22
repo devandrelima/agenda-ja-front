@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type ReactElement } from 'react'
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { ErroApi } from '../../data/api'
 import {
   buscarEstabelecimentoPublico,
@@ -10,7 +10,9 @@ import {
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
 import { nomesDias, resumirHorario } from '../../data/businessHours'
-import { MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
+import { caminhos } from '../../app/paths'
+import { Steps } from '../../design-system/ui'
+import { Agendamento, MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
 import { PaginaAvaliacoes } from '../reviews/Reviews'
 
 const formatarMoeda = (valor: number) =>
@@ -138,15 +140,23 @@ export function PaginaAvaliacoesPublicas() {
   )
 }
 
-export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }) {
-  const { estabelecimentoId: publicId } = useParams()
-  const [parametros, definirParametros] = useSearchParams()
-  const [resultado, definirResultado] = useState<{
-    publicId: string
-    estabelecimento?: EstabelecimentoPublico
-    servicos?: Servico[]
-    erro?: string
-  } | null>(null)
+type ResultadoServicos = {
+  publicId: string
+  estabelecimento?: EstabelecimentoPublico
+  servicos?: Servico[]
+  erro?: string
+}
+
+/**
+ * Carrega o estabelecimento do link público e seus serviços. Enquanto não há dados, `tela` traz o
+ * estado de carregamento ou de erro a exibir no lugar da página.
+ */
+function useServicosDoEstabelecimento(
+  publicId: string | undefined,
+):
+  | { estabelecimento: EstabelecimentoPublico; servicos: Servico[]; tela?: undefined }
+  | { estabelecimento?: undefined; servicos?: undefined; tela: ReactElement } {
+  const [resultado, definirResultado] = useState<ResultadoServicos | null>(null)
 
   useEffect(() => {
     if (!publicId || !identificadorPublicoValido(publicId)) return
@@ -173,17 +183,31 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
   }, [publicId])
 
   if (!publicId || !identificadorPublicoValido(publicId))
-    return <ErroLinkPublico mensagem="Estabelecimento não encontrado." />
+    return { tela: <ErroLinkPublico mensagem="Estabelecimento não encontrado." /> }
 
   if (resultado?.publicId !== publicId)
-    return (
-      <main className="public-state" role="status">
-        Carregando serviços...
-      </main>
-    )
+    return {
+      tela: (
+        <main className="public-state" role="status">
+          Carregando serviços...
+        </main>
+      ),
+    }
 
   if (resultado.erro || !resultado.estabelecimento || !resultado.servicos)
-    return <ErroLinkPublico mensagem={resultado.erro || 'Estabelecimento não encontrado.'} />
+    return {
+      tela: <ErroLinkPublico mensagem={resultado.erro || 'Estabelecimento não encontrado.'} />,
+    }
+
+  return { estabelecimento: resultado.estabelecimento, servicos: resultado.servicos }
+}
+
+export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }) {
+  const { estabelecimentoId: publicId } = useParams()
+  const localizacao = useLocation()
+  const [parametros, definirParametros] = useSearchParams()
+  const resultado = useServicosDoEstabelecimento(publicId)
+  if (!resultado.estabelecimento) return resultado.tela
 
   const rotaBase = `/estabelecimento/${publicId}`
   const servicoSelecionado = resultado.servicos.find(
@@ -196,13 +220,22 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
         <header className="availability-header">
           <Link
             className="availability-back"
-            to={rotaBase}
-            aria-label="Voltar para a página do estabelecimento"
+            to={localizacao.state?.origem === 'painel' ? caminhos.painel : rotaBase}
+            aria-label={
+              localizacao.state?.origem === 'painel'
+                ? 'Voltar ao painel'
+                : 'Voltar para a página do estabelecimento'
+            }
           >
             ‹
           </Link>
           <MarcaAgendaJa />
         </header>
+        {etapa === 'agendar' && (
+          <div className="public-steps">
+            <Steps step={1} />
+          </div>
+        )}
 
         <div className="public-services-heading">
           <p>{resultado.estabelecimento.nome}</p>
@@ -245,7 +278,12 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                     className={`public-service-card public-service-option${servicoSelecionado?.id === servico.id ? ' selected' : ''}`}
                     type="button"
                     aria-pressed={servicoSelecionado?.id === servico.id}
-                    onClick={() => definirParametros({ servico: String(servico.id) })}
+                    onClick={() =>
+                      definirParametros(
+                        { servico: String(servico.id) },
+                        { state: localizacao.state },
+                      )
+                    }
                   >
                     <span>
                       <strong>{servico.nome}</strong>
@@ -264,6 +302,61 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
             Serviço selecionado: <strong>{servicoSelecionado.nome}</strong>
           </p>
         )}
+        {etapa === 'agendar' && servicoSelecionado && (
+          <Link
+            className="button primary public-service-continue"
+            to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
+            state={localizacao.state}
+          >
+            Continuar
+          </Link>
+        )}
+      </section>
+    </main>
+  )
+}
+
+/** Etapas seguintes ao serviço (profissional, data e horário, dados), numa página própria. */
+export function AgendamentoPublico() {
+  const { estabelecimentoId: publicId } = useParams()
+  const localizacao = useLocation()
+  const [parametros] = useSearchParams()
+  const resultado = useServicosDoEstabelecimento(publicId)
+  if (!resultado.estabelecimento) return resultado.tela
+
+  const rotaBase = `/estabelecimento/${publicId}`
+  const servico = resultado.servicos.find((item) => String(item.id) === parametros.get('servico'))
+  if (!servico) return <Navigate to={`${rotaBase}/agendar`} state={localizacao.state} replace />
+
+  const caminhoDoServico = `${rotaBase}/agendar?servico=${servico.id}`
+  return (
+    <main className="public-services-page">
+      <section className="public-services-shell">
+        <header className="availability-header">
+          <Link
+            className="availability-back"
+            to={caminhoDoServico}
+            state={localizacao.state}
+            aria-label="Voltar para a escolha do serviço"
+          >
+            ‹
+          </Link>
+          <MarcaAgendaJa />
+        </header>
+        <Agendamento
+          key={servico.id}
+          publico={{
+            estabelecimentoId: String(resultado.estabelecimento.id),
+            servico: {
+              id: String(servico.id),
+              nome: servico.nome,
+              duracao: servico.duracaoMinutos,
+              valor: Number(servico.valor),
+            },
+            rotaBase,
+            caminhoDoServico,
+          }}
+        />
       </section>
     </main>
   )

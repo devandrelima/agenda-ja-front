@@ -182,6 +182,19 @@
 .public-service-selection {
   margin-top: 20px;
 }
+.public-steps {
+  padding: 24px 16px 0;
+}
+.public-steps + .public-services-heading {
+  margin-top: 24px;
+}
+.public-service-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  text-decoration: none;
+}
 .presentation-shell {
   width: min(92vw, 760px);
   min-height: calc(100vh - 20px);

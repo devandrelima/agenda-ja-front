@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { repositorioMock } from '../../data/mockRepository'
+import { listarHorariosDisponiveis } from '../../data/publicAvailability'
+import { listarProfissionaisDoServico } from '../../data/publicProfessionals'
 import {
   adicionarDias,
+  buscarHorariosDeQualquerProfissional,
   buscarHorariosDisponiveis,
   buscarProfissionaisDoServico,
   paraChaveData,
 } from '../../domain/availability'
-import type { Avaliacao, EscolhasAgendamento } from '../../domain/models'
+import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../../domain/models'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -201,52 +204,200 @@ export function Disponibilidade() {
     </main>
   )
 }
-export function Agendamento() {
+type Carregamento<T> = { dados?: T; carregando: boolean; erro: string; tentarNovamente: () => void }
+
+/**
+ * Busca dados no backend. `chave` identifica a consulta (`null` = nada a buscar); ao mudar, a
+ * consulta é refeita e o resultado antigo é descartado.
+ */
+function useDadosRemotos<T>(
+  chave: string | null,
+  buscar: () => Promise<T>,
+  mensagemDeErro: string,
+): Carregamento<T> {
+  const [tentativa, definirTentativa] = useState(0)
+  const [resultado, definirResultado] = useState<{
+    chave: string
+    dados?: T
+    erro?: string
+  } | null>(null)
+  const chaveCompleta = chave === null ? null : `${chave}/${tentativa}`
+
+  useEffect(() => {
+    if (chaveCompleta === null) return
+    let ativo = true
+    buscar()
+      .then((dados) => {
+        if (ativo) definirResultado({ chave: chaveCompleta, dados })
+      })
+      .catch(() => {
+        if (ativo) definirResultado({ chave: chaveCompleta, erro: mensagemDeErro })
+      })
+    return () => {
+      ativo = false
+    }
+    // `buscar` é recriada a cada renderização; `chaveCompleta` já identifica a consulta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveCompleta])
+
+  const atual = resultado?.chave === chaveCompleta ? resultado : null
+  return {
+    dados: atual?.dados,
+    carregando: chaveCompleta !== null && !atual,
+    erro: atual?.erro ?? '',
+    tentarNovamente: () => definirTentativa((valor) => valor + 1),
+  }
+}
+
+function MensagemDeCarga({
+  carregamento,
+  texto,
+}: {
+  carregamento: Carregamento<unknown>
+  texto: string
+}) {
+  if (carregamento.carregando) return <p role="status">{texto}</p>
+  if (!carregamento.erro) return null
+  return (
+    <>
+      <p className="auth-error" role="alert">
+        {carregamento.erro}
+      </p>
+      <Button type="button" variant="secondary" onClick={carregamento.tentarNovamente}>
+        Tentar novamente
+      </Button>
+    </>
+  )
+}
+
+const SEM_PROFISSIONAIS: Profissional[] = []
+
+/**
+ * Assistente de agendamento. Com `publico`, continua a escolha de serviço feita na página pública
+ * (`ProximaEtapaPublica`): começa no profissional, volta ao serviço por `caminhoDoServico` e
+ * consulta o backend; sem ele, usa o mock.
+ */
+export function Agendamento({
+  publico,
+}: {
+  publico?: {
+    estabelecimentoId: string
+    servico: Servico
+    rotaBase: string
+    caminhoDoServico: string
+  }
+}) {
+  const estabelecimentoId = publico?.estabelecimentoId
   const localizacao = useLocation()
-  const [etapa, definirEtapa] = useState(1)
-  const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>({})
+  const [etapa, definirEtapa] = useState(publico ? 2 : 1)
+  const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>(
+    publico ? { idServico: publico.servico.id } : {},
+  )
   const [errosContato, definirErrosContato] = useState<Record<string, string>>({})
-  const servicos = repositorioMock.buscarServicos()
-  const profissionais = repositorioMock.buscarProfissionais()
+  const servicos = useMemo(
+    () => (publico ? [publico.servico] : repositorioMock.buscarServicos()),
+    [publico],
+  )
   const servicoSelecionado = servicos.find((servico) => servico.id === escolhas.idServico)
-  const profissionaisDisponiveis = servicoSelecionado
-    ? buscarProfissionaisDoServico(profissionais, servicoSelecionado.id)
-    : []
-  const profissionalSelecionado = profissionais.find(
+  const profissionaisRemotos = useDadosRemotos(
+    estabelecimentoId && servicoSelecionado
+      ? `${estabelecimentoId}/${servicoSelecionado.id}`
+      : null,
+    () => listarProfissionaisDoServico(estabelecimentoId!, servicoSelecionado!.id),
+    'Não foi possível carregar os profissionais. Tente novamente.',
+  )
+  const profissionaisDemo = useMemo(
+    () =>
+      servicoSelecionado
+        ? buscarProfissionaisDoServico(repositorioMock.buscarProfissionais(), servicoSelecionado.id)
+        : SEM_PROFISSIONAIS,
+    [servicoSelecionado],
+  )
+  const profissionaisDisponiveis = estabelecimentoId
+    ? (profissionaisRemotos.dados ?? SEM_PROFISSIONAIS)
+    : profissionaisDemo
+  const profissionalSelecionado = profissionaisDisponiveis.find(
     (profissional) => profissional.id === escolhas.idProfissional,
   )
   const datas = Array.from({ length: 6 }, (_, indice) =>
     paraChaveData(adicionarDias(new Date(), indice + 1)),
   )
-  const times = useMemo(
+  const podeConsultarHorarios =
+    Boolean(servicoSelecionado && escolhas.data) &&
+    (escolhas.qualquerProfissional || Boolean(profissionalSelecionado))
+  const horariosRemotos = useDadosRemotos(
+    estabelecimentoId && podeConsultarHorarios
+      ? `${estabelecimentoId}/${servicoSelecionado!.id}/${escolhas.data}/${escolhas.idProfissional ?? ''}`
+      : null,
     () =>
-      servicoSelecionado && profissionalSelecionado && escolhas.data
-        ? buscarHorariosDisponiveis(
-            escolhas.data,
-            profissionalSelecionado,
-            servicoSelecionado,
-            repositorioMock.buscarAgendamentos(),
-            servicos,
-          )
-        : [],
-    [servicoSelecionado, profissionalSelecionado, escolhas.data, servicos],
+      listarHorariosDisponiveis(
+        estabelecimentoId!,
+        servicoSelecionado!.id,
+        escolhas.data!,
+        escolhas.qualquerProfissional ? undefined : escolhas.idProfissional,
+      ),
+    'Não foi possível carregar os horários. Tente novamente.',
   )
+  const horariosDemo = useMemo(() => {
+    if (estabelecimentoId || !podeConsultarHorarios) return []
+    const agendamentos = repositorioMock.buscarAgendamentos()
+    return escolhas.qualquerProfissional
+      ? buscarHorariosDeQualquerProfissional(
+          escolhas.data!,
+          profissionaisDisponiveis,
+          servicoSelecionado!,
+          agendamentos,
+          servicos,
+        )
+      : buscarHorariosDisponiveis(
+          escolhas.data!,
+          profissionalSelecionado!,
+          servicoSelecionado!,
+          agendamentos,
+          servicos,
+        )
+  }, [
+    estabelecimentoId,
+    podeConsultarHorarios,
+    escolhas.data,
+    escolhas.qualquerProfissional,
+    servicoSelecionado,
+    profissionalSelecionado,
+    profissionaisDisponiveis,
+    servicos,
+  ])
+  const times = estabelecimentoId ? (horariosRemotos.dados ?? []) : horariosDemo
   const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
   const caminhoDeVolta =
-    localizacao.state?.origem === 'painel' ? caminhos.painel : caminhos.estabelecimento
+    localizacao.state?.origem === 'painel'
+      ? caminhos.painel
+      : (publico?.rotaBase ?? caminhos.estabelecimento)
   const rotuloDeVolta =
     localizacao.state?.origem === 'painel' ? '← Voltar ao painel' : '← Ateliê Aurora'
+  // Na página pública o cabeçalho fica por conta de `AgendamentoPublico`.
+  const Conteiner = publico ? 'section' : 'main'
   function selecionarServico(idServico: string) {
     definirEscolhas({ idServico })
     irParaEtapa(2)
   }
-  function selecionarProfissional(idProfissional: string) {
-    definirEscolhas((atual) => ({ ...atual, idProfissional, data: undefined, horario: undefined }))
+  function selecionarProfissional(idProfissional?: string) {
+    definirEscolhas((atual) => ({
+      ...atual,
+      idProfissional,
+      qualquerProfissional: !idProfissional,
+      data: undefined,
+      horario: undefined,
+    }))
     irParaEtapa(3)
   }
-  if (etapa === 5 && servicoSelecionado && profissionalSelecionado && escolhas.cliente)
+  if (
+    etapa === 5 &&
+    servicoSelecionado &&
+    (profissionalSelecionado || escolhas.qualquerProfissional) &&
+    escolhas.cliente
+  )
     return (
-      <main className="booking container">
+      <Conteiner className="booking container">
         <div className="booking-main">
           <Card className="confirmation">
             <p className="eyebrow">Agendamento de demonstração</p>
@@ -256,7 +407,7 @@ export function Agendamento() {
               <strong>
                 {servicoSelecionado.nome} · {formatarMoeda(servicoSelecionado.valor)}
               </strong>
-              <span>{profissionalSelecionado.nome}</span>
+              <span>{profissionalSelecionado?.nome ?? 'Qualquer profissional'}</span>
               <span>
                 {new Date(`${escolhas.data}T${escolhas.horario}`).toLocaleString('pt-BR', {
                   dateStyle: 'full',
@@ -278,13 +429,17 @@ export function Agendamento() {
             </div>
           </Card>
         </div>
-      </main>
+      </Conteiner>
     )
   return (
-    <main className="booking container">
+    <Conteiner className="booking container">
       <div className="booking-main">
-        <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
-        <h1>Fazer agendamento</h1>
+        {!publico && (
+          <>
+            <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
+            <h1>Fazer agendamento</h1>
+          </>
+        )}
         <Steps step={etapa} />
         {etapa === 1 && (
           <Card>
@@ -308,39 +463,53 @@ export function Agendamento() {
         {etapa === 2 && (
           <Card>
             <h2>Escolha o profissional</h2>
-            <button
-              className="option"
-              onClick={() =>
-                profissionaisDisponiveis[0] &&
-                selecionarProfissional(profissionaisDisponiveis[0].id)
-              }
-            >
-              <span>
-                <strong>Qualquer profissional</strong>
-                <br />
-                <small>Escolhemos alguém disponível</small>
-              </span>
-            </button>
-            {profissionaisDisponiveis.length ? (
-              profissionaisDisponiveis.map((profissional) => (
+            {profissionaisRemotos.carregando || profissionaisRemotos.erro ? (
+              <MensagemDeCarga
+                carregamento={profissionaisRemotos}
+                texto="Carregando profissionais..."
+              />
+            ) : profissionaisDisponiveis.length ? (
+              <>
                 <button
-                  className={`option ${escolhas.idProfissional === profissional.id ? 'selected' : ''}`}
-                  onClick={() => selecionarProfissional(profissional.id)}
-                  key={profissional.id}
+                  className={`option ${escolhas.qualquerProfissional ? 'selected' : ''}`}
+                  onClick={() => selecionarProfissional()}
                 >
                   <span>
-                    <strong>{profissional.nome}</strong>
+                    <strong>Qualquer profissional</strong>
                     <br />
-                    <small>{profissional.especialidades.join(', ')}</small>
+                    <small>Escolhemos alguém disponível</small>
                   </span>
                 </button>
-              ))
+                {profissionaisDisponiveis.map((profissional) => (
+                  <button
+                    className={`option ${
+                      !escolhas.qualquerProfissional && escolhas.idProfissional === profissional.id
+                        ? 'selected'
+                        : ''
+                    }`}
+                    onClick={() => selecionarProfissional(profissional.id)}
+                    key={profissional.id}
+                  >
+                    <span>
+                      <strong>{profissional.nome}</strong>
+                      <br />
+                      <small>{profissional.especialidades.join(', ')}</small>
+                    </span>
+                  </button>
+                ))}
+              </>
             ) : (
               <p>Nenhum profissional atende este serviço.</p>
             )}
-            <Button variant="ghost" onClick={() => irParaEtapa(1)}>
-              Voltar
-            </Button>
+            {publico ? (
+              <Link to={publico.caminhoDoServico} state={localizacao.state}>
+                <Button variant="ghost">Voltar</Button>
+              </Link>
+            ) : (
+              <Button variant="ghost" onClick={() => irParaEtapa(1)}>
+                Voltar
+              </Button>
+            )}
           </Card>
         )}
         {etapa === 3 && (
@@ -368,17 +537,20 @@ export function Agendamento() {
                   <span className="muted">Manhã · Tarde · Noite</span>
                 </div>
                 <div className="time-grid">
-                  {times.map((t) => (
+                  {times.map((horario) => (
                     <button
-                      className={escolhas.horario === t ? 'selected' : ''}
-                      key={t}
-                      onClick={() => definirEscolhas((atual) => ({ ...atual, horario: t }))}
+                      className={escolhas.horario === horario ? 'selected' : ''}
+                      key={horario}
+                      onClick={() => definirEscolhas((atual) => ({ ...atual, horario }))}
                     >
-                      {t}
+                      {horario}
                     </button>
                   ))}
                 </div>
-                {!times.length && <p className="notice">Não há horários disponíveis nesta data.</p>}
+                <MensagemDeCarga carregamento={horariosRemotos} texto="Carregando horários..." />
+                {!times.length && !horariosRemotos.carregando && !horariosRemotos.erro && (
+                  <p className="notice">Não há horários disponíveis nesta data.</p>
+                )}
               </>
             )}
             <div className="form-actions">
@@ -474,6 +646,6 @@ export function Agendamento() {
           </Card>
         )}
       </div>
-    </main>
+    </Conteiner>
   )
 }
