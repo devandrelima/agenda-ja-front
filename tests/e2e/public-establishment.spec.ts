@@ -92,7 +92,7 @@ test('mostra mensagem quando o link não existe', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Estabelecimento não encontrado.' })).toBeVisible()
 })
 
-test('lista os serviços públicos com duração e preço e permite escolher um', async ({ page }) => {
+test('lista os serviços sem ação de escolha e mantém a seleção no agendamento', async ({ page }) => {
   await prepararPortal(page)
   await page.goto(`/estabelecimento/${publicId}`)
   await page.getByRole('link', { name: 'Ver horários e serviços' }).click()
@@ -104,12 +104,10 @@ test('lista os serviços públicos com duração e preço e permite escolher um'
   await expect(page.getByText('40 min')).toBeVisible()
   await expect(page.getByText('R$ 55,00')).toBeVisible()
   await expect(page.getByText('R$ 35,50')).toBeVisible()
-  await page.getByRole('link', { name: 'Escolher Barba' }).click()
-  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=13`)
-  await expect(page.getByRole('button', { name: /Barba.*30 min.*R\$ 35,50/ })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
+  await expect(page.getByRole('link', { name: /Escolher/ })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
+  await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
   await page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
   await expect(page.getByRole('status')).toContainText('Serviço selecionado: Corte masculino')

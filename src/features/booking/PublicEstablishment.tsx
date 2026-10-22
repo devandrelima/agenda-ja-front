@@ -239,9 +239,6 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                       <p>{servico.duracaoMinutos} min</p>
                     </div>
                     <strong>{formatarMoeda(servico.valor)}</strong>
-                    <Link to={`${rotaBase}/agendar?servico=${servico.id}`}>
-                      Escolher {servico.nome}
-                    </Link>
                   </article>
                 ) : (
                   <button
