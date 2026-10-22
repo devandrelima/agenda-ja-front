@@ -60,10 +60,11 @@ test('abre o link público e mostra somente dados do estabelecimento', async ({ 
   await expect(page.getByRole('heading', { name: 'Estúdio Brisa' })).toBeVisible()
   await expect(page.getByText('Rua das Flores, 120')).toBeVisible()
   await expect(page.getByText('Barbearia').first()).toBeVisible()
-  await expect(page.getByRole('img', { name: 'Foto indisponível' })).toHaveCSS(
-    'background-color',
-    'rgb(217, 222, 227)',
-  )
+  const imagemPlaceholder = page.getByRole('img', { name: 'Foto indisponível' })
+  await expect(imagemPlaceholder).toBeVisible()
+  await expect
+    .poll(() => imagemPlaceholder.evaluate((imagem) => (imagem as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
   await expect(page.getByRole('img', { name: 'Média 0 de 5 estrelas' })).toBeVisible()
   await expect(page.locator('.rating-count')).toHaveText('0 avaliações')
   await expect(page.getByRole('link', { name: 'Ver serviços' })).toBeVisible()

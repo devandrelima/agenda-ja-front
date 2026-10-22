@@ -15,6 +15,7 @@ import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
 import { useDadosNegocioDemo } from '../../data/businessProfile'
+import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -88,11 +89,7 @@ export function PaginaEstabelecimento({
               alt={`Foto do ${estabelecimento.nome}`}
             />
           ) : (
-            <div
-              className="presentation-photo public-business-placeholder"
-              role="img"
-              aria-label="Foto indisponível"
-            />
+            <img className="presentation-photo" src={imagemPlaceholder} alt="Foto indisponível" />
           )}
           <div className="presentation-ratings">
             {dados ? (
