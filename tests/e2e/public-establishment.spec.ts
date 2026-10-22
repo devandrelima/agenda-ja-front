@@ -1,5 +1,32 @@
 import { expect, test } from '@playwright/test'
 
+const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
+const estabelecimento = {
+  id: 4,
+  publicId,
+  nome: 'Estúdio Brisa',
+  categoria: 'Barbearia',
+  localizacao: 'Rua das Flores, 120',
+  imagemUrl: null,
+}
+const servicos = [
+  { id: 12, nome: 'Corte masculino', duracaoMinutos: 40, valor: 55, estabelecimentoId: 4 },
+  { id: 13, nome: 'Barba', duracaoMinutos: 30, valor: 35.5, estabelecimentoId: 4 },
+]
+
+async function prepararPortal(page: import('@playwright/test').Page) {
+  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(estabelecimento),
+    }),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(servicos) }),
+  )
+}
+
 test('mantém a página pública de demonstração no link existente', async ({ page }) => {
   await page.goto('/estabelecimento/atelie-aurora')
   await expect(page.getByRole('heading', { name: 'Ateliê Aurora' })).toBeVisible()
@@ -27,31 +54,22 @@ test('abre avaliações em página própria e volta pela seta', async ({ page })
 })
 
 test('abre o link público e mostra somente dados do estabelecimento', async ({ page }) => {
-  await page.route('**/api/estabelecimentos/4', (rota) =>
-    rota.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 4,
-        nome: 'Estúdio Brisa',
-        categoria: 'Barbearia',
-        localizacao: 'Rua das Flores, 120',
-        imagemUrl: null,
-      }),
-    }),
-  )
+  await prepararPortal(page)
 
-  await page.goto('/estabelecimento/4')
+  await page.goto(`/estabelecimento/${publicId}`)
   await expect(page.getByRole('heading', { name: 'Estúdio Brisa' })).toBeVisible()
   await expect(page.getByText('Rua das Flores, 120')).toBeVisible()
   await expect(page.getByText('Barbearia').first()).toBeVisible()
   await expect(page.getByRole('link', { name: 'Ver serviços' })).toBeVisible()
   await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
-  await expect(page).toHaveURL(/\/estabelecimento\/4\/agendar$/)
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
+  await expect(page.getByRole('heading', { name: 'Agendamento' })).toBeVisible()
 })
 
 test('mostra mensagem quando o link não existe', async ({ page }) => {
-  await page.route('**/api/estabelecimentos/999', (rota) => rota.fulfill({ status: 404 }))
-  await page.goto('/estabelecimento/999')
+  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
+    rota.fulfill({ status: 404 }),
+  )
+  await page.goto(`/estabelecimento/${publicId}`)
   await expect(page.getByRole('heading', { name: 'Estabelecimento não encontrado.' })).toBeVisible()
 })

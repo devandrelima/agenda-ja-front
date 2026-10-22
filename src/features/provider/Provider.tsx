@@ -4,6 +4,7 @@ import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
 import { prepararCapa, salvarCapaNegocio, useCapaNegocio } from '../../data/businessCover'
+import { buscarIdentificadorPublico } from '../../data/publicEstablishment'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
@@ -279,6 +280,7 @@ export function Dashboard() {
   const navegar = useNavigate()
   const { sessao } = useAutenticacao()
   const [avisoCopia, definirAvisoCopia] = useState<{ mensagem: string; erro: boolean } | null>(null)
+  const [copiandoLink, definirCopiandoLink] = useState(false)
   const temporizadorAviso = useRef<number | undefined>(undefined)
 
   useEffect(() => () => window.clearTimeout(temporizadorAviso.current), [])
@@ -303,12 +305,23 @@ export function Dashboard() {
   )
 
   async function copiarLinkDoNegocio() {
-    const linkDoNegocio = new URL(caminhos.estabelecimento, window.location.origin).toString()
+    if (sessao?.estabelecimentoId == null) {
+      mostrarAviso('Não foi possível identificar o negócio desta conta.', true)
+      return
+    }
+    definirCopiandoLink(true)
     try {
+      const publicId = await buscarIdentificadorPublico(sessao.estabelecimentoId)
+      const linkDoNegocio = new URL(
+        `/estabelecimento/${publicId}`,
+        window.location.origin,
+      ).toString()
       await copiarTexto(linkDoNegocio)
       mostrarAviso('Link copiado!')
     } catch {
       mostrarAviso('Não foi possível copiar o link.', true)
+    } finally {
+      definirCopiandoLink(false)
     }
   }
 
@@ -336,6 +349,7 @@ export function Dashboard() {
           <Button
             className="copy-business-link"
             type="button"
+            disabled={copiandoLink}
             onClick={() => void copiarLinkDoNegocio()}
             aria-label="Copiar link da página do negócio"
             title="Copiar link da página do negócio"

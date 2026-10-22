@@ -7,6 +7,7 @@ const sessao = {
   role: 'GESTOR',
   estabelecimentoId: 4,
 }
+const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
 
 test('mostra e oculta a senha sem enviar o formulário e valida e-mail no login', async ({
   page,
@@ -88,6 +89,20 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
   await page.route('**/api/admin/estabelecimentos/**', (rota) =>
     rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   )
+  await page.route('**/api/admin/estabelecimentos/4', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 4,
+        publicId,
+        nome: 'Ateliê Aurora',
+        categoria: 'Salão de beleza',
+        localizacao: 'Centro, Fortaleza',
+        imagemUrl: null,
+      }),
+    }),
+  )
 
   await page.goto('/login')
   await page.getByLabel('E-mail').fill(sessao.email)
@@ -96,7 +111,7 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()
 
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
-  const linkDaPagina = new URL('/estabelecimento/atelie-aurora', page.url()).toString()
+  const linkDaPagina = new URL(`/estabelecimento/${publicId}`, page.url()).toString()
   await page.getByRole('button', { name: 'Copiar link da página do negócio' }).click()
   await expect(page.getByRole('status')).toHaveText('Link copiado!')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(linkDaPagina)
@@ -106,12 +121,14 @@ test('gestor entra, copia o link, mantém a sessão após recarregar e sai', asy
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
   })
   await page.getByRole('button', { name: 'Copiar link da página do negócio' }).click()
-  expect(
-    await page.evaluate(async () => {
-      Reflect.deleteProperty(navigator, 'clipboard')
-      return navigator.clipboard.readText()
-    }),
-  ).toBe(linkDaPagina)
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        Reflect.deleteProperty(navigator, 'clipboard')
+        return navigator.clipboard.readText()
+      }),
+    )
+    .toBe(linkDaPagina)
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Olá, Ana Gestora' })).toBeVisible()

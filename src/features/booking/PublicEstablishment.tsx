@@ -1,30 +1,42 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ErroApi } from '../../data/api'
-import { buscarEstabelecimentoPublico } from '../../data/publicEstablishment'
+import {
+  buscarEstabelecimentoPublico,
+  identificadorPublicoValido,
+} from '../../data/publicEstablishment'
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import { PaginaEstabelecimento } from './Booking'
 
+function ErroLinkPublico({ mensagem }: { mensagem: string }) {
+  return (
+    <main className="public-state" role="alert">
+      <h1>{mensagem}</h1>
+      <Link to="/login">Ir para a página inicial</Link>
+    </main>
+  )
+}
+
 export function PaginaEstabelecimentoPublico() {
-  const { estabelecimentoId } = useParams()
+  const { estabelecimentoId: publicId } = useParams()
   const [resultado, definirResultado] = useState<{
-    id: string
+    publicId: string
     estabelecimento?: EstabelecimentoPublico
     erro?: string
   } | null>(null)
 
   useEffect(() => {
-    if (!estabelecimentoId || !/^\d+$/.test(estabelecimentoId)) return
+    if (!publicId || !identificadorPublicoValido(publicId)) return
 
     let ativo = true
-    buscarEstabelecimentoPublico(estabelecimentoId)
+    buscarEstabelecimentoPublico(publicId)
       .then((dados) => {
-        if (ativo) definirResultado({ id: estabelecimentoId, estabelecimento: dados })
+        if (ativo) definirResultado({ publicId, estabelecimento: dados })
       })
       .catch((falha: unknown) => {
         if (ativo)
           definirResultado({
-            id: estabelecimentoId,
+            publicId,
             erro:
               falha instanceof ErroApi && falha.status === 404
                 ? 'Estabelecimento não encontrado.'
@@ -34,27 +46,20 @@ export function PaginaEstabelecimentoPublico() {
     return () => {
       ativo = false
     }
-  }, [estabelecimentoId])
+  }, [publicId])
 
-  if (!estabelecimentoId || !/^\d+$/.test(estabelecimentoId))
-    return (
-      <main className="public-state" role="alert">
-        <h1>Estabelecimento não encontrado.</h1>
-      </main>
-    )
-  if (resultado?.id !== estabelecimentoId)
+  if (!publicId || !identificadorPublicoValido(publicId))
+    return <ErroLinkPublico mensagem="Estabelecimento não encontrado." />
+
+  if (resultado?.publicId !== publicId)
     return (
       <main className="public-state" role="status">
         Carregando estabelecimento...
       </main>
     )
+
   if (resultado.erro || !resultado.estabelecimento)
-    return (
-      <main className="public-state" role="alert">
-        <h1>{resultado.erro || 'Estabelecimento não encontrado.'}</h1>
-        <Link to="/login">Ir para a página inicial</Link>
-      </main>
-    )
+    return <ErroLinkPublico mensagem={resultado.erro || 'Estabelecimento não encontrado.'} />
 
   const estabelecimento = resultado.estabelecimento
   return (
@@ -65,7 +70,7 @@ export function PaginaEstabelecimentoPublico() {
         endereco: estabelecimento.localizacao,
         imagemUrl: estabelecimento.imagemUrl,
       }}
-      rotaBase={`/estabelecimento/${estabelecimento.id}`}
+      rotaBase={`/estabelecimento/${publicId}`}
     />
   )
 }
