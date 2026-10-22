@@ -83,11 +83,10 @@ salva no `localStorage`, com nome completo,
 telefone/WhatsApp, e-mail e senha. Use somente uma senha de teste: a conta local não oferece
 segurança de produção e não é compartilhada entre navegadores.
 
-Em `/estabelecimento/atelie-aurora/avaliacoes`, usuários com sessão ativa podem publicar,
-editar e excluir sua própria avaliação. Cada ID pode ter uma avaliação; o comentário do
+Em `/estabelecimento/atelie-aurora/avaliacoes` e em `/estabelecimento/{publicId}/avaliacoes`, os cards de nota e quantidade abrem a página de avaliações. Usuários com sessão ativa podem publicar, editar e excluir sua própria avaliação; o login do cliente retorna à página de avaliações do negócio que ele abriu. Cada ID pode ter uma avaliação por estabelecimento; o comentário do
 usuário conectado fica no topo em todas as páginas, e o campo de publicação desaparece
 enquanto ele já tiver uma avaliação. A identificação usa o ID da sessão.
-As alterações desta página são salvas apenas no `localStorage` do navegador e a interface
+As avaliações dos negócios reais ficam separadas por `publicId`. As alterações são salvas apenas no `localStorage` do navegador e a interface
 as identifica como prévia local. Total e média são calculados a partir da lista completa.
 O backend atual não possui
 autenticação de clientes nem endpoints de avaliações; autorização no servidor e sincronização

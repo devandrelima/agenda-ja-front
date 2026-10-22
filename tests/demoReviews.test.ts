@@ -40,9 +40,29 @@ it('usa o identificador autenticado para impedir edição e exclusão por tercei
   })
   await excluirAvaliacao(avaliacao.id, 7)
   expect(localStorage.getItem('agendaja-demo-reviews-v1')).toBe('[]')
-  await expect(publicarAvaliacao({ id: 7, nome: 'Ana' }, 'Depois de excluir', 3)).resolves.toMatchObject({
+  await expect(
+    publicarAvaliacao({ id: 7, nome: 'Ana' }, 'Depois de excluir', 3),
+  ).resolves.toMatchObject({
     comentario: 'Depois de excluir',
   })
+})
+
+it('separa comentários por estabelecimento e permite uma avaliação em cada um', async () => {
+  const autor = { id: 7, nome: 'Ana' }
+  const primeira = await publicarAvaliacao(autor, 'Primeiro negócio', 3, 'primeiro')
+  const segunda = await publicarAvaliacao(autor, 'Segundo negócio', 5, 'segundo')
+
+  expect(JSON.parse(localStorage.getItem('agendaja-demo-reviews-v1:primeiro')!)).toMatchObject([
+    { comentario: 'Primeiro negócio' },
+  ])
+  expect(JSON.parse(localStorage.getItem('agendaja-demo-reviews-v1:segundo')!)).toMatchObject([
+    { comentario: 'Segundo negócio' },
+  ])
+  await expect(editarAvaliacao(primeira.id, autor.id, 'Invasão', 1, 'segundo')).rejects.toThrow(
+    'não pode editar',
+  )
+  await excluirAvaliacao(segunda.id, autor.id, 'segundo')
+  expect(JSON.parse(localStorage.getItem('agendaja-demo-reviews-v1:primeiro')!)).toHaveLength(1)
 })
 
 it('preserva a avaliação quando a gravação de uma edição ou exclusão falha', async () => {

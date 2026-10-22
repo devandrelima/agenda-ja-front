@@ -83,8 +83,15 @@ function ordenar(avaliacoes: Avaliacao[], ordem: Ordem) {
   })
 }
 
-export function PaginaAvaliacoes() {
-  const avaliacoes = useAvaliacoesDemo()
+export function PaginaAvaliacoes({
+  identificadorPublico,
+  rotaBase = caminhos.estabelecimento,
+}: {
+  identificadorPublico?: string
+  rotaBase?: string
+}) {
+  const avaliacoes = useAvaliacoesDemo(identificadorPublico)
+  const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const { sessao, carregando, encerrar } = useAutenticacao()
   const [ordem, definirOrdem] = useState<Ordem>('mais-estrelas')
   const [pagina, definirPagina] = useState(1)
@@ -130,7 +137,7 @@ export function PaginaAvaliacoes() {
     definirEnviando(true)
     definirAviso(null)
     try {
-      await publicarAvaliacao(sessao, comentario, estrelas)
+      await publicarAvaliacao(sessao, comentario, estrelas, identificadorPublico)
       definirComentario('')
       definirEstrelas(0)
       definirPagina(1)
@@ -154,7 +161,7 @@ export function PaginaAvaliacoes() {
     definirOperacao(id)
     definirAviso(null)
     try {
-      await editarAvaliacao(id, sessao.id, textoEdicao, estrelasEdicao)
+      await editarAvaliacao(id, sessao.id, textoEdicao, estrelasEdicao, identificadorPublico)
       definirEditando(null)
       definirPagina(1)
       definirAviso({ texto: 'Comentário atualizado nesta demonstração.', erro: false })
@@ -170,7 +177,7 @@ export function PaginaAvaliacoes() {
     definirOperacao(id)
     definirAviso(null)
     try {
-      await excluirAvaliacao(id, sessao.id)
+      await excluirAvaliacao(id, sessao.id, identificadorPublico)
       definirConfirmandoExclusao(null)
       definirPagina(1)
       definirAviso({ texto: 'Comentário excluído desta demonstração.', erro: false })
@@ -203,7 +210,7 @@ export function PaginaAvaliacoes() {
         <header className="availability-header">
           <Link
             className="availability-back"
-            to={caminhos.estabelecimento}
+            to={rotaBase}
             aria-label="Voltar para a página do estabelecimento"
           >
             ‹
@@ -426,7 +433,7 @@ export function PaginaAvaliacoes() {
         {!carregando && !sessao && (
           <p className="reviews-signin">
             Quer avaliar?{' '}
-            <Link to={caminhos.login} state={{ retorno: caminhos.avaliacoes, perfil: 'CLIENTE' }}>
+            <Link to={caminhos.login} state={{ retorno: caminhoAvaliacoes, perfil: 'CLIENTE' }}>
               Entre na sua conta
             </Link>
             .

@@ -19,8 +19,6 @@ import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const AVALIACOES_VAZIAS: Avaliacao[] = []
-
 export function MarcaAgendaJa() {
   return (
     <div className="presentation-brand" aria-label="AgendaJá">
@@ -46,11 +44,13 @@ export type DadosPaginaEstabelecimento = {
 export function PaginaEstabelecimento({
   dados,
   rotaBase = caminhos.estabelecimento,
+  identificadorPublico,
 }: {
   dados?: DadosPaginaEstabelecimento
   rotaBase?: string
+  identificadorPublico?: string
 }) {
-  const avaliacoesDemo = useAvaliacoesDemo()
+  const avaliacoesLocais = useAvaliacoesDemo(identificadorPublico)
   const capaDemo = useCapaNegocio()
   const dadosNegocioDemo = useDadosNegocioDemo()
   const estabelecimento = dados ?? {
@@ -63,10 +63,10 @@ export function PaginaEstabelecimento({
         }
       : {}),
   }
-  const avaliacoes = dados ? (dados.avaliacoes ?? AVALIACOES_VAZIAS) : avaliacoesDemo
+  const avaliacoes = dados?.avaliacoes ?? avaliacoesLocais
   const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
-  const caminhoAvaliacoes = dados ? `${rotaBase}/avaliacoes` : caminhos.avaliacoes
+  const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const imagemUrl = dados ? dados.imagemUrl : capaDemo
   const caminhoServicos = dados ? `${rotaBase}/servicos` : caminhos.disponibilidade
   const caminhoAgendamento = dados ? `${rotaBase}/agendar` : caminhos.agendamento
@@ -92,33 +92,16 @@ export function PaginaEstabelecimento({
             <img className="presentation-photo" src={imagemPlaceholder} alt="Foto indisponível" />
           )}
           <div className="presentation-ratings">
-            {dados ? (
-              <>
-                <div
-                  className="rating-score"
-                  role="img"
-                  aria-label={`Média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
-                >
-                  {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
-                </div>
-                <div className="rating-count">
-                  <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
-                </div>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="rating-score"
-                  to={caminhoAvaliacoes}
-                  aria-label={`Ver avaliações, média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
-                >
-                  {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
-                </Link>
-                <Link className="rating-count" to={caminhoAvaliacoes}>
-                  <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
-                </Link>
-              </>
-            )}
+            <Link
+              className="rating-score"
+              to={caminhoAvaliacoes}
+              aria-label={`Ver avaliações, média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
+            >
+              {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
+            </Link>
+            <Link className="rating-count" to={caminhoAvaliacoes}>
+              <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
+            </Link>
           </div>
         </div>
 

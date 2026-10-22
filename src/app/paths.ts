@@ -1,3 +1,5 @@
+import { identificadorPublicoValido } from '../data/publicEstablishment'
+
 export const caminhos = {
   login: '/login',
   cadastro: '/cadastro',
@@ -10,3 +12,10 @@ export const caminhos = {
   disponibilidade: '/estabelecimento/atelie-aurora/disponibilidade',
   agendamento: '/estabelecimento/atelie-aurora/agendar',
 } as const
+
+export function caminhoDeAvaliacoesValido(caminho: unknown): caminho is string {
+  if (caminho === caminhos.avaliacoes) return true
+  if (typeof caminho !== 'string') return false
+  const partes = /^\/estabelecimento\/([^/]+)\/avaliacoes$/.exec(caminho)
+  return !!partes && identificadorPublicoValido(partes[1])
+}

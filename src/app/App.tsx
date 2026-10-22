@@ -12,6 +12,7 @@ import {
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { PaginaAvaliacoes } from '../features/reviews/Reviews'
 import {
+  PaginaAvaliacoesPublicas,
   PaginaEstabelecimentoPublico,
   ProximaEtapaPublica,
 } from '../features/booking/PublicEstablishment'
@@ -31,7 +32,7 @@ import { categoriasNegocio } from '../data/businessProfile'
 import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
-import { caminhos } from './paths'
+import { caminhoDeAvaliacoesValido, caminhos } from './paths'
 
 const modulosFuturos = [
   { caminho: 'clientes', titulo: 'Clientes' },
@@ -41,8 +42,11 @@ const modulosFuturos = [
 function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const navegar = useNavigate()
   const localizacao = useLocation()
-  const retorno =
-    localizacao.state?.retorno === caminhos.avaliacoes ? caminhos.avaliacoes : caminhos.painel
+  const retornoSolicitado = localizacao.state?.retorno
+  const retornoAvaliacoes = caminhoDeAvaliacoesValido(retornoSolicitado)
+    ? retornoSolicitado
+    : caminhos.avaliacoes
+  const retorno = caminhoDeAvaliacoesValido(retornoSolicitado) ? retornoSolicitado : caminhos.painel
   const [perfil, definirPerfil] = useState<'GESTOR' | 'CLIENTE'>(
     localizacao.state?.perfil === 'CLIENTE' ? 'CLIENTE' : 'GESTOR',
   )
@@ -54,7 +58,7 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const [errosCampos, definirErrosCampos] = useState<Record<string, string>>({})
 
   if (sessao?.role === 'GESTOR') return <Navigate to={retorno} replace />
-  if (sessao?.role === 'CLIENTE') return <Navigate to={caminhos.avaliacoes} replace />
+  if (sessao?.role === 'CLIENTE') return <Navigate to={retornoAvaliacoes} replace />
 
   async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -101,7 +105,7 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
       } else {
         const perfilEntrada = existeClienteDemo(email) ? 'CLIENTE' : 'GESTOR'
         await autenticar(email, senha, perfilEntrada)
-        navegar(perfilEntrada === 'CLIENTE' ? caminhos.avaliacoes : retorno, { replace: true })
+        navegar(perfilEntrada === 'CLIENTE' ? retornoAvaliacoes : retorno, { replace: true })
       }
     } catch (falha) {
       if (falha instanceof ErroApi) {
@@ -304,6 +308,10 @@ export function App() {
           <Route
             path="/estabelecimento/:estabelecimentoId"
             element={<PaginaEstabelecimentoPublico />}
+          />
+          <Route
+            path="/estabelecimento/:estabelecimentoId/avaliacoes"
+            element={<PaginaAvaliacoesPublicas />}
           />
           <Route
             path="/estabelecimento/:estabelecimentoId/servicos"

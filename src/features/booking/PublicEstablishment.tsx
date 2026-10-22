@@ -9,6 +9,7 @@ import {
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
 import { MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
+import { PaginaAvaliacoes } from '../reviews/Reviews'
 
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -76,7 +77,52 @@ export function PaginaEstabelecimentoPublico() {
         imagemUrl: estabelecimento.imagemUrl,
       }}
       rotaBase={`/estabelecimento/${publicId}`}
+      identificadorPublico={publicId}
     />
+  )
+}
+
+export function PaginaAvaliacoesPublicas() {
+  const { estabelecimentoId: publicId } = useParams()
+  const [resultado, definirResultado] = useState<{ publicId: string; erro?: string } | null>(null)
+
+  useEffect(() => {
+    if (!publicId || !identificadorPublicoValido(publicId)) return
+
+    let ativo = true
+    buscarEstabelecimentoPublico(publicId)
+      .then(() => {
+        if (ativo) definirResultado({ publicId })
+      })
+      .catch((falha: unknown) => {
+        if (ativo)
+          definirResultado({
+            publicId,
+            erro:
+              falha instanceof ErroApi && falha.status === 404
+                ? 'Estabelecimento não encontrado.'
+                : 'Não foi possível carregar este estabelecimento. Tente novamente.',
+          })
+      })
+    return () => {
+      ativo = false
+    }
+  }, [publicId])
+
+  if (!publicId || !identificadorPublicoValido(publicId))
+    return <ErroLinkPublico mensagem="Estabelecimento não encontrado." />
+
+  if (resultado?.publicId !== publicId)
+    return (
+      <main className="public-state" role="status">
+        Carregando avaliações...
+      </main>
+    )
+
+  if (resultado.erro) return <ErroLinkPublico mensagem={resultado.erro} />
+
+  return (
+    <PaginaAvaliacoes identificadorPublico={publicId} rotaBase={`/estabelecimento/${publicId}`} />
   )
 }
 

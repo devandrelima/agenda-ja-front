@@ -1,14 +1,19 @@
-import { useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import type { Avaliacao } from '../domain/models'
 import { repositorioMock } from './mockRepository'
 
-const chave = 'agendaja-demo-reviews-v1'
+const chaveDemo = 'agendaja-demo-reviews-v1'
 const avaliacoesOriginais = repositorioMock.buscarEstabelecimento().avaliacoes
+const avaliacoesVazias: Avaliacao[] = []
 const ouvintes = new Set<() => void>()
-let avaliacoesEmCache: Avaliacao[] | null = null
+const avaliacoesEmCache = new Map<string, Avaliacao[]>()
 let observandoStorage = false
 
-function lerCriadas(): Avaliacao[] {
+function chaveAvaliacoes(publicId?: string) {
+  return publicId ? `${chaveDemo}:${publicId.toLowerCase()}` : chaveDemo
+}
+
+function lerCriadas(chave: string): Avaliacao[] {
   try {
     const dados: unknown = JSON.parse(localStorage.getItem(chave) ?? '[]')
     if (!Array.isArray(dados)) return []
@@ -32,15 +37,18 @@ function lerCriadas(): Avaliacao[] {
   }
 }
 
-function atualizarCache() {
-  avaliacoesEmCache = [...avaliacoesOriginais, ...lerCriadas()]
+function atualizarCache(chave: string) {
+  avaliacoesEmCache.set(chave, [
+    ...(chave === chaveDemo ? avaliacoesOriginais : []),
+    ...lerCriadas(chave),
+  ])
   ouvintes.forEach((ouvinte) => ouvinte())
 }
 
 function observarAlteracoes() {
   if (observandoStorage) return
   window.addEventListener('storage', (evento) => {
-    if (evento.key === chave) atualizarCache()
+    if (evento.key?.startsWith(chaveDemo)) atualizarCache(evento.key)
   })
   observandoStorage = true
 }
@@ -51,14 +59,18 @@ function inscrever(ouvinte: () => void) {
   return () => ouvintes.delete(ouvinte)
 }
 
-function obterSnapshot() {
-  if (!avaliacoesEmCache) avaliacoesEmCache = [...avaliacoesOriginais, ...lerCriadas()]
-  return avaliacoesEmCache!
+function obterSnapshot(chave: string) {
+  if (!avaliacoesEmCache.has(chave))
+    avaliacoesEmCache.set(chave, [
+      ...(chave === chaveDemo ? avaliacoesOriginais : []),
+      ...lerCriadas(chave),
+    ])
+  return avaliacoesEmCache.get(chave)!
 }
 
-function salvar(criadas: Avaliacao[]) {
+function salvar(chave: string, criadas: Avaliacao[]) {
   localStorage.setItem(chave, JSON.stringify(criadas))
-  atualizarCache()
+  atualizarCache(chave)
 }
 
 function criarId() {
@@ -68,8 +80,14 @@ function criarId() {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-export function useAvaliacoesDemo() {
-  return useSyncExternalStore(inscrever, obterSnapshot, () => avaliacoesOriginais)
+export function useAvaliacoesDemo(publicId?: string) {
+  const chave = chaveAvaliacoes(publicId)
+  const snapshot = useCallback(() => obterSnapshot(chave), [chave])
+  const snapshotServidor = useCallback(
+    () => (chave === chaveDemo ? avaliacoesOriginais : avaliacoesVazias),
+    [chave],
+  )
+  return useSyncExternalStore(inscrever, snapshot, snapshotServidor)
 }
 
 export function resumoAvaliacoes(avaliacoes: Avaliacao[]) {
@@ -86,10 +104,12 @@ export async function publicarAvaliacao(
   autor: { id: number; nome: string },
   comentario: string,
   estrelas: number,
+  publicId?: string,
 ) {
   if (!comentario.trim() || !Number.isInteger(estrelas) || estrelas < 1 || estrelas > 5)
     throw new Error('Escreva um comentário e selecione de 1 a 5 estrelas.')
-  const criadas = lerCriadas()
+  const chave = chaveAvaliacoes(publicId)
+  const criadas = lerCriadas(chave)
   if (criadas.some((avaliacao) => avaliacao.autorId === autor.id))
     throw new Error('Você já publicou uma avaliação. Edite seu comentário para alterá-lo.')
   const avaliacao: Avaliacao = {
@@ -100,7 +120,7 @@ export async function publicarAvaliacao(
     estrelas,
     publicadoEm: new Date().toISOString(),
   }
-  salvar([...criadas, avaliacao])
+  salvar(chave, [...criadas, avaliacao])
   return avaliacao
 }
 
@@ -109,10 +129,12 @@ export async function editarAvaliacao(
   autorId: number,
   comentario: string,
   estrelas: number,
+  publicId?: string,
 ) {
   if (!comentario.trim() || !Number.isInteger(estrelas) || estrelas < 1 || estrelas > 5)
     throw new Error('Escreva um comentário e selecione de 1 a 5 estrelas.')
-  const criadas = lerCriadas()
+  const chave = chaveAvaliacoes(publicId)
+  const criadas = lerCriadas(chave)
   const indice = criadas.findIndex(
     (avaliacao) => avaliacao.id === id && avaliacao.autorId === autorId,
   )
@@ -124,15 +146,19 @@ export async function editarAvaliacao(
     estrelas,
     editadoEm: new Date().toISOString(),
   }
-  salvar(atualizadas)
+  salvar(chave, atualizadas)
   return atualizadas[indice]
 }
 
-export async function excluirAvaliacao(id: string, autorId: number) {
-  const criadas = lerCriadas()
+export async function excluirAvaliacao(id: string, autorId: number, publicId?: string) {
+  const chave = chaveAvaliacoes(publicId)
+  const criadas = lerCriadas(chave)
   const indice = criadas.findIndex(
     (avaliacao) => avaliacao.id === id && avaliacao.autorId === autorId,
   )
   if (indice < 0) throw new Error('Você não pode excluir este comentário.')
-  salvar(criadas.filter((avaliacao) => avaliacao.id !== id))
+  salvar(
+    chave,
+    criadas.filter((avaliacao) => avaliacao.id !== id),
+  )
 }

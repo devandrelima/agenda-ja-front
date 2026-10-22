@@ -5,7 +5,7 @@ import { buscarSessao, entrar, ErroApi, sair } from '../data/auth'
 import type { Sessao } from '../data/auth'
 import { buscarSessaoClienteDemo, entrarClienteDemo, sairClienteDemo } from '../data/demoClientAuth'
 import { ContextoAutenticacao } from './authState'
-import { caminhos } from './paths'
+import { caminhoDeAvaliacoesValido } from './paths'
 
 export function ProvedorAutenticacao({ children }: PropsWithChildren) {
   const { pathname } = useLocation()
@@ -13,7 +13,7 @@ export function ProvedorAutenticacao({ children }: PropsWithChildren) {
     pathname === '/login' ||
     pathname === '/cadastro' ||
     pathname.startsWith('/painel') ||
-    pathname === caminhos.avaliacoes
+    caminhoDeAvaliacoesValido(pathname)
   const [sessao, definirSessao] = useState<Sessao | null>(buscarSessaoClienteDemo)
   const [consultaConcluida, definirConsultaConcluida] = useState(false)
   const carregando = precisaSessao && !consultaConcluida && !sessao

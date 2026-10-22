@@ -55,6 +55,7 @@ test('abre avaliações em página própria e volta pela seta', async ({ page })
 
 test('abre o link público e mostra somente dados do estabelecimento', async ({ page }) => {
   await prepararPortal(page)
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
 
   await page.goto(`/estabelecimento/${publicId}`)
   await expect(page.getByRole('heading', { name: 'Estúdio Brisa' })).toBeVisible()
@@ -65,8 +66,14 @@ test('abre o link público e mostra somente dados do estabelecimento', async ({ 
   await expect
     .poll(() => imagemPlaceholder.evaluate((imagem) => (imagem as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0)
-  await expect(page.getByRole('img', { name: 'Média 0 de 5 estrelas' })).toBeVisible()
-  await expect(page.locator('.rating-count')).toHaveText('0 avaliações')
+  await page.getByRole('link', { name: 'Ver avaliações, média 0 de 5 estrelas' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/avaliacoes`)
+  await expect(page.getByText('Ainda não há avaliações.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Entre na sua conta' })).toBeVisible()
+  await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
+  await page.getByRole('link', { name: '0 avaliações' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/avaliacoes`)
+  await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
   await expect(page.getByRole('link', { name: 'Ver serviços' })).toBeVisible()
   await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)

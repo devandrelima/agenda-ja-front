@@ -253,3 +253,60 @@ test('mantém o texto quando a gravação local falha', async ({ page }) => {
   )
   await expect(page.locator('.reviews-page-heading')).toContainText('126 avaliações')
 })
+
+test('cliente entra pelas avaliações do negócio real e publica só nele', async ({ page }) => {
+  test.setTimeout(30000)
+  const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
+  const outroPublicId = 'e7494584-38e9-49dd-9f22-97c41da15688'
+  await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
+  await page.route('**/api/estabelecimentos/publico/*', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: rota.request().url().includes(publicId) ? 4 : 5,
+        publicId: rota.request().url().includes(publicId) ? publicId : outroPublicId,
+        nome: rota.request().url().includes(publicId) ? 'Estúdio Brisa' : 'Outro Negócio',
+        categoria: 'Barbearia',
+        localizacao: 'Centro',
+        imagemUrl: null,
+      }),
+    }),
+  )
+
+  await page.goto(`/estabelecimento/${publicId}`)
+  await page.getByRole('link', { name: '0 avaliações' }).click()
+  await page.getByRole('link', { name: 'Entre na sua conta' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await page.getByRole('link', { name: 'Criar conta' }).click()
+  await page.getByLabel('Nome completo').fill('Marina Silva')
+  await page.getByLabel('Telefone/WhatsApp').fill('84994291683')
+  await page.getByLabel('E-mail').fill('marina@exemplo.com')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible()
+  await page.getByLabel('E-mail').fill('marina@exemplo.com')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-teste')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/avaliacoes`)
+
+  await page.getByPlaceholder('Compartilhe sua experiência...').fill('Ótimo atendimento')
+  await page
+    .getByRole('group', { name: 'Nota da avaliação' })
+    .getByRole('button', { name: '5 estrelas' })
+    .click()
+  await page.getByRole('button', { name: 'Enviar' }).click()
+  await expect(page.locator('.reviews-page-heading')).toContainText('1 avaliação')
+  await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
+  await expect(page.getByRole('link', { name: '1 avaliação' })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Ver avaliações, média 5 de 5 estrelas' }),
+  ).toBeVisible()
+
+  await page.goto(`/estabelecimento/${outroPublicId}`)
+  await expect(page.getByRole('link', { name: '0 avaliações' })).toBeVisible()
+  await page.getByRole('link', { name: '0 avaliações' }).click()
+  await expect(page.getByText('Ainda não há avaliações.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Enviar' })).toBeVisible()
+})
