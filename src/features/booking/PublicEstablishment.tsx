@@ -5,6 +5,7 @@ import {
   buscarEstabelecimentoPublico,
   identificadorPublicoValido,
   listarServicosPublicos,
+  eventoConfiguracaoAtualizada,
 } from '../../data/publicEstablishment'
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
@@ -35,22 +36,32 @@ export function PaginaEstabelecimentoPublico() {
     if (!publicId || !identificadorPublicoValido(publicId)) return
 
     let ativo = true
-    buscarEstabelecimentoPublico(publicId)
-      .then((dados) => {
-        if (ativo) definirResultado({ publicId, estabelecimento: dados })
-      })
-      .catch((falha: unknown) => {
-        if (ativo)
-          definirResultado({
-            publicId,
-            erro:
-              falha instanceof ErroApi && falha.status === 404
-                ? 'Estabelecimento não encontrado.'
-                : 'Não foi possível carregar este estabelecimento. Tente novamente.',
-          })
-      })
+    const carregar = () => {
+      buscarEstabelecimentoPublico(publicId)
+        .then((dados) => {
+          if (ativo) definirResultado({ publicId, estabelecimento: dados })
+        })
+        .catch((falha: unknown) => {
+          if (ativo)
+            definirResultado({
+              publicId,
+              erro:
+                falha instanceof ErroApi && falha.status === 404
+                  ? 'Estabelecimento não encontrado.'
+                  : 'Não foi possível carregar este estabelecimento. Tente novamente.',
+            })
+        })
+    }
+    const outraAba = (evento: StorageEvent) => {
+      if (evento.key === eventoConfiguracaoAtualizada) carregar()
+    }
+    carregar()
+    window.addEventListener(eventoConfiguracaoAtualizada, carregar)
+    window.addEventListener('storage', outraAba)
     return () => {
       ativo = false
+      window.removeEventListener(eventoConfiguracaoAtualizada, carregar)
+      window.removeEventListener('storage', outraAba)
     }
   }, [publicId])
 
@@ -75,6 +86,7 @@ export function PaginaEstabelecimentoPublico() {
         categoria: estabelecimento.categoria,
         endereco: estabelecimento.localizacao,
         imagemUrl: estabelecimento.imagemUrl,
+        horariosFuncionamento: estabelecimento.horariosFuncionamento,
       }}
       rotaBase={`/estabelecimento/${publicId}`}
       identificadorPublico={publicId}

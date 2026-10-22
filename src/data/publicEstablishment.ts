@@ -1,5 +1,6 @@
-import { requisitar } from './api'
+import { requisitar, tokenCsrf } from './api'
 import type { Servico } from './services'
+import type { HorarioDia } from './businessHours'
 
 export type EstabelecimentoPublico = {
   id: number
@@ -8,6 +9,28 @@ export type EstabelecimentoPublico = {
   categoria: string
   localizacao: string
   imagemUrl: string | null
+  horariosFuncionamento: HorarioDia[]
+}
+
+export const eventoConfiguracaoAtualizada = 'agendaja:configuracao-atualizada'
+
+export function avisarConfiguracaoAtualizada() {
+  localStorage.setItem(eventoConfiguracaoAtualizada, String(Date.now()))
+  window.dispatchEvent(new Event(eventoConfiguracaoAtualizada))
+}
+
+export async function buscarEstabelecimentoAdmin(id: number): Promise<EstabelecimentoPublico> {
+  const resposta = await requisitar(`/api/admin/estabelecimentos/${id}`)
+  return resposta.json()
+}
+
+export async function salvarConfiguracao(id: number, tipo: 'dados' | 'capa' | 'horarios', dados: unknown) {
+  await requisitar(`/api/admin/estabelecimentos/${id}/${tipo}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': await tokenCsrf() },
+    body: JSON.stringify(dados),
+  })
+  avisarConfiguracaoAtualizada()
 }
 
 export const identificadorPublicoValido = (valor: string) =>

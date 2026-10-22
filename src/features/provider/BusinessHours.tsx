@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useAutenticacao } from '../../app/useAutenticacao'
+import { buscarEstabelecimentoAdmin, salvarConfiguracao } from '../../data/publicEstablishment'
 import {
   nomesDias,
   resumirHorario,
-  salvarHorariosFuncionamento,
-  useHorariosFuncionamento,
   validarHorariosFuncionamento,
 } from '../../data/businessHours'
 import type { HorarioDia, TurnoNegocio } from '../../data/businessHours'
@@ -12,10 +12,19 @@ import { Button, Card } from '../../design-system/ui'
 const diasCurtos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 
 export function HorariosDoNegocio() {
-  const horarios = useHorariosFuncionamento()
+  const { sessao } = useAutenticacao()
+  const estabelecimentoId = sessao?.estabelecimentoId
+  const [horarios, definirHorarios] = useState<HorarioDia[]>([])
   const [edicao, definirEdicao] = useState<HorarioDia[] | null>(null)
   const [erro, definirErro] = useState('')
   const [mensagem, definirMensagem] = useState('')
+
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    buscarEstabelecimentoAdmin(estabelecimentoId)
+      .then((dados) => definirHorarios(dados.horariosFuncionamento ?? []))
+      .catch(() => definirErro('Não foi possível carregar os horários.'))
+  }, [estabelecimentoId])
 
   function alterarTurnos(indiceDia: number, turnos: TurnoNegocio[]) {
     definirEdicao(
@@ -35,18 +44,20 @@ export function HorariosDoNegocio() {
     ])
   }
 
-  function salvar(evento: FormEvent<HTMLFormElement>) {
+  async function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     if (!edicao) return
     const falha = validarHorariosFuncionamento(edicao)
     if (falha) return definirErro(falha)
     try {
-      salvarHorariosFuncionamento(edicao)
+      if (estabelecimentoId == null) throw new Error('Negócio não identificado.')
+      await salvarConfiguracao(estabelecimentoId, 'horarios', edicao)
+      definirHorarios(edicao)
       definirEdicao(null)
       definirErro('')
       definirMensagem('Horários atualizados.')
     } catch {
-      definirErro('Não foi possível salvar os horários neste navegador.')
+      definirErro('Não foi possível salvar os horários.')
     }
   }
 
@@ -57,7 +68,7 @@ export function HorariosDoNegocio() {
           <h2>Horários de funcionamento</h2>
           <p className="muted">Defina os turnos de funcionamento do negócio.</p>
         </div>
-        {!edicao && (
+        {!edicao && horarios.length === 7 && (
           <Button
             type="button"
             variant="secondary"
@@ -74,7 +85,7 @@ export function HorariosDoNegocio() {
       </div>
 
       {edicao ? (
-        <form className="business-hours-form" onSubmit={salvar} noValidate>
+        <form className="business-hours-form" onSubmit={(evento) => void salvar(evento)} noValidate>
           <fieldset className="schedule">
             <legend>Turnos do negócio</legend>
             {edicao.map((dia, indiceDia) => (

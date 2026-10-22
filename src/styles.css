@@ -279,6 +279,13 @@
   grid-template-rows: 1fr 1fr;
   gap: 16px;
 }
+.public-business-hours {
+  margin-top: 28px;
+}
+.public-business-hours h2 {
+  margin: 0 0 14px;
+  font-size: 1.4rem;
+}
 .rating-score,
 .rating-count,
 .presentation-info-card {

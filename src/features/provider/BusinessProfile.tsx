@@ -3,9 +3,8 @@ import { useAutenticacao } from '../../app/useAutenticacao'
 import {
   buscarDadosNegocio,
   categoriasNegocio,
-  lerDadosNegocioLocais,
-  salvarDadosNegocioLocais,
 } from '../../data/businessProfile'
+import { salvarConfiguracao } from '../../data/publicEstablishment'
 import type { DadosNegocio } from '../../data/businessProfile'
 import { Button, Card } from '../../design-system/ui'
 
@@ -39,17 +38,15 @@ export function DadosDoNegocio() {
         if (ativo) {
           definirResultado({
             estabelecimentoId,
-            dados: lerDadosNegocioLocais(estabelecimentoId) ?? resposta,
+            dados: resposta,
           })
         }
       })
       .catch(() => {
         if (ativo) {
-          const salvo = lerDadosNegocioLocais(estabelecimentoId)
           definirResultado({
             estabelecimentoId,
-            dados: salvo ?? undefined,
-            erro: salvo ? undefined : 'Não foi possível carregar os dados do negócio.',
+            erro: 'Não foi possível carregar os dados do negócio.',
           })
         }
       })
@@ -63,7 +60,7 @@ export function DadosDoNegocio() {
     definirErro('')
   }
 
-  function salvar(evento: FormEvent<HTMLFormElement>) {
+  async function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     if (!edicao || estabelecimentoId == null) return
     const atualizados = {
@@ -76,13 +73,13 @@ export function DadosDoNegocio() {
       return
     }
     try {
-      salvarDadosNegocioLocais(estabelecimentoId, atualizados)
+      await salvarConfiguracao(estabelecimentoId, 'dados', atualizados)
       definirResultado({ estabelecimentoId, dados: atualizados })
       definirEdicao(null)
       definirErro('')
       definirMensagem('Dados do negócio atualizados.')
     } catch {
-      definirErro('Não foi possível salvar os dados neste navegador.')
+      definirErro('Não foi possível salvar os dados do negócio.')
     }
   }
 
@@ -129,7 +126,7 @@ export function DadosDoNegocio() {
       )}
 
       {edicao ? (
-        <form className="business-profile-form" onSubmit={salvar} noValidate>
+        <form className="business-profile-form" onSubmit={(evento) => void salvar(evento)} noValidate>
           <label className="field">
             Nome do negócio
             <input

@@ -13,6 +13,7 @@ import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
+import type { HorarioDia } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
 import { useDadosNegocioDemo } from '../../data/businessProfile'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
@@ -39,6 +40,7 @@ export type DadosPaginaEstabelecimento = {
   endereco: string
   imagemUrl?: string | null
   avaliacoes?: Avaliacao[]
+  horariosFuncionamento?: HorarioDia[]
 }
 
 export function PaginaEstabelecimento({
@@ -104,6 +106,20 @@ export function PaginaEstabelecimento({
             </Link>
           </div>
         </div>
+
+        {dados?.horariosFuncionamento?.length === 7 && (
+          <section className="public-business-hours" aria-label="Horários de funcionamento">
+            <h2>Horários de funcionamento</h2>
+            <ul className="availability-list">
+              {dados.horariosFuncionamento.map((dia, indice) => (
+                <li key={nomesDias[indice]}>
+                  <strong>{nomesDias[indice]}</strong>
+                  <span>{resumirHorario(dia)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <a
           className="presentation-info-card"

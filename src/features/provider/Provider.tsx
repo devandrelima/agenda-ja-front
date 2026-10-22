@@ -3,8 +3,9 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
-import { prepararCapa, salvarCapaNegocio, useCapaNegocio } from '../../data/businessCover'
-import { buscarIdentificadorPublico } from '../../data/publicEstablishment'
+import { prepararCapa } from '../../data/businessCover'
+import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, salvarConfiguracao } from '../../data/publicEstablishment'
+import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 import { paraChaveData } from '../../domain/availability'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
@@ -142,10 +143,19 @@ function ProximosAtendimentos() {
   )
 }
 function CapaDoNegocio() {
-  const capa = useCapaNegocio()
+  const { sessao } = useAutenticacao()
+  const estabelecimentoId = sessao?.estabelecimentoId
+  const [capa, definirCapa] = useState(imagemPlaceholder)
   const campoArquivo = useRef<HTMLInputElement>(null)
   const [erro, definirErro] = useState('')
   const [salvando, definirSalvando] = useState(false)
+
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    buscarEstabelecimentoAdmin(estabelecimentoId)
+      .then((dados) => definirCapa(dados.imagemUrl || imagemPlaceholder))
+      .catch(() => definirErro('Não foi possível carregar a foto de capa.'))
+  }, [estabelecimentoId])
 
   async function escolherFoto(evento: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0]
@@ -154,12 +164,13 @@ function CapaDoNegocio() {
     definirErro('')
     definirSalvando(true)
     try {
-      salvarCapaNegocio(await prepararCapa(arquivo))
+      if (estabelecimentoId == null) throw new Error('Negócio não identificado.')
+      const imagemUrl = await prepararCapa(arquivo)
+      await salvarConfiguracao(estabelecimentoId, 'capa', { imagemUrl })
+      definirCapa(imagemUrl)
     } catch (falha) {
       definirErro(
-        falha instanceof DOMException && falha.name === 'QuotaExceededError'
-          ? 'Não há espaço neste navegador para salvar a foto.'
-          : falha instanceof Error
+        falha instanceof Error
             ? falha.message
             : 'Não foi possível salvar a foto.',
       )
