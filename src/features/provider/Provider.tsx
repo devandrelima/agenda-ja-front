@@ -292,6 +292,7 @@ export function Dashboard() {
   const { sessao } = useAutenticacao()
   const [avisoCopia, definirAvisoCopia] = useState<{ mensagem: string; erro: boolean } | null>(null)
   const [copiandoLink, definirCopiandoLink] = useState(false)
+  const [abrindoAgendamento, definirAbrindoAgendamento] = useState(false)
   const temporizadorAviso = useRef<number | undefined>(undefined)
 
   useEffect(() => () => window.clearTimeout(temporizadorAviso.current), [])
@@ -336,6 +337,21 @@ export function Dashboard() {
     }
   }
 
+  async function abrirNovoAgendamento() {
+    if (sessao?.estabelecimentoId == null) {
+      mostrarAviso('Não foi possível identificar o negócio desta conta.', true)
+      return
+    }
+    definirAbrindoAgendamento(true)
+    try {
+      const publicId = await buscarIdentificadorPublico(sessao.estabelecimentoId)
+      navegar(`/estabelecimento/${publicId}/agendar`, { state: { origem: 'painel' } })
+    } catch {
+      mostrarAviso('Não foi possível abrir o agendamento.', true)
+      definirAbrindoAgendamento(false)
+    }
+  }
+
   return (
     <>
       <header className="topbar topbar-with-create topbar-dashboard">
@@ -372,7 +388,8 @@ export function Dashboard() {
           </Button>
           <Button
             className="new-booking-button"
-            onClick={() => navegar(caminhos.agendamento, { state: { origem: 'painel' } })}
+            disabled={abrindoAgendamento}
+            onClick={() => void abrirNovoAgendamento()}
           >
             Novo agendamento
           </Button>

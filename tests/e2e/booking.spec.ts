@@ -60,13 +60,37 @@ test('inicia um agendamento pelo painel', async ({ page }) => {
       }),
     }),
   )
+  const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
+  const json = (dados: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(dados),
+  })
+  await page.route('**/api/admin/estabelecimentos/4', (rota) => rota.fulfill(json({ publicId })))
+  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
+    rota.fulfill(json({ id: 4, publicId, nome: 'Estúdio Brisa', categoria: '', localizacao: '' })),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill(json([{ id: 7, nome: 'Escova', duracaoMinutos: 45, valor: 60 }])),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos/7/profissionais', (rota) =>
+    rota.fulfill(json([])),
+  )
   await page.goto('/painel')
   await page.getByRole('button', { name: 'Novo agendamento' }).click()
 
-  await expect(page).toHaveURL(/\/estabelecimento\/atelie-aurora\/agendar$/)
-  await expect(page.getByRole('heading', { name: 'Fazer agendamento' })).toBeVisible()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
+  await expect(page.getByRole('heading', { name: 'Escolha o serviço' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /corte feminino/i })).toHaveCount(0)
+  await expect(page.getByRole('list', { name: 'Etapas do agendamento' })).toBeVisible()
+  await page.getByRole('button', { name: /escova/i }).click()
+  await page.getByRole('link', { name: 'Continuar' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar/profissional?servico=7`)
+  await expect(page.getByRole('heading', { name: 'Escolha o profissional' })).toBeVisible()
 
-  await page.getByRole('link', { name: '← Voltar ao painel' }).click()
+  await page.getByRole('link', { name: 'Voltar para a escolha do serviço' }).click()
+
+  await page.getByRole('link', { name: 'Voltar ao painel' }).click()
   await expect(page).toHaveURL(/\/painel$/)
 })
 
