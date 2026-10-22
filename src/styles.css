@@ -243,12 +243,7 @@
 .public-business-placeholder {
   width: 100%;
   border-radius: 24px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #c8e8e3, #e9f4ef);
-  color: #087a74;
-  font-size: clamp(4rem, 14vw, 8rem);
-  font-weight: 800;
+  background: #d9dee3;
 }
 .public-state {
   width: min(100% - 32px, 640px);
@@ -273,9 +268,6 @@
   grid-template-columns: minmax(0, 1.7fr) minmax(132px, 1fr);
   gap: 16px;
   align-items: stretch;
-}
-.presentation-overview.without-ratings {
-  grid-template-columns: 1fr;
 }
 .presentation-overview > * {
   min-width: 0;
@@ -317,10 +309,10 @@
 .rating-score span {
   font-size: 1.12em;
 }
-.rating-score {
+a.rating-score {
   cursor: pointer;
 }
-.rating-score:hover {
+a.rating-score:hover {
   background: #f8fafc;
 }
 .rating-count {
@@ -335,9 +327,11 @@
   font-weight: 800;
   line-height: 1.2;
   overflow-wrap: anywhere;
+}
+a.rating-count {
   cursor: pointer;
 }
-.rating-count:hover {
+a.rating-count:hover {
   background: #f8fafc;
 }
 .reviews-page {

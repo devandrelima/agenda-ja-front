@@ -64,7 +64,6 @@ export function PaginaEstabelecimento({
   }
   const avaliacoes = dados ? (dados.avaliacoes ?? AVALIACOES_VAZIAS) : avaliacoesDemo
   const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
-  const temAvaliacoes = quantidadeAvaliacoes > 0
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
   const caminhoAvaliacoes = dados ? `${rotaBase}/avaliacoes` : caminhos.avaliacoes
   const imagemUrl = dados ? dados.imagemUrl : capaDemo
@@ -81,7 +80,7 @@ export function PaginaEstabelecimento({
           <p>Escolha um horário sem precisar enviar mensagem.</p>
         </div>
 
-        <div className={`presentation-overview${temAvaliacoes ? '' : ' without-ratings'}`}>
+        <div className="presentation-overview">
           {imagemUrl ? (
             <img
               className="presentation-photo"
@@ -89,24 +88,41 @@ export function PaginaEstabelecimento({
               alt={`Foto do ${estabelecimento.nome}`}
             />
           ) : (
-            <div className="presentation-photo public-business-placeholder" aria-hidden="true">
-              {estabelecimento.nome.trim().charAt(0).toUpperCase()}
-            </div>
+            <div
+              className="presentation-photo public-business-placeholder"
+              role="img"
+              aria-label="Foto indisponível"
+            />
           )}
-          {temAvaliacoes && (
-            <div className="presentation-ratings">
-              <Link
-                className="rating-score"
-                to={caminhoAvaliacoes}
-                aria-label={`Ver avaliações, média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
-              >
-                {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
-              </Link>
-              <Link className="rating-count" to={caminhoAvaliacoes}>
-                <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
-              </Link>
-            </div>
-          )}
+          <div className="presentation-ratings">
+            {dados ? (
+              <>
+                <div
+                  className="rating-score"
+                  role="img"
+                  aria-label={`Média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
+                >
+                  {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
+                </div>
+                <div className="rating-count">
+                  <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  className="rating-score"
+                  to={caminhoAvaliacoes}
+                  aria-label={`Ver avaliações, média ${avaliacaoMedia.toLocaleString('pt-BR')} de 5 estrelas`}
+                >
+                  {avaliacaoMedia.toLocaleString('pt-BR')} <span aria-hidden="true">★</span>
+                </Link>
+                <Link className="rating-count" to={caminhoAvaliacoes}>
+                  <strong>{quantidadeAvaliacoes}</strong> {rotuloAvaliacoes}
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         <a
