@@ -152,48 +152,19 @@
 .public-service-card p {
   margin: 0;
 }
-.public-service-card h2,
-.public-service-option span strong {
+.public-service-card h2 {
   font-size: 1.1rem;
 }
-.public-service-card p,
-.public-service-option small {
+.public-service-card p {
   display: block;
   margin-top: 6px;
   color: #4b5d78;
 }
-.public-service-option {
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.public-service-option.selected {
-  border-color: #087a74;
-  background: #eaf7f4;
-}
-.public-service-empty,
-.public-service-selection {
+.public-service-empty {
   margin: 0;
   padding: 20px;
   border-radius: 18px;
   background: #fff;
-}
-.public-service-selection {
-  margin-top: 20px;
-}
-.public-steps {
-  padding: 24px 16px 0;
-}
-.public-steps + .public-services-heading {
-  margin-top: 24px;
-}
-.public-service-continue {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
-  text-decoration: none;
 }
 .presentation-shell {
   width: min(92vw, 760px);
@@ -850,6 +821,9 @@ a.rating-count:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.form-actions-end {
+  justify-content: flex-end;
 }
 .provider {
   display: grid;

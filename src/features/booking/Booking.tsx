@@ -283,6 +283,7 @@ export function Agendamento({
   publico?: {
     estabelecimentoId: string
     servico: Servico
+    nomeEstabelecimento: string
     rotaBase: string
     caminhoDoServico: string
   }
@@ -398,9 +399,9 @@ export function Agendamento({
       ? caminhos.painel
       : (publico?.rotaBase ?? caminhos.estabelecimento)
   const rotuloDeVolta =
-    localizacao.state?.origem === 'painel' ? '← Voltar ao painel' : '← Ateliê Aurora'
-  // Na página pública o cabeçalho fica por conta de `AgendamentoPublico`.
-  const Conteiner = publico ? 'section' : 'main'
+    localizacao.state?.origem === 'painel'
+      ? '← Voltar ao painel'
+      : `← ${publico?.nomeEstabelecimento ?? 'Ateliê Aurora'}`
   function selecionarServico(idServico: string) {
     definirEscolhas({ idServico })
     irParaEtapa(2)
@@ -422,7 +423,7 @@ export function Agendamento({
     escolhas.cliente
   )
     return (
-      <Conteiner className="booking container">
+      <main className="booking container">
         <div className="booking-main">
           <Card className="confirmation">
             <p className="eyebrow">Agendamento de demonstração</p>
@@ -454,17 +455,13 @@ export function Agendamento({
             </div>
           </Card>
         </div>
-      </Conteiner>
+      </main>
     )
   return (
-    <Conteiner className="booking container">
+    <main className="booking container">
       <div className="booking-main">
-        {!publico && (
-          <>
-            <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
-            <h1>Fazer agendamento</h1>
-          </>
-        )}
+        <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
+        <h1>Fazer agendamento</h1>
         <Steps step={etapa} />
         {etapa === 1 && (
           <Card>
@@ -671,6 +668,6 @@ export function Agendamento({
           </Card>
         )}
       </div>
-    </Conteiner>
+    </main>
   )
 }

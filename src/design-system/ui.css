@@ -23,6 +23,12 @@
   font-weight: 700;
   transition: 0.15s;
 }
+.button:is(a) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 .button.primary {
   background: var(--brand);
   color: #fff;

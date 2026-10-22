@@ -11,7 +11,7 @@ import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
 import { nomesDias, resumirHorario } from '../../data/businessHours'
 import { caminhos } from '../../app/paths'
-import { Steps } from '../../design-system/ui'
+import { Card, Steps } from '../../design-system/ui'
 import { Agendamento, MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
 import { PaginaAvaliacoes } from '../reviews/Reviews'
 
@@ -214,50 +214,92 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
     (servico) => String(servico.id) === parametros.get('servico'),
   )
 
+  if (etapa === 'agendar') {
+    const vemDoPainel = localizacao.state?.origem === 'painel'
+    return (
+      <main className="booking container">
+        <div className="booking-main">
+          <Link to={vemDoPainel ? caminhos.painel : rotaBase}>
+            {vemDoPainel ? '← Voltar ao painel' : `← ${resultado.estabelecimento.nome}`}
+          </Link>
+          <h1>Fazer agendamento</h1>
+          <Steps step={1} />
+          <Card>
+            <h2>Escolha o serviço</h2>
+            {resultado.servicos.length === 0 ? (
+              <p>Nenhum serviço disponível no momento.</p>
+            ) : (
+              resultado.servicos.map((servico) => (
+                <button
+                  className={`option ${servicoSelecionado?.id === servico.id ? 'selected' : ''}`}
+                  type="button"
+                  aria-pressed={servicoSelecionado?.id === servico.id}
+                  onClick={() =>
+                    definirParametros({ servico: String(servico.id) }, { state: localizacao.state })
+                  }
+                  key={servico.id}
+                >
+                  <span>
+                    <strong>{servico.nome}</strong>
+                    <br />
+                    <small>{servico.duracaoMinutos} min</small>
+                  </span>
+                  <strong>{formatarMoeda(servico.valor)}</strong>
+                </button>
+              ))
+            )}
+            {servicoSelecionado && (
+              <>
+                <p className="notice" role="status">
+                  Serviço selecionado: <strong>{servicoSelecionado.nome}</strong>
+                </p>
+                <div className="form-actions form-actions-end">
+                  <Link
+                    className="button primary"
+                    to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
+                    state={localizacao.state}
+                  >
+                    Continuar
+                  </Link>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="public-services-page">
       <section className="public-services-shell">
         <header className="availability-header">
           <Link
             className="availability-back"
-            to={localizacao.state?.origem === 'painel' ? caminhos.painel : rotaBase}
-            aria-label={
-              localizacao.state?.origem === 'painel'
-                ? 'Voltar ao painel'
-                : 'Voltar para a página do estabelecimento'
-            }
+            to={rotaBase}
+            aria-label="Voltar para a página do estabelecimento"
           >
             ‹
           </Link>
           <MarcaAgendaJa />
         </header>
-        {etapa === 'agendar' && (
-          <div className="public-steps">
-            <Steps step={1} />
-          </div>
-        )}
 
         <div className="public-services-heading">
           <p>{resultado.estabelecimento.nome}</p>
-          <h1>{etapa === 'servicos' ? 'Horários de funcionamento' : 'Escolha o serviço'}</h1>
-          {etapa === 'agendar' && <p>Confira a duração e o preço de cada atendimento.</p>}
+          <h1>Horários de funcionamento</h1>
         </div>
 
-        {etapa === 'servicos' && (
-          <>
-            <section aria-label="Horários da semana">
-              <ul className="availability-list">
-                {resultado.estabelecimento.horariosFuncionamento?.map((dia, indice) => (
-                  <li key={nomesDias[indice]}>
-                    <strong>{nomesDias[indice]}</strong>
-                    <span>{resumirHorario(dia)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <h2 className="public-services-section-title">Serviços</h2>
-          </>
-        )}
+        <section aria-label="Horários da semana">
+          <ul className="availability-list">
+            {resultado.estabelecimento.horariosFuncionamento?.map((dia, indice) => (
+              <li key={nomesDias[indice]}>
+                <strong>{nomesDias[indice]}</strong>
+                <span>{resumirHorario(dia)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <h2 className="public-services-section-title">Serviços</h2>
 
         {resultado.servicos.length === 0 ? (
           <p className="public-services-empty">Nenhum serviço disponível no momento.</p>
@@ -265,51 +307,16 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
           <ul className="public-services-list">
             {resultado.servicos.map((servico) => (
               <li key={servico.id}>
-                {etapa === 'servicos' ? (
-                  <article className="public-service-card">
-                    <div>
-                      <h2>{servico.nome}</h2>
-                      <p>{servico.duracaoMinutos} min</p>
-                    </div>
-                    <strong>{formatarMoeda(servico.valor)}</strong>
-                  </article>
-                ) : (
-                  <button
-                    className={`public-service-card public-service-option${servicoSelecionado?.id === servico.id ? ' selected' : ''}`}
-                    type="button"
-                    aria-pressed={servicoSelecionado?.id === servico.id}
-                    onClick={() =>
-                      definirParametros(
-                        { servico: String(servico.id) },
-                        { state: localizacao.state },
-                      )
-                    }
-                  >
-                    <span>
-                      <strong>{servico.nome}</strong>
-                      <small>{servico.duracaoMinutos} min</small>
-                    </span>
-                    <strong>{formatarMoeda(servico.valor)}</strong>
-                  </button>
-                )}
+                <article className="public-service-card">
+                  <div>
+                    <h2>{servico.nome}</h2>
+                    <p>{servico.duracaoMinutos} min</p>
+                  </div>
+                  <strong>{formatarMoeda(servico.valor)}</strong>
+                </article>
               </li>
             ))}
           </ul>
-        )}
-
-        {etapa === 'agendar' && servicoSelecionado && (
-          <p className="public-service-selection" role="status">
-            Serviço selecionado: <strong>{servicoSelecionado.nome}</strong>
-          </p>
-        )}
-        {etapa === 'agendar' && servicoSelecionado && (
-          <Link
-            className="button primary public-service-continue"
-            to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
-            state={localizacao.state}
-          >
-            Continuar
-          </Link>
         )}
       </section>
     </main>
@@ -328,36 +335,21 @@ export function AgendamentoPublico() {
   const servico = resultado.servicos.find((item) => String(item.id) === parametros.get('servico'))
   if (!servico) return <Navigate to={`${rotaBase}/agendar`} state={localizacao.state} replace />
 
-  const caminhoDoServico = `${rotaBase}/agendar?servico=${servico.id}`
   return (
-    <main className="public-services-page">
-      <section className="public-services-shell">
-        <header className="availability-header">
-          <Link
-            className="availability-back"
-            to={caminhoDoServico}
-            state={localizacao.state}
-            aria-label="Voltar para a escolha do serviço"
-          >
-            ‹
-          </Link>
-          <MarcaAgendaJa />
-        </header>
-        <Agendamento
-          key={servico.id}
-          publico={{
-            estabelecimentoId: String(resultado.estabelecimento.id),
-            servico: {
-              id: String(servico.id),
-              nome: servico.nome,
-              duracao: servico.duracaoMinutos,
-              valor: Number(servico.valor),
-            },
-            rotaBase,
-            caminhoDoServico,
-          }}
-        />
-      </section>
-    </main>
+    <Agendamento
+      key={servico.id}
+      publico={{
+        estabelecimentoId: String(resultado.estabelecimento.id),
+        servico: {
+          id: String(servico.id),
+          nome: servico.nome,
+          duracao: servico.duracaoMinutos,
+          valor: Number(servico.valor),
+        },
+        nomeEstabelecimento: resultado.estabelecimento.nome,
+        rotaBase,
+        caminhoDoServico: `${rotaBase}/agendar?servico=${servico.id}`,
+      }}
+    />
   )
 }

@@ -88,7 +88,8 @@ test('inicia um agendamento pelo painel', async ({ page }) => {
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar/profissional?servico=7`)
   await expect(page.getByRole('heading', { name: 'Escolha o profissional' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Voltar para a escolha do serviço' }).click()
+  await page.getByRole('button', { name: 'Voltar', exact: true }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=7`)
 
   await page.getByRole('link', { name: 'Voltar ao painel' }).click()
   await expect(page).toHaveURL(/\/painel$/)
