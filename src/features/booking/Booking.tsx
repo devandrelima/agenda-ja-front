@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { repositorioMock } from '../../data/mockRepository'
-import { listarHorariosDisponiveis } from '../../data/publicAvailability'
+import {
+  encontrarProfissionalDisponivel,
+  listarHorariosDisponiveis,
+} from '../../data/publicAvailability'
 import { listarProfissionaisDoServico } from '../../data/publicProfessionals'
 import {
   adicionarDias,
@@ -314,6 +317,15 @@ export function Agendamento({
   const [errosContato, definirErrosContato] = useState<Record<string, string>>({})
   const [erroCadastro, definirErroCadastro] = useState('')
   const [cadastrando, definirCadastrando] = useState(false)
+  const [resolvendoProfissional, definirResolvendoProfissional] = useState(false)
+  const [erroProfissional, definirErroProfissional] = useState('')
+  const solicitacaoProfissional = useRef(0)
+  useEffect(
+    () => () => {
+      solicitacaoProfissional.current++
+    },
+    [],
+  )
   const { sessao, autenticar } = useAutenticacao()
   const servicos = useMemo(
     () => (publico ? [publico.servico] : repositorioMock.buscarServicos()),
@@ -354,7 +366,7 @@ export function Agendamento({
   // Consulta todas as datas de uma vez para exibir somente as que têm horário livre.
   const horariosRemotos = useDadosRemotos(
     estabelecimentoId && podeConsultarHorarios
-      ? `${estabelecimentoId}/${servicoSelecionado!.id}/${escolhas.idProfissional ?? ''}/${hoje}`
+      ? `${estabelecimentoId}/${servicoSelecionado!.id}/${escolhas.qualquerProfissional ? '' : (escolhas.idProfissional ?? '')}/${hoje}`
       : null,
     async () =>
       Object.fromEntries(
@@ -413,8 +425,18 @@ export function Agendamento({
     : horariosDemo
   const datasDisponiveis = datas.filter((data) => horariosPorData[data]?.length)
   const times = escolhas.data ? (horariosPorData[escolhas.data] ?? []) : []
-  const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
+  const irParaEtapa = (numeroDaEtapa: number) => {
+    solicitacaoProfissional.current++
+    definirResolvendoProfissional(false)
+    definirErroProfissional('')
+    definirEtapa(numeroDaEtapa)
+  }
   const maxStep = etapaDisponivel(escolhas)
+  const nomeProfissional = escolhas.qualquerProfissional
+    ? profissionalSelecionado
+      ? `Qualquer Profissional (${profissionalSelecionado.nome})`
+      : 'Qualquer profissional'
+    : (profissionalSelecionado?.nome ?? 'Profissional selecionado')
   const itensResumo: { rotulo: string; valor: string }[] = []
   if (servicoSelecionado)
     itensResumo.push({
@@ -424,9 +446,7 @@ export function Agendamento({
   if (escolhas.idProfissional || escolhas.qualquerProfissional)
     itensResumo.push({
       rotulo: 'Profissional',
-      valor: escolhas.qualquerProfissional
-        ? 'Qualquer profissional'
-        : (profissionalSelecionado?.nome ?? 'Profissional selecionado'),
+      valor: nomeProfissional,
     })
   if (escolhas.data && escolhas.horario)
     itensResumo.push({
@@ -446,6 +466,8 @@ export function Agendamento({
     irParaEtapa(2)
   }
   function selecionarProfissional(idProfissional?: string) {
+    definirErroProfissional('')
+    definirResolvendoProfissional(false)
     definirEscolhas((atual) => ({
       ...atual,
       idProfissional,
@@ -454,6 +476,64 @@ export function Agendamento({
       horario: undefined,
     }))
     irParaEtapa(3)
+  }
+
+  function selecionarData(data: string) {
+    solicitacaoProfissional.current++
+    definirResolvendoProfissional(false)
+    definirErroProfissional('')
+    definirEscolhas((atual) => ({
+      ...atual,
+      data,
+      horario: atual.data === data ? atual.horario : undefined,
+      idProfissional:
+        atual.qualquerProfissional && atual.data !== data ? undefined : atual.idProfissional,
+    }))
+  }
+
+  async function selecionarHorario(horario: string) {
+    if (!escolhas.data || !servicoSelecionado || resolvendoProfissional) return
+    if (!escolhas.qualquerProfissional) {
+      definirEscolhas((atual) => ({ ...atual, horario }))
+      irParaEtapa(4)
+      return
+    }
+
+    const solicitacao = ++solicitacaoProfissional.current
+    definirResolvendoProfissional(true)
+    definirErroProfissional('')
+    definirEscolhas((atual) => ({ ...atual, idProfissional: undefined, horario: undefined }))
+    try {
+      const profissional = estabelecimentoId
+        ? await encontrarProfissionalDisponivel(
+            estabelecimentoId,
+            servicoSelecionado.id,
+            profissionaisDisponiveis,
+            escolhas.data,
+            horario,
+          )
+        : profissionaisDisponiveis.find((candidato) =>
+            buscarHorariosDisponiveis(
+              escolhas.data!,
+              candidato,
+              servicoSelecionado,
+              repositorioMock.buscarAgendamentos(),
+              servicos,
+            ).includes(horario),
+          )
+      if (solicitacao !== solicitacaoProfissional.current) return
+      if (!profissional) throw new Error('O horário não está mais disponível. Escolha outro.')
+      definirEscolhas((atual) => ({ ...atual, idProfissional: profissional.id, horario }))
+      definirResolvendoProfissional(false)
+      irParaEtapa(4)
+    } catch (falha) {
+      if (solicitacao === solicitacaoProfissional.current)
+        definirErroProfissional(
+          falha instanceof Error ? falha.message : 'Não foi possível confirmar o profissional.',
+        )
+    } finally {
+      if (solicitacao === solicitacaoProfissional.current) definirResolvendoProfissional(false)
+    }
   }
 
   function navegarPelasEtapas(destino: number) {
@@ -522,7 +602,7 @@ export function Agendamento({
               <strong>
                 {servicoSelecionado.nome} · {formatarMoeda(servicoSelecionado.valor)}
               </strong>
-              <span>{profissionalSelecionado?.nome ?? 'Qualquer profissional'}</span>
+              <span>{nomeProfissional}</span>
               <span>
                 {new Date(`${escolhas.data}T${escolhas.horario}`).toLocaleString('pt-BR', {
                   dateStyle: 'full',
@@ -639,9 +719,7 @@ export function Agendamento({
                 <Button
                   variant={escolhas.data === data ? 'primary' : 'secondary'}
                   key={data}
-                  onClick={() =>
-                    definirEscolhas((atual) => ({ ...atual, data, horario: undefined }))
-                  }
+                  onClick={() => selecionarData(data)}
                 >
                   {new Date(`${data}T12:00`).toLocaleDateString('pt-BR', {
                     weekday: 'short',
@@ -660,16 +738,20 @@ export function Agendamento({
                     <button
                       className={escolhas.horario === horario ? 'selected' : ''}
                       key={horario}
-                      onClick={() => {
-                        definirEscolhas((atual) => ({ ...atual, horario }))
-                        irParaEtapa(4)
-                      }}
+                      disabled={resolvendoProfissional}
+                      onClick={() => void selecionarHorario(horario)}
                     >
                       {horario}
                     </button>
                   ))}
                 </div>
               </>
+            )}
+            {resolvendoProfissional && <p role="status">Confirmando profissional disponível...</p>}
+            {erroProfissional && (
+              <p className="auth-error" role="alert">
+                {erroProfissional}
+              </p>
             )}
             <Button variant="ghost" onClick={() => irParaEtapa(2)}>
               Voltar

@@ -248,30 +248,67 @@ describe('agendamento de um estabelecimento real', () => {
     expect(screen.getByRole('button', { name: '09:00' })).toBeInTheDocument()
   })
 
-  it('consulta a agenda de todos e não revela o profissional quando aceita qualquer um', async () => {
+  it('vincula o horário a um profissional disponível ao escolher qualquer um', async () => {
     const requisicoes = stubApi({
       profissionais: [
         () => resposta([profissional(7, 'Lucas Mendes'), profissional(8, 'Mariana Alves')]),
       ],
       disponibilidade: (parametros) =>
-        resposta(parametros.has('profissionalId') ? [] : ['09:00', '14:00']),
+        resposta(
+          parametros.get('profissionalId') === '7'
+            ? ['09:00']
+            : parametros.get('profissionalId') === '8'
+              ? ['14:00']
+              : ['09:00', '14:00'],
+        ),
     })
     const user = await abrirProfissionais()
     await user.click(await screen.findByRole('button', { name: /qualquer profissional/i }))
     await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
     await user.click(await screen.findByRole('button', { name: '14:00' }))
+    await screen.findByRole('heading', { name: 'Seus dados' })
     expect(requisicoes).toHaveBeenCalledWith(
       `${caminhoDisponibilidade}?data=${amanha}`,
       expect.anything(),
+    )
+    expect(requisicoes).toHaveBeenCalledWith(
+      `${caminhoDisponibilidade}?data=${amanha}&profissionalId=8`,
+      expect.anything(),
+    )
+    expect(screen.getByRole('region', { name: 'Resumo das escolhas' })).toHaveTextContent(
+      'Qualquer Profissional (Mariana Alves)',
+    )
+    await user.click(screen.getByRole('button', { name: 'Ir para Data e horário' }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await screen.findByRole('heading', { name: 'Seus dados' })
+    expect(screen.getByRole('region', { name: 'Resumo das escolhas' })).toHaveTextContent(
+      'Qualquer Profissional (Lucas Mendes)',
     )
     await preencherDadosDoCliente(user)
     expect(screen.getByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
     const confirmacao = screen
       .getByRole('heading', { name: 'Pedido preparado!' })
       .closest<HTMLElement>('.confirmation')!
-    expect(within(confirmacao).getByText('Qualquer profissional')).toBeInTheDocument()
-    expect(screen.queryByText('Lucas Mendes')).not.toBeInTheDocument()
+    expect(
+      within(confirmacao).getByText('Qualquer Profissional (Lucas Mendes)'),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Mariana Alves')).not.toBeInTheDocument()
+  })
+
+  it('não avança quando o profissional perdeu o horário escolhido', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: (parametros) => resposta(parametros.has('profissionalId') ? [] : ['09:00']),
+    })
+    const user = await abrirProfissionais()
+    await user.click(await screen.findByRole('button', { name: /qualquer profissional/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'O horário não está mais disponível. Escolha outro.',
+    )
+    expect(screen.getByRole('heading', { name: 'Data e horário' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ir para Seus dados' })).toBeDisabled()
   })
 
   it('mostra o profissional escolhido na revisão', async () => {
