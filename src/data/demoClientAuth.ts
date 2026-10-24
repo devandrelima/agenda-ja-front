@@ -59,11 +59,20 @@ export async function cadastrarClienteDemo(dados: CadastroClienteDemo) {
   )
 }
 
-export async function entrarClienteDemo(email: string, senha: string): Promise<Sessao> {
+export async function entrarClienteDemo(identificador: string, senha: string): Promise<Sessao> {
+  const telefone = identificador.replace(/\D/g, '')
   const conta = lerContas().find(
-    (cliente) => cliente.email === emailNormalizado(email) && cliente.senha === senha,
+    (cliente) =>
+      (identificador.includes('@')
+        ? cliente.email === emailNormalizado(identificador)
+        : cliente.telefone.replace(/\D/g, '') === telefone) && cliente.senha === senha,
   )
-  if (!conta) throw new Error('E-mail ou senha inválidos para a conta de cliente.')
+  if (!conta)
+    throw new Error(
+      identificador.includes('@')
+        ? 'E-mail ou senha inválidos para a conta de cliente.'
+        : 'Telefone ou senha inválidos para a conta de cliente.',
+    )
   localStorage.setItem(chaveSessao, String(conta.id))
   return {
     id: conta.id,
@@ -72,6 +81,13 @@ export async function entrarClienteDemo(email: string, senha: string): Promise<S
     role: 'CLIENTE',
     estabelecimentoId: null,
   }
+}
+
+export function buscarClienteDemoPorTelefone(telefone: string) {
+  const conta = lerContas().find(
+    (cliente) => cliente.telefone.replace(/\D/g, '') === telefone.replace(/\D/g, ''),
+  )
+  return conta ? { nome: conta.nome, telefone: conta.telefone, email: conta.email } : null
 }
 
 export function buscarSessaoClienteDemo(): Sessao | null {

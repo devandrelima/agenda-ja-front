@@ -1,9 +1,12 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { Agendamento } from '../src/features/booking/Booking'
 import { ContextoAutenticacao } from '../src/app/authState'
+
+afterEach(cleanup)
+
 it('invalida seleção posterior ao trocar de serviço', async () => {
   const user = userEvent.setup()
   render(

@@ -29,16 +29,78 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   await page.getByLabel(/telefone/i).fill('85999999999')
   await expect(page.getByLabel(/telefone/i)).toHaveValue('(85) 9 9999-9999')
   await page.getByLabel('E-mail').fill('joana@exemplo.com')
-  await page.getByLabel('Senha', { exact: true }).fill('curta')
+  await page.getByLabel('Criar senha').fill('curta')
   await page.getByRole('button', { name: /revisar/i }).click()
   await expect(page.getByText('A senha deve ter pelo menos 8 caracteres.')).toBeVisible()
-  await page.getByLabel('Senha', { exact: true }).fill('SenhaTeste123')
+  await page.getByLabel('Criar senha').fill('SenhaTeste123')
   await page.getByRole('button', { name: /revisar/i }).click()
   await expect(page.getByText('Agendamento de demonstração')).toBeVisible()
 
   await page.getByRole('button', { name: 'Voltar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible()
   await expect(page.getByLabel('E-mail')).toHaveValue('joana@exemplo.com')
+})
+
+test('cliente existente entra com telefone e senha durante o agendamento', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'agendaja-demo-clientes-v1',
+      JSON.stringify([
+        {
+          id: -1,
+          nome: 'Joana da Silva',
+          telefone: '(84) 9 9429-1683',
+          email: 'joana@exemplo.com',
+          senha: 'SenhaTeste123',
+        },
+      ]),
+    )
+  })
+  await page.goto('/estabelecimento/atelie-aurora')
+  await page.getByRole('link', { name: 'Já sou cliente' }).click()
+  await page.getByRole('button', { name: /corte feminino/i }).click()
+  await page.getByRole('button', { name: /ana martins/i }).click()
+  await page.locator('.filters .button').first().click()
+  await page.getByRole('button', { name: '09:00' }).click()
+
+  await expect(page.getByLabel('Nome completo')).toHaveCount(0)
+  await expect(page.getByLabel('E-mail')).toHaveCount(0)
+  await expect(page.getByLabel('Criar senha')).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Ainda não tenho conta no AgendaJá' }),
+  ).toBeVisible()
+  await page.getByLabel('Telefone / WhatsApp').fill('84994291683')
+  await page.getByLabel('Senha', { exact: true }).fill('SenhaTeste123')
+  await page.getByRole('button', { name: 'Entrar e revisar agendamento' }).click()
+  await expect(page.getByRole('heading', { name: 'Pedido preparado!' })).toBeVisible()
+})
+
+test('troca o acesso de cliente por cadastro sem perder serviço e horário', async ({ page }) => {
+  await page.goto('/estabelecimento/atelie-aurora')
+  await page.getByRole('link', { name: 'Já sou cliente' }).click()
+  await page.getByRole('button', { name: /corte feminino/i }).click()
+  await page.getByRole('button', { name: /ana martins/i }).click()
+  await page.locator('.filters .button').first().click()
+  await page.getByRole('button', { name: '09:00' }).click()
+
+  const resumoAntes = await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()
+  await page.getByRole('button', { name: 'Ainda não tenho conta no AgendaJá' }).click()
+  await expect(page.getByLabel('Nome completo')).toBeVisible()
+  await expect(page.getByLabel('E-mail')).toBeVisible()
+  await expect(page.getByLabel('Criar senha')).toBeVisible()
+  await expect(page.getByLabel('Senha', { exact: true })).toHaveCount(0)
+  expect(await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()).toBe(resumoAntes)
+
+  await page.getByRole('button', { name: 'Ir para Data e horário' }).click()
+  await page.getByRole('button', { name: 'Ir para Seus dados' }).click()
+  await expect(page.getByLabel('Criar senha')).toBeVisible()
+  await page.getByLabel('Nome completo').fill('Paula Reis')
+  await page.getByLabel('Telefone / WhatsApp').fill('84994291683')
+  await page.getByLabel('E-mail').fill('paula@exemplo.com')
+  await page.getByLabel('Criar senha').fill('SenhaTeste123')
+  await page.getByRole('button', { name: 'Revisar agendamento' }).click()
+  await expect(page.getByRole('heading', { name: 'Pedido preparado!' })).toBeVisible()
+  await expect(page.locator('.confirmation .summary')).toContainText('Corte feminino')
 })
 
 test('redireciona a raiz para o login', async ({ page }) => {

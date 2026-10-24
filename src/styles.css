@@ -1340,6 +1340,17 @@ a.rating-count:hover {
 .booking .field input {
   font-weight: 400;
 }
+.booking-switch-mode {
+  justify-self: start;
+  margin-top: -8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .booking-selection-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
