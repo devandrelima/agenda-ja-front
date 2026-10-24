@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ButtonHTMLAttributes, InputHTMLAttributes, PropsWithChildren } from 'react'
 import { formatarTelefone } from '../domain/contact'
 import './ui.css'
@@ -109,14 +109,45 @@ export function Badge({ status }: { status: string }) {
 export function Empty({ children }: PropsWithChildren) {
   return <div className="empty">{children}</div>
 }
-export function Steps({ step }: { step: number }) {
+export function Steps({
+  step,
+  maxStep = step,
+  onStepClick,
+}: {
+  step: number
+  maxStep?: number
+  onStepClick?: (step: number) => void
+}) {
+  const [visualStep, setVisualStep] = useState(1)
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setVisualStep(step))
+    return () => cancelAnimationFrame(frame)
+  }, [step])
+
   return (
-    <ol className="steps" aria-label="Etapas do agendamento">
+    <ol
+      className="steps"
+      aria-label="Etapas do agendamento"
+      style={{ '--steps-fill': `${((visualStep - 1) / 4) * 100}%` } as React.CSSProperties}
+    >
+      <li className="steps-track" aria-hidden="true" role="presentation">
+        <span className="steps-fill" />
+      </li>
       {['Serviço', 'Profissional', 'Data e horário', 'Seus dados', 'Confirmação'].map(
         (label, i) => (
-          <li className={i + 1 <= step ? 'active' : ''} key={label}>
-            <span>{i + 1}</span>
-            {label}
+          <li className={i + 1 <= visualStep ? 'active' : ''} key={label}>
+            <button
+              type="button"
+              className="steps-button"
+              aria-label={`Ir para ${label}`}
+              aria-current={i + 1 === step ? 'step' : undefined}
+              disabled={!onStepClick || i + 1 > maxStep}
+              onClick={() => onStepClick?.(i + 1)}
+            >
+              <span className="steps-circle">{i + 1}</span>
+              <span className="steps-label">{label}</span>
+            </button>
           </li>
         ),
       )}

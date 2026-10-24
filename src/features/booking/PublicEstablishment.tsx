@@ -1,5 +1,12 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import { ErroApi } from '../../data/api'
 import {
   buscarEstabelecimentoPublico,
@@ -9,6 +16,8 @@ import {
 } from '../../data/publicEstablishment'
 import type { EstabelecimentoPublico } from '../../data/publicEstablishment'
 import type { Servico } from '../../data/services'
+import type { EscolhasAgendamento } from '../../domain/models'
+import { etapaDisponivel } from '../../domain/bookingProgress'
 import { nomesDias, resumirHorario } from '../../data/businessHours'
 import { caminhos } from '../../app/paths'
 import { Card, Steps } from '../../design-system/ui'
@@ -205,6 +214,7 @@ function useServicosDoEstabelecimento(
 export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }) {
   const { estabelecimentoId: publicId } = useParams()
   const localizacao = useLocation()
+  const navegar = useNavigate()
   const [parametros, definirParametros] = useSearchParams()
   const resultado = useServicosDoEstabelecimento(publicId)
   if (!resultado.estabelecimento) return resultado.tela
@@ -213,6 +223,23 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
   const servicoSelecionado = resultado.servicos.find(
     (servico) => String(servico.id) === parametros.get('servico'),
   )
+  const escolhasAnteriores = localizacao.state?.escolhasAgendamento as
+    EscolhasAgendamento | undefined
+  const maxStep = servicoSelecionado
+    ? Math.max(
+        2,
+        escolhasAnteriores?.idServico === String(servicoSelecionado.id)
+          ? etapaDisponivel(escolhasAnteriores)
+          : 2,
+      )
+    : 1
+
+  function navegarPelasEtapas(destino: number) {
+    if (!servicoSelecionado || destino < 2 || destino > maxStep) return
+    navegar(`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`, {
+      state: { ...localizacao.state, etapaDestino: destino },
+    })
+  }
 
   if (etapa === 'agendar') {
     const vemDoPainel = localizacao.state?.origem === 'painel'
@@ -223,7 +250,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
             {vemDoPainel ? '← Voltar ao painel' : `← ${resultado.estabelecimento.nome}`}
           </Link>
           <h1>Fazer agendamento</h1>
-          <Steps step={1} />
+          <Steps step={1} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
           <Card>
             <h2>Escolha o serviço</h2>
             {resultado.servicos.length === 0 ? (
@@ -235,7 +262,17 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                   type="button"
                   aria-pressed={servicoSelecionado?.id === servico.id}
                   onClick={() =>
-                    definirParametros({ servico: String(servico.id) }, { state: localizacao.state })
+                    definirParametros(
+                      { servico: String(servico.id) },
+                      {
+                        state: {
+                          ...localizacao.state,
+                          escolhasAgendamento:
+                            servicoSelecionado?.id === servico.id ? escolhasAnteriores : undefined,
+                          etapaDestino: undefined,
+                        },
+                      },
+                    )
                   }
                   key={servico.id}
                 >
@@ -249,20 +286,15 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
               ))
             )}
             {servicoSelecionado && (
-              <>
-                <p className="notice" role="status">
-                  Serviço selecionado: <strong>{servicoSelecionado.nome}</strong>
-                </p>
-                <div className="form-actions form-actions-end">
-                  <Link
-                    className="button primary"
-                    to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
-                    state={localizacao.state}
-                  >
-                    Continuar
-                  </Link>
-                </div>
-              </>
+              <div className="form-actions form-actions-end">
+                <Link
+                  className="button primary"
+                  to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
+                  state={{ ...localizacao.state, etapaDestino: 2 }}
+                >
+                  Continuar
+                </Link>
+              </div>
             )}
           </Card>
         </div>

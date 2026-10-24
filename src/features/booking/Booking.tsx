@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { repositorioMock } from '../../data/mockRepository'
 import { listarHorariosDisponiveis } from '../../data/publicAvailability'
 import { listarProfissionaisDoServico } from '../../data/publicProfessionals'
@@ -11,6 +11,7 @@ import {
   paraChaveData,
 } from '../../domain/availability'
 import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../../domain/models'
+import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { cadastrarClienteDemo } from '../../data/demoClientAuth'
 import { useAutenticacao } from '../../app/useAutenticacao'
@@ -292,10 +293,23 @@ export function Agendamento({
 }) {
   const estabelecimentoId = publico?.estabelecimentoId
   const localizacao = useLocation()
-  const [etapa, definirEtapa] = useState(publico ? 2 : 1)
-  const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>(
-    publico ? { idServico: publico.servico.id } : {},
-  )
+  const navegar = useNavigate()
+  const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>(() => {
+    const anteriores = localizacao.state?.escolhasAgendamento as EscolhasAgendamento | undefined
+    return publico
+      ? anteriores?.idServico === publico.servico.id
+        ? anteriores
+        : { idServico: publico.servico.id }
+      : {}
+  })
+  const [etapa, definirEtapa] = useState(() => {
+    const destino = Number(localizacao.state?.etapaDestino)
+    return publico && destino >= 2 && destino <= etapaDisponivel(escolhas)
+      ? destino
+      : publico
+        ? 2
+        : 1
+  })
   const [errosContato, definirErrosContato] = useState<Record<string, string>>({})
   const [erroCadastro, definirErroCadastro] = useState('')
   const [cadastrando, definirCadastrando] = useState(false)
@@ -399,6 +413,7 @@ export function Agendamento({
   const datasDisponiveis = datas.filter((data) => horariosPorData[data]?.length)
   const times = escolhas.data ? (horariosPorData[escolhas.data] ?? []) : []
   const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
+  const maxStep = etapaDisponivel(escolhas)
   const caminhoDeVolta =
     localizacao.state?.origem === 'painel'
       ? caminhos.painel
@@ -420,6 +435,17 @@ export function Agendamento({
       horario: undefined,
     }))
     irParaEtapa(3)
+  }
+
+  function navegarPelasEtapas(destino: number) {
+    if (destino > maxStep || destino === etapa) return
+    if (publico && destino === 1) {
+      navegar(publico.caminhoDoServico, {
+        state: { ...localizacao.state, escolhasAgendamento: escolhas },
+      })
+      return
+    }
+    irParaEtapa(destino)
   }
 
   async function cadastrarDuranteAgendamento(evento: React.FormEvent<HTMLFormElement>) {
@@ -466,6 +492,9 @@ export function Agendamento({
     return (
       <main className="booking container">
         <div className="booking-main">
+          <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
+          <h1>Fazer agendamento</h1>
+          <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
           <Card className="confirmation">
             <p className="eyebrow">Agendamento de demonstração</p>
             <h1>Pedido preparado!</h1>
@@ -503,7 +532,7 @@ export function Agendamento({
       <div className="booking-main">
         <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
         <h1>Fazer agendamento</h1>
-        <Steps step={etapa} />
+        <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
         {etapa === 1 && (
           <Card>
             <h2>Escolha o serviço</h2>
@@ -565,7 +594,10 @@ export function Agendamento({
               <p>Nenhum profissional atende este serviço.</p>
             )}
             {publico ? (
-              <Link to={publico.caminhoDoServico} state={localizacao.state}>
+              <Link
+                to={publico.caminhoDoServico}
+                state={{ ...localizacao.state, escolhasAgendamento: escolhas }}
+              >
                 <Button variant="ghost">Voltar</Button>
               </Link>
             ) : (

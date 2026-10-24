@@ -136,6 +136,30 @@ describe('agendamento de um estabelecimento real', () => {
     expect(await screen.findByText('Serviços')).toBeInTheDocument()
   })
 
+  it('libera só a próxima etapa e mantém as anteriores acessíveis pelas bolinhas', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+    })
+    const user = await abrirProfissionais()
+    expect(screen.getByRole('button', { name: 'Ir para Data e horário' })).toBeDisabled()
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    expect(screen.getByRole('button', { name: 'Ir para Data e horário' })).toHaveAttribute(
+      'aria-current',
+      'step',
+    )
+    expect(screen.getByRole('button', { name: 'Ir para Seus dados' })).toBeDisabled()
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await user.click(screen.getByRole('button', { name: 'Ir para Seus dados' }))
+    expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Ir para Profissional' }))
+    expect(screen.getByRole('heading', { name: 'Escolha o profissional' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ir para Seus dados' }))
+    expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
+  })
+
   it('avisa quando nenhum profissional realiza o serviço', async () => {
     stubApi({ profissionais: [() => resposta([])] })
     await abrirProfissionais()
@@ -256,6 +280,14 @@ describe('agendamento de um estabelecimento real', () => {
     expect(screen.getByText('Lucas Mendes')).toBeInTheDocument()
     expect(existeClienteDemo('paula@exemplo.com')).toBe(true)
     expect(screen.getByText(/09:00/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toHaveAttribute(
+      'aria-current',
+      'step',
+    )
+    await user.click(screen.getByRole('button', { name: 'Ir para Data e horário' }))
+    expect(screen.getByRole('heading', { name: 'Data e horário' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ir para Confirmação' }))
+    expect(screen.getByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
   })
 
   it('valida o cadastro sem perder a seleção do agendamento', async () => {

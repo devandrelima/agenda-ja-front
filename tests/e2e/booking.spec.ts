@@ -115,3 +115,53 @@ test('permite voltar entre as etapas do agendamento', async ({ page }) => {
   await page.getByRole('button', { name: 'Voltar' }).click()
   await expect(page.getByRole('heading', { name: 'Escolha o serviço' })).toBeVisible()
 })
+
+test('navega pelas bolinhas sem perder as escolhas ao voltar ao serviço', async ({ page }) => {
+  const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
+  const json = (dados: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(dados),
+  })
+  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
+    rota.fulfill(json({ id: 4, publicId, nome: 'Estúdio Brisa' })),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
+    rota.fulfill(json([{ id: 7, nome: 'Escova', duracaoMinutos: 45, valor: 60 }])),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos/7/profissionais', (rota) =>
+    rota.fulfill(
+      json([
+        {
+          id: 3,
+          nome: 'Ana Martins',
+          especialidades: ['Escova'],
+          idsServicos: [7],
+          diasDeAtendimento: [1, 2, 3, 4, 5, 6, 7],
+          diasDeFolga: [],
+        },
+      ]),
+    ),
+  )
+  await page.route('**/api/estabelecimentos/4/servicos/7/disponibilidade*', (rota) =>
+    rota.fulfill(json(['09:00'])),
+  )
+
+  await page.goto(`/estabelecimento/${publicId}/agendar`)
+  await expect(page.getByRole('button', { name: 'Ir para Profissional' })).toBeDisabled()
+  await page.getByRole('button', { name: /Escova.*45 min.*R\$ 60,00/ }).click()
+  await page.getByRole('button', { name: 'Ir para Profissional' }).click()
+  await expect(page.getByRole('button', { name: 'Ir para Data e horário' })).toBeDisabled()
+  await page.getByRole('button', { name: /Ana Martins/ }).click()
+  await page.locator('.filters .button').first().click()
+  await page.getByRole('button', { name: '09:00' }).click()
+  await page.getByRole('button', { name: 'Ir para Seus dados' }).click()
+  await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible()
+  await page.getByRole('button', { name: 'Ir para Serviço' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=7`)
+  await page.getByRole('button', { name: /Escova.*45 min.*R\$ 60,00/ }).click()
+  await page.getByRole('button', { name: 'Ir para Seus dados' }).click()
+  await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible()
+  await page.getByRole('button', { name: 'Ir para Data e horário' }).click()
+  await expect(page.getByRole('button', { name: '09:00' })).toHaveClass(/selected/)
+})

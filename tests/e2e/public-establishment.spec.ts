@@ -92,13 +92,17 @@ test('mostra mensagem quando o link não existe', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Estabelecimento não encontrado.' })).toBeVisible()
 })
 
-test('lista os serviços sem ação de escolha e mantém a seleção no agendamento', async ({ page }) => {
+test('lista os serviços sem ação de escolha e mantém a seleção no agendamento', async ({
+  page,
+}) => {
   await prepararPortal(page)
   await page.goto(`/estabelecimento/${publicId}`)
   await page.getByRole('link', { name: 'Ver horários e serviços' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/servicos`)
   await expect(page.getByRole('heading', { name: 'Horários de funcionamento' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Horários da semana' }).getByText('09:00 às 18:00')).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Horários da semana' }).getByText('09:00 às 18:00'),
+  ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Serviços' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Corte masculino' })).toBeVisible()
   await expect(page.getByText('40 min')).toBeVisible()
@@ -108,11 +112,17 @@ test('lista os serviços sem ação de escolha e mantém a seleção no agendame
   await page.getByRole('link', { name: 'Voltar para a página do estabelecimento' }).click()
   await page.getByRole('link', { name: 'Fazer primeiro agendamento' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
+  await expect(page.getByRole('button', { name: 'Ir para Profissional' })).toBeDisabled()
   await page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
-  await expect(page.getByRole('status').filter({ hasText: 'Serviço selecionado' })).toContainText(
-    'Serviço selecionado: Corte masculino',
-  )
+  await expect(page.getByText('Serviço selecionado:')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Ir para Profissional' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar/profissional?servico=12`)
+  await page.getByRole('button', { name: 'Ir para Serviço' }).click()
+  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
+  await expect(
+    page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }),
+  ).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('mostra estado vazio quando não há serviços ativos', async ({ page }) => {
