@@ -550,15 +550,15 @@ export function Agendamento({
     irParaEtapa(destino)
   }
 
-  function mostrarCadastro() {
-    definirModoDados('cadastro')
+  function alterarModoDados(modo: 'cadastro' | 'entrar') {
+    definirModoDados(modo)
     definirErrosContato({})
     definirErroCadastro('')
     navegar(`${localizacao.pathname}${localizacao.search}`, {
       replace: true,
       state: {
         ...localizacao.state,
-        fluxoCliente: 'cadastro',
+        fluxoCliente: modo,
         escolhasAgendamento: escolhas,
         etapaDestino: 4,
       },
@@ -885,11 +885,16 @@ export function Agendamento({
                 error={errosContato.senha}
                 required
               />
-              {modoDados === 'entrar' && (
-                <button className="booking-switch-mode" type="button" onClick={mostrarCadastro}>
-                  Ainda não tenho conta no AgendaJá
-                </button>
-              )}
+              <button
+                className="booking-switch-mode"
+                type="button"
+                disabled={cadastrando}
+                onClick={() => alterarModoDados(modoDados === 'cadastro' ? 'entrar' : 'cadastro')}
+              >
+                {modoDados === 'cadastro'
+                  ? 'Já tenho conta no AgendaJá'
+                  : 'Ainda não tenho conta no AgendaJá'}
+              </button>
               {erroCadastro && (
                 <p className="auth-error" role="alert">
                   {erroCadastro}

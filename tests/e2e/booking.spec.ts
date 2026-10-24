@@ -20,6 +20,16 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   await page.getByRole('button', { name: /ana martins/i }).click()
   await page.locator('.filters .button').nth(1).click()
   await page.getByRole('button', { name: '09:00' }).click()
+  const resumoAntes = await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()
+  await page.getByRole('button', { name: 'Já tenho conta no AgendaJá' }).click()
+  await expect(page.getByLabel('Nome completo')).toHaveCount(0)
+  await expect(page.getByLabel('E-mail')).toHaveCount(0)
+  await expect(page.getByLabel('Senha', { exact: true })).toBeVisible()
+  expect(await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()).toBe(
+    resumoAntes,
+  )
+  await page.getByRole('button', { name: 'Ainda não tenho conta no AgendaJá' }).click()
+  await expect(page.getByLabel('Criar senha')).toBeVisible()
   await page.getByLabel('Nome completo').fill('Joana da Silva')
   await page.getByLabel(/telefone/i).fill('8599999999')
   await page.getByLabel('E-mail').fill('joana@invalido')
@@ -89,7 +99,9 @@ test('troca o acesso de cliente por cadastro sem perder serviço e horário', as
   await expect(page.getByLabel('E-mail')).toBeVisible()
   await expect(page.getByLabel('Criar senha')).toBeVisible()
   await expect(page.getByLabel('Senha', { exact: true })).toHaveCount(0)
-  expect(await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()).toBe(resumoAntes)
+  expect(await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()).toBe(
+    resumoAntes,
+  )
 
   await page.getByRole('button', { name: 'Ir para Data e horário' }).click()
   await page.getByRole('button', { name: 'Ir para Seus dados' }).click()
