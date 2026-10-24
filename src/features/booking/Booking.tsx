@@ -13,6 +13,7 @@ import {
 import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../../domain/models'
 import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
+import { BookingSelectionSummary } from './BookingSelectionSummary'
 import { cadastrarClienteDemo } from '../../data/demoClientAuth'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
@@ -414,6 +415,29 @@ export function Agendamento({
   const times = escolhas.data ? (horariosPorData[escolhas.data] ?? []) : []
   const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
   const maxStep = etapaDisponivel(escolhas)
+  const itensResumo: { etapa: number; rotulo: string; valor: string }[] = []
+  if (servicoSelecionado)
+    itensResumo.push({
+      etapa: 1,
+      rotulo: 'Serviço',
+      valor: `${servicoSelecionado.nome} · ${formatarMoeda(servicoSelecionado.valor)}`,
+    })
+  if (escolhas.idProfissional || escolhas.qualquerProfissional)
+    itensResumo.push({
+      etapa: 2,
+      rotulo: 'Profissional',
+      valor: escolhas.qualquerProfissional
+        ? 'Qualquer profissional'
+        : (profissionalSelecionado?.nome ?? 'Profissional selecionado'),
+    })
+  if (escolhas.data && escolhas.horario)
+    itensResumo.push({
+      etapa: 3,
+      rotulo: 'Data e horário',
+      valor: `${new Date(`${escolhas.data}T12:00`).toLocaleDateString('pt-BR')} às ${escolhas.horario}`,
+    })
+  if (escolhas.cliente)
+    itensResumo.push({ etapa: 4, rotulo: 'Seus dados', valor: escolhas.cliente.nome })
   const caminhoDeVolta =
     localizacao.state?.origem === 'painel'
       ? caminhos.painel
@@ -533,6 +557,13 @@ export function Agendamento({
         <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
         <h1>Fazer agendamento</h1>
         <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
+        {etapa > 1 && (
+          <BookingSelectionSummary
+            escolhas={itensResumo}
+            editar={navegarPelasEtapas}
+            etapaAtual={etapa}
+          />
+        )}
         {etapa === 1 && (
           <Card>
             <h2>Escolha o serviço</h2>
@@ -640,7 +671,10 @@ export function Agendamento({
                     <button
                       className={escolhas.horario === horario ? 'selected' : ''}
                       key={horario}
-                      onClick={() => definirEscolhas((atual) => ({ ...atual, horario }))}
+                      onClick={() => {
+                        definirEscolhas((atual) => ({ ...atual, horario }))
+                        irParaEtapa(4)
+                      }}
                     >
                       {horario}
                     </button>
@@ -648,14 +682,9 @@ export function Agendamento({
                 </div>
               </>
             )}
-            <div className="form-actions">
-              <Button variant="ghost" onClick={() => irParaEtapa(2)}>
-                Voltar
-              </Button>
-              <Button disabled={!escolhas.horario} onClick={() => irParaEtapa(4)}>
-                Continuar
-              </Button>
-            </div>
+            <Button variant="ghost" onClick={() => irParaEtapa(2)}>
+              Voltar
+            </Button>
           </Card>
         )}
         {etapa === 4 && (

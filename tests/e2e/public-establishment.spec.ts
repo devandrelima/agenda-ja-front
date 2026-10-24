@@ -114,10 +114,11 @@ test('lista os serviços sem ação de escolha e mantém a seleção no agendame
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar`)
   await expect(page.getByRole('button', { name: 'Ir para Profissional' })).toBeDisabled()
   await page.getByRole('button', { name: /Corte masculino.*40 min.*R\$ 55,00/ }).click()
-  await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
-  await expect(page.getByText('Serviço selecionado:')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Ir para Profissional' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar/profissional?servico=12`)
+  await expect(page.getByText('Serviço selecionado:')).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Resumo das escolhas' })).toContainText(
+    'Corte masculino',
+  )
   await page.getByRole('button', { name: 'Ir para Serviço' }).click()
   await expect(page).toHaveURL(`/estabelecimento/${publicId}/agendar?servico=12`)
   await expect(

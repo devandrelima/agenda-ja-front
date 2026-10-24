@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -95,7 +95,6 @@ async function abrirProfissionais() {
 }
 
 async function preencherDadosDoCliente(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Continuar' }))
   await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
   await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
   await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
@@ -151,10 +150,13 @@ describe('agendamento de um estabelecimento real', () => {
     expect(screen.getByRole('button', { name: 'Ir para Seus dados' })).toBeDisabled()
     await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
     await user.click(await screen.findByRole('button', { name: '09:00' }))
-    await user.click(screen.getByRole('button', { name: 'Ir para Seus dados' }))
     expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
+    const resumo = screen.getByRole('region', { name: 'Resumo das escolhas' })
+    expect(resumo).toHaveTextContent('Corte feminino')
+    expect(resumo).toHaveTextContent('Lucas Mendes')
+    expect(resumo).toHaveTextContent('09:00')
     expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Ir para Profissional' }))
+    await user.click(screen.getByRole('button', { name: 'Alterar Profissional' }))
     expect(screen.getByRole('heading', { name: 'Escolha o profissional' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ir para Seus dados' }))
     expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
@@ -262,7 +264,10 @@ describe('agendamento de um estabelecimento real', () => {
     )
     await preencherDadosDoCliente(user)
     expect(screen.getByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
-    expect(screen.getByText('Qualquer profissional')).toBeInTheDocument()
+    const confirmacao = screen
+      .getByRole('heading', { name: 'Pedido preparado!' })
+      .closest<HTMLElement>('.confirmation')!
+    expect(within(confirmacao).getByText('Qualquer profissional')).toBeInTheDocument()
     expect(screen.queryByText('Lucas Mendes')).not.toBeInTheDocument()
     expect(screen.queryByText('Mariana Alves')).not.toBeInTheDocument()
   })
@@ -277,9 +282,12 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
     await user.click(await screen.findByRole('button', { name: '09:00' }))
     await preencherDadosDoCliente(user)
-    expect(screen.getByText('Lucas Mendes')).toBeInTheDocument()
+    const confirmacao = screen
+      .getByRole('heading', { name: 'Pedido preparado!' })
+      .closest<HTMLElement>('.confirmation')!
+    expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
     expect(existeClienteDemo('paula@exemplo.com')).toBe(true)
-    expect(screen.getByText(/09:00/)).toBeInTheDocument()
+    expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toHaveAttribute(
       'aria-current',
       'step',
@@ -299,7 +307,6 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
     await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
     await user.click(await screen.findByRole('button', { name: '09:00' }))
-    await user.click(screen.getByRole('button', { name: 'Continuar' }))
     await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
     await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
     await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
@@ -311,7 +318,10 @@ describe('agendamento de um estabelecimento real', () => {
     await user.type(screen.getByLabelText('Senha'), 'SenhaTeste123')
     await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
     expect(await screen.findByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
-    expect(screen.getByText('Lucas Mendes')).toBeInTheDocument()
-    expect(screen.getByText(/09:00/)).toBeInTheDocument()
+    const confirmacao = screen
+      .getByRole('heading', { name: 'Pedido preparado!' })
+      .closest<HTMLElement>('.confirmation')!
+    expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
+    expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
   })
 })

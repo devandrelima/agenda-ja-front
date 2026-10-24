@@ -65,13 +65,11 @@ for (const [largura, altura] of [
     await page.getByRole('button', { name: /escova/i }).click()
     await semTransbordo(page)
 
-    await page.getByRole('link', { name: 'Continuar' }).click()
     await page.getByRole('button', { name: /lucas mendes/i }).click()
     await page.locator('.filters .button').first().click()
     await page.getByRole('button', { name: '10:00' }).click()
     await semTransbordo(page)
 
-    await page.getByRole('button', { name: 'Continuar' }).click()
     await semTransbordo(page)
   })
 }

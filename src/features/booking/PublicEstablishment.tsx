@@ -224,7 +224,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
   const { estabelecimentoId: publicId } = useParams()
   const localizacao = useLocation()
   const navegar = useNavigate()
-  const [parametros, definirParametros] = useSearchParams()
+  const [parametros] = useSearchParams()
   const dadosAnteriores = localizacao.state?.dadosAgendamentoPublico as
     ResultadoServicos | undefined
   const resultado = useServicosDoEstabelecimento(publicId, dadosAnteriores)
@@ -258,6 +258,18 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
     })
   }
 
+  function selecionarServico(servico: Servico) {
+    const mesmoServico = servicoSelecionado?.id === servico.id
+    navegar(`${rotaBase}/agendar/profissional?servico=${servico.id}`, {
+      state: {
+        ...localizacao.state,
+        dadosAgendamentoPublico,
+        escolhasAgendamento: mesmoServico ? escolhasAnteriores : undefined,
+        etapaDestino: 2,
+      },
+    })
+  }
+
   if (etapa === 'agendar') {
     const vemDoPainel = localizacao.state?.origem === 'painel'
     return (
@@ -278,20 +290,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                   className={`option ${servicoSelecionado?.id === servico.id ? 'selected' : ''}`}
                   type="button"
                   aria-pressed={servicoSelecionado?.id === servico.id}
-                  onClick={() =>
-                    definirParametros(
-                      { servico: String(servico.id) },
-                      {
-                        state: {
-                          ...localizacao.state,
-                          dadosAgendamentoPublico,
-                          escolhasAgendamento:
-                            servicoSelecionado?.id === servico.id ? escolhasAnteriores : undefined,
-                          etapaDestino: undefined,
-                        },
-                      },
-                    )
-                  }
+                  onClick={() => selecionarServico(servico)}
                   key={servico.id}
                 >
                   <span>
@@ -302,17 +301,6 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                   <strong>{formatarMoeda(servico.valor)}</strong>
                 </button>
               ))
-            )}
-            {servicoSelecionado && (
-              <div className="form-actions form-actions-end">
-                <Link
-                  className="button primary"
-                  to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
-                  state={{ ...localizacao.state, dadosAgendamentoPublico, etapaDestino: 2 }}
-                >
-                  Continuar
-                </Link>
-              </div>
             )}
           </Card>
         </div>

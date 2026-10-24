@@ -1337,6 +1337,55 @@ a.rating-count:hover {
   width: min(720px, 100%);
   margin: auto;
 }
+.booking-selection-summary {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--border);
+}
+.booking-selection-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 14px;
+  background: #fff;
+}
+.booking-selection-item span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.booking-selection-item small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.booking-selection-item strong {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+.booking-selection-item button {
+  flex: none;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.booking-selection-item button:hover {
+  text-decoration: underline;
+}
+.booking-selection-item button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
 .option {
   width: 100%;
   text-align: left;
