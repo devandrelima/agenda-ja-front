@@ -639,31 +639,55 @@ export function Agendamento({
           <h1>Fazer agendamento</h1>
           <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
           <Card className="confirmation">
-            <p className="eyebrow">Agendamento de demonstração</p>
-            <h1>Pedido preparado!</h1>
-            <p>Nenhum horário foi reservado no servidor e nenhuma notificação foi enviada.</p>
-            <div className="summary">
-              <strong>
-                {servicoSelecionado.nome} · {formatarMoeda(servicoSelecionado.valor)}
-              </strong>
-              <span>{nomeProfissional}</span>
-              <span>
-                {new Date(`${escolhas.data}T${escolhas.horario}`).toLocaleString('pt-BR', {
-                  dateStyle: 'full',
-                  timeStyle: 'short',
-                })}
+            <div className="confirmation-header">
+              <span className="confirmation-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32">
+                  <rect x="4" y="7" width="21" height="21" rx="3" />
+                  <path d="M9 4v6m11-6v6M4 14h21" />
+                  <circle cx="24" cy="24" r="6" />
+                  <path d="M24 20.5V24l2.5 1.5" />
+                </svg>
               </span>
+              <div>
+                <p className="eyebrow">Agendamento de demonstração</p>
+                <h2>Pedido preparado!</h2>
+                <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
+              </div>
             </div>
+            <p className="confirmation-status">
+              <span aria-hidden="true">i</span>
+              Este horário ainda não foi reservado.
+            </p>
+            <dl className="summary confirmation-summary">
+              <div>
+                <dt>Serviço</dt>
+                <dd>
+                  {servicoSelecionado.nome}
+                  <span>{formatarMoeda(servicoSelecionado.valor)}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Profissional</dt>
+                <dd>{nomeProfissional}</dd>
+              </div>
+              <div>
+                <dt>Data e horário</dt>
+                <dd>
+                  {new Date(`${escolhas.data}T${escolhas.horario}`).toLocaleString('pt-BR', {
+                    dateStyle: 'full',
+                    timeStyle: 'short',
+                  })}
+                </dd>
+              </div>
+            </dl>
             <div className="form-actions confirmation-actions">
               <Button variant="ghost" onClick={() => irParaEtapa(4)}>
                 Voltar
               </Button>
-              <Link to={caminhoDeVolta}>
-                <Button variant="secondary">
-                  {localizacao.state?.origem === 'painel'
-                    ? 'Voltar ao painel'
-                    : 'Voltar ao estabelecimento'}
-                </Button>
+              <Link className="button secondary" to={caminhoDeVolta}>
+                {localizacao.state?.origem === 'painel'
+                  ? 'Voltar ao painel'
+                  : 'Voltar ao estabelecimento'}
               </Link>
             </div>
           </Card>
