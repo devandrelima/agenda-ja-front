@@ -1,13 +1,18 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { Agendamento } from '../src/features/booking/Booking'
+import { ContextoAutenticacao } from '../src/app/authState'
 it('invalida seleção posterior ao trocar de serviço', async () => {
   const user = userEvent.setup()
   render(
     <BrowserRouter>
-      <Agendamento />
+      <ContextoAutenticacao.Provider
+        value={{ sessao: null, carregando: false, autenticar: vi.fn(), encerrar: vi.fn() }}
+      >
+        <Agendamento />
+      </ContextoAutenticacao.Provider>
     </BrowserRouter>,
   )
   await user.click(screen.getByRole('button', { name: /corte feminino/i }))

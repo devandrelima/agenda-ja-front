@@ -12,6 +12,8 @@ import {
 } from '../../domain/availability'
 import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../../domain/models'
 import { emailValido, telefoneValido } from '../../domain/contact'
+import { cadastrarClienteDemo } from '../../data/demoClientAuth'
+import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
@@ -295,6 +297,9 @@ export function Agendamento({
     publico ? { idServico: publico.servico.id } : {},
   )
   const [errosContato, definirErrosContato] = useState<Record<string, string>>({})
+  const [erroCadastro, definirErroCadastro] = useState('')
+  const [cadastrando, definirCadastrando] = useState(false)
+  const { sessao, autenticar } = useAutenticacao()
   const servicos = useMemo(
     () => (publico ? [publico.servico] : repositorioMock.buscarServicos()),
     [publico],
@@ -415,6 +420,42 @@ export function Agendamento({
       horario: undefined,
     }))
     irParaEtapa(3)
+  }
+
+  async function cadastrarDuranteAgendamento(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault()
+    if (cadastrando) return
+    const formulario = evento.currentTarget
+    const dados = new FormData(formulario)
+    const nome = String(dados.get('name') ?? '').trim()
+    const telefone = String(dados.get('phone') ?? '').trim()
+    const email = String(dados.get('email') ?? '').trim()
+    const senha = String(dados.get('senha') ?? '')
+    const erros: Record<string, string> = {}
+    if (nome.length < 3) erros.name = 'Informe seu nome completo.'
+    if (!telefoneValido(telefone)) erros.phone = 'Informe um celular válido com DDD.'
+    if (!emailValido(email)) erros.email = 'Informe um e-mail válido.'
+    if (sessao?.role !== 'CLIENTE' && senha.length < 8)
+      erros.senha = 'A senha deve ter pelo menos 8 caracteres.'
+    definirErrosContato(erros)
+    definirErroCadastro('')
+    if (Object.keys(erros).length) return
+
+    definirCadastrando(true)
+    try {
+      if (sessao?.role !== 'CLIENTE') {
+        await cadastrarClienteDemo({ nome, telefone, email, senha })
+        if (!sessao) await autenticar(email, senha, 'CLIENTE')
+      }
+      definirEscolhas((atual) => ({ ...atual, cliente: { nome, telefone, email } }))
+      irParaEtapa(5)
+    } catch (falha) {
+      definirErroCadastro(
+        falha instanceof Error ? falha.message : 'Não foi possível criar a conta. Tente novamente.',
+      )
+    } finally {
+      definirCadastrando(false)
+    }
   }
   if (
     etapa === 5 &&
@@ -588,40 +629,25 @@ export function Agendamento({
         {etapa === 4 && (
           <Card>
             <h2>Seus dados</h2>
-            <p className="notice">
-              Usaremos estes dados somente nesta demonstração. O cadastro será integrado ao backend
-              futuramente.
-            </p>
+            {sessao?.role !== 'CLIENTE' && (
+              <p className="notice">
+                Crie sua conta para continuar. Nesta prévia, ela fica apenas neste navegador; use
+                uma senha de teste.
+              </p>
+            )}
             <form
               className="form"
               noValidate
-              onSubmit={(e) => {
-                e.preventDefault()
-                const form = new FormData(e.currentTarget)
-                const erros: Record<string, string> = {}
-                if (!telefoneValido(String(form.get('phone')))) {
-                  erros.phone = 'Informe um celular válido com DDD.'
-                }
-                if (!emailValido(String(form.get('email')))) {
-                  erros.email = 'Informe um e-mail válido.'
-                }
-                definirErrosContato(erros)
-                if (Object.keys(erros).length || !e.currentTarget.reportValidity()) return
-                definirEscolhas((atual) => ({
-                  ...atual,
-                  cliente: {
-                    nome: String(form.get('name')),
-                    telefone: String(form.get('phone')),
-                    email: String(form.get('email')).trim(),
-                  },
-                }))
-                irParaEtapa(5)
-              }}
+              onSubmit={(evento) => void cadastrarDuranteAgendamento(evento)}
             >
               <Field
                 name="name"
                 label="Nome completo"
-                defaultValue={escolhas.cliente?.nome}
+                defaultValue={
+                  escolhas.cliente?.nome ?? (sessao?.role === 'CLIENTE' ? sessao.nome : '')
+                }
+                onChange={() => definirErrosContato((atual) => ({ ...atual, name: '' }))}
+                error={errosContato.name}
                 required
               />
               <PhoneField
@@ -645,7 +671,9 @@ export function Agendamento({
                 name="email"
                 label="E-mail"
                 type="email"
-                defaultValue={escolhas.cliente?.email}
+                defaultValue={
+                  escolhas.cliente?.email ?? (sessao?.role === 'CLIENTE' ? sessao.email : '')
+                }
                 onChange={() => definirErrosContato((atual) => ({ ...atual, email: '' }))}
                 onBlur={(evento) => {
                   if (evento.target.value && !emailValido(evento.target.value)) {
@@ -658,11 +686,30 @@ export function Agendamento({
                 error={errosContato.email}
                 required
               />
+              {sessao?.role !== 'CLIENTE' && (
+                <Field
+                  name="senha"
+                  label="Senha"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  onChange={() => definirErrosContato((atual) => ({ ...atual, senha: '' }))}
+                  error={errosContato.senha}
+                  required
+                />
+              )}
+              {erroCadastro && (
+                <p className="auth-error" role="alert">
+                  {erroCadastro}
+                </p>
+              )}
               <div className="form-actions">
                 <Button type="button" variant="ghost" onClick={() => irParaEtapa(3)}>
                   Voltar
                 </Button>
-                <Button>Revisar agendamento</Button>
+                <Button disabled={cadastrando}>
+                  {cadastrando ? 'Aguarde...' : 'Revisar agendamento'}
+                </Button>
               </div>
             </form>
           </Card>

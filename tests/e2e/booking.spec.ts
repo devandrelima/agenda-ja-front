@@ -30,6 +30,10 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   await page.getByLabel(/telefone/i).fill('85999999999')
   await expect(page.getByLabel(/telefone/i)).toHaveValue('(85) 9 9999-9999')
   await page.getByLabel('E-mail').fill('joana@exemplo.com')
+  await page.getByLabel('Senha', { exact: true }).fill('curta')
+  await page.getByRole('button', { name: /revisar/i }).click()
+  await expect(page.getByText('A senha deve ter pelo menos 8 caracteres.')).toBeVisible()
+  await page.getByLabel('Senha', { exact: true }).fill('SenhaTeste123')
   await page.getByRole('button', { name: /revisar/i }).click()
   await expect(page.getByText('Agendamento de demonstração')).toBeVisible()
 

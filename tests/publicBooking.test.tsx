@@ -4,6 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { adicionarDias, paraChaveData } from '../src/domain/availability'
 import { AgendamentoPublico } from '../src/features/booking/PublicEstablishment'
+import { ContextoAutenticacao } from '../src/app/authState'
+import { existeClienteDemo } from '../src/data/demoClientAuth'
 
 const caminhoProfissionais = '/api/estabelecimentos/4/servicos/1/profissionais'
 
@@ -69,13 +71,17 @@ function stubApi(
 function renderizarAgendamento() {
   render(
     <MemoryRouter initialEntries={[`/estabelecimento/${publicId}/agendar/profissional?servico=1`]}>
-      <Routes>
-        <Route
-          path="/estabelecimento/:estabelecimentoId/agendar/profissional"
-          element={<AgendamentoPublico />}
-        />
-        <Route path="/estabelecimento/:estabelecimentoId/agendar" element={<p>Serviços</p>} />
-      </Routes>
+      <ContextoAutenticacao.Provider
+        value={{ sessao: null, carregando: false, autenticar: vi.fn(), encerrar: vi.fn() }}
+      >
+        <Routes>
+          <Route
+            path="/estabelecimento/:estabelecimentoId/agendar/profissional"
+            element={<AgendamentoPublico />}
+          />
+          <Route path="/estabelecimento/:estabelecimentoId/agendar" element={<p>Serviços</p>} />
+        </Routes>
+      </ContextoAutenticacao.Provider>
     </MemoryRouter>,
   )
 }
@@ -93,6 +99,7 @@ async function preencherDadosDoCliente(user: ReturnType<typeof userEvent.setup>)
   await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
   await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
   await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
+  await user.type(screen.getByLabelText('Senha'), 'SenhaTeste123')
   await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
 }
 
@@ -105,6 +112,7 @@ describe('agendamento de um estabelecimento real', () => {
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
+    localStorage.clear()
   })
 
   it('busca no backend os profissionais do serviço escolhido', async () => {
@@ -246,5 +254,32 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: '09:00' }))
     await preencherDadosDoCliente(user)
     expect(screen.getByText('Lucas Mendes')).toBeInTheDocument()
+    expect(existeClienteDemo('paula@exemplo.com')).toBe(true)
+    expect(screen.getByText(/09:00/)).toBeInTheDocument()
+  })
+
+  it('valida o cadastro sem perder a seleção do agendamento', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+    })
+    const user = await abrirProfissionais()
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await user.click(screen.getByRole('button', { name: 'Continuar' }))
+    await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
+    await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
+    await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
+    await user.type(screen.getByLabelText('Senha'), 'curta')
+    await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('A senha deve ter pelo menos 8 caracteres.')
+    expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
+    await user.clear(screen.getByLabelText('Senha'))
+    await user.type(screen.getByLabelText('Senha'), 'SenhaTeste123')
+    await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
+    expect(await screen.findByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
+    expect(screen.getByText('Lucas Mendes')).toBeInTheDocument()
+    expect(screen.getByText(/09:00/)).toBeInTheDocument()
   })
 })
