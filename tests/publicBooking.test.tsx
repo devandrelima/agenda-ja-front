@@ -155,8 +155,10 @@ describe('agendamento de um estabelecimento real', () => {
     expect(resumo).toHaveTextContent('Corte feminino')
     expect(resumo).toHaveTextContent('Lucas Mendes')
     expect(resumo).toHaveTextContent('09:00')
+    expect(resumo).not.toHaveTextContent('Seus dados')
+    expect(resumo.querySelector('button')).toBeNull()
     expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Alterar Profissional' }))
+    await user.click(screen.getByRole('button', { name: 'Ir para Profissional' }))
     expect(screen.getByRole('heading', { name: 'Escolha o profissional' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ir para Seus dados' }))
     expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
@@ -292,6 +294,7 @@ describe('agendamento de um estabelecimento real', () => {
       'aria-current',
       'step',
     )
+    expect(screen.queryByRole('region', { name: 'Resumo das escolhas' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ir para Data e horário' }))
     expect(screen.getByRole('heading', { name: 'Data e horário' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ir para Confirmação' }))

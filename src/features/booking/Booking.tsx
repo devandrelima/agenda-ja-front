@@ -415,16 +415,14 @@ export function Agendamento({
   const times = escolhas.data ? (horariosPorData[escolhas.data] ?? []) : []
   const irParaEtapa = (numeroDaEtapa: number) => definirEtapa(numeroDaEtapa)
   const maxStep = etapaDisponivel(escolhas)
-  const itensResumo: { etapa: number; rotulo: string; valor: string }[] = []
+  const itensResumo: { rotulo: string; valor: string }[] = []
   if (servicoSelecionado)
     itensResumo.push({
-      etapa: 1,
       rotulo: 'Serviço',
       valor: `${servicoSelecionado.nome} · ${formatarMoeda(servicoSelecionado.valor)}`,
     })
   if (escolhas.idProfissional || escolhas.qualquerProfissional)
     itensResumo.push({
-      etapa: 2,
       rotulo: 'Profissional',
       valor: escolhas.qualquerProfissional
         ? 'Qualquer profissional'
@@ -432,12 +430,9 @@ export function Agendamento({
     })
   if (escolhas.data && escolhas.horario)
     itensResumo.push({
-      etapa: 3,
       rotulo: 'Data e horário',
       valor: `${new Date(`${escolhas.data}T12:00`).toLocaleDateString('pt-BR')} às ${escolhas.horario}`,
     })
-  if (escolhas.cliente)
-    itensResumo.push({ etapa: 4, rotulo: 'Seus dados', valor: escolhas.cliente.nome })
   const caminhoDeVolta =
     localizacao.state?.origem === 'painel'
       ? caminhos.painel
@@ -557,13 +552,7 @@ export function Agendamento({
         <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
         <h1>Fazer agendamento</h1>
         <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
-        {etapa > 1 && (
-          <BookingSelectionSummary
-            escolhas={itensResumo}
-            editar={navegarPelasEtapas}
-            etapaAtual={etapa}
-          />
-        )}
+        {etapa > 1 && <BookingSelectionSummary escolhas={itensResumo} />}
         {etapa === 1 && (
           <Card>
             <h2>Escolha o serviço</h2>
