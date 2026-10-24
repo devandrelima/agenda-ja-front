@@ -162,13 +162,22 @@ type ResultadoServicos = {
  */
 function useServicosDoEstabelecimento(
   publicId: string | undefined,
+  dadosAnteriores?: ResultadoServicos,
 ):
   | { estabelecimento: EstabelecimentoPublico; servicos: Servico[]; tela?: undefined }
   | { estabelecimento?: undefined; servicos?: undefined; tela: ReactElement } {
-  const [resultado, definirResultado] = useState<ResultadoServicos | null>(null)
+  const [resultado, definirResultado] = useState<ResultadoServicos | null>(
+    dadosAnteriores && dadosAnteriores.publicId === publicId ? dadosAnteriores : null,
+  )
 
   useEffect(() => {
     if (!publicId || !identificadorPublicoValido(publicId)) return
+    if (
+      dadosAnteriores?.publicId === publicId &&
+      dadosAnteriores.estabelecimento &&
+      dadosAnteriores.servicos
+    )
+      return
 
     let ativo = true
     buscarEstabelecimentoPublico(publicId)
@@ -189,7 +198,7 @@ function useServicosDoEstabelecimento(
     return () => {
       ativo = false
     }
-  }, [publicId])
+  }, [publicId, dadosAnteriores])
 
   if (!publicId || !identificadorPublicoValido(publicId))
     return { tela: <ErroLinkPublico mensagem="Estabelecimento não encontrado." /> }
@@ -216,8 +225,16 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
   const localizacao = useLocation()
   const navegar = useNavigate()
   const [parametros, definirParametros] = useSearchParams()
-  const resultado = useServicosDoEstabelecimento(publicId)
+  const dadosAnteriores = localizacao.state?.dadosAgendamentoPublico as
+    ResultadoServicos | undefined
+  const resultado = useServicosDoEstabelecimento(publicId, dadosAnteriores)
   if (!resultado.estabelecimento) return resultado.tela
+
+  const dadosAgendamentoPublico = {
+    publicId: publicId!,
+    estabelecimento: resultado.estabelecimento,
+    servicos: resultado.servicos,
+  }
 
   const rotaBase = `/estabelecimento/${publicId}`
   const servicoSelecionado = resultado.servicos.find(
@@ -237,7 +254,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
   function navegarPelasEtapas(destino: number) {
     if (!servicoSelecionado || destino < 2 || destino > maxStep) return
     navegar(`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`, {
-      state: { ...localizacao.state, etapaDestino: destino },
+      state: { ...localizacao.state, dadosAgendamentoPublico, etapaDestino: destino },
     })
   }
 
@@ -267,6 +284,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                       {
                         state: {
                           ...localizacao.state,
+                          dadosAgendamentoPublico,
                           escolhasAgendamento:
                             servicoSelecionado?.id === servico.id ? escolhasAnteriores : undefined,
                           etapaDestino: undefined,
@@ -290,7 +308,7 @@ export function ProximaEtapaPublica({ etapa }: { etapa: 'servicos' | 'agendar' }
                 <Link
                   className="button primary"
                   to={`${rotaBase}/agendar/profissional?servico=${servicoSelecionado.id}`}
-                  state={{ ...localizacao.state, etapaDestino: 2 }}
+                  state={{ ...localizacao.state, dadosAgendamentoPublico, etapaDestino: 2 }}
                 >
                   Continuar
                 </Link>
@@ -360,7 +378,9 @@ export function AgendamentoPublico() {
   const { estabelecimentoId: publicId } = useParams()
   const localizacao = useLocation()
   const [parametros] = useSearchParams()
-  const resultado = useServicosDoEstabelecimento(publicId)
+  const dadosAnteriores = localizacao.state?.dadosAgendamentoPublico as
+    ResultadoServicos | undefined
+  const resultado = useServicosDoEstabelecimento(publicId, dadosAnteriores)
   if (!resultado.estabelecimento) return resultado.tela
 
   const rotaBase = `/estabelecimento/${publicId}`

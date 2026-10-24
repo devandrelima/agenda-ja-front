@@ -118,17 +118,21 @@ test('permite voltar entre as etapas do agendamento', async ({ page }) => {
 
 test('navega pelas bolinhas sem perder as escolhas ao voltar ao serviço', async ({ page }) => {
   const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
+  let consultasEstabelecimento = 0
+  let consultasServicos = 0
   const json = (dados: unknown) => ({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(dados),
   })
-  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) =>
-    rota.fulfill(json({ id: 4, publicId, nome: 'Estúdio Brisa' })),
-  )
-  await page.route('**/api/estabelecimentos/4/servicos', (rota) =>
-    rota.fulfill(json([{ id: 7, nome: 'Escova', duracaoMinutos: 45, valor: 60 }])),
-  )
+  await page.route(`**/api/estabelecimentos/publico/${publicId}`, (rota) => {
+    consultasEstabelecimento++
+    return rota.fulfill(json({ id: 4, publicId, nome: 'Estúdio Brisa' }))
+  })
+  await page.route('**/api/estabelecimentos/4/servicos', (rota) => {
+    consultasServicos++
+    return rota.fulfill(json([{ id: 7, nome: 'Escova', duracaoMinutos: 45, valor: 60 }]))
+  })
   await page.route('**/api/estabelecimentos/4/servicos/7/profissionais', (rota) =>
     rota.fulfill(
       json([
@@ -149,6 +153,10 @@ test('navega pelas bolinhas sem perder as escolhas ao voltar ao serviço', async
 
   await page.goto(`/estabelecimento/${publicId}/agendar`)
   await expect(page.getByRole('button', { name: 'Ir para Profissional' })).toBeDisabled()
+  const consultasIniciais = {
+    estabelecimento: consultasEstabelecimento,
+    servicos: consultasServicos,
+  }
   await page.getByRole('button', { name: /Escova.*45 min.*R\$ 60,00/ }).click()
   await page.getByRole('button', { name: 'Ir para Profissional' }).click()
   await expect(page.getByRole('button', { name: 'Ir para Data e horário' })).toBeDisabled()
@@ -164,4 +172,6 @@ test('navega pelas bolinhas sem perder as escolhas ao voltar ao serviço', async
   await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible()
   await page.getByRole('button', { name: 'Ir para Data e horário' }).click()
   await expect(page.getByRole('button', { name: '09:00' })).toHaveClass(/selected/)
+  expect(consultasEstabelecimento).toBe(consultasIniciais.estabelecimento)
+  expect(consultasServicos).toBe(consultasIniciais.servicos)
 })
