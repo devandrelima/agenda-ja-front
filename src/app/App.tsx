@@ -11,6 +11,7 @@ import {
 } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { PaginaAvaliacoes } from '../features/reviews/Reviews'
+import { MeusAgendamentos } from '../features/client/Appointments'
 import {
   PaginaAvaliacoesPublicas,
   PaginaEstabelecimentoPublico,
@@ -27,8 +28,7 @@ import {
 import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
-import { cadastrarEstabelecimento, ErroApi } from '../data/auth'
-import { cadastrarClienteDemo, existeClienteDemo } from '../data/demoClientAuth'
+import { cadastrarCliente, cadastrarEstabelecimento, ErroApi } from '../data/auth'
 import { categoriasNegocio } from '../data/businessProfile'
 import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
@@ -44,9 +44,9 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const navegar = useNavigate()
   const localizacao = useLocation()
   const retornoSolicitado = localizacao.state?.retorno
-  const retornoAvaliacoes = caminhoDeAvaliacoesValido(retornoSolicitado)
+  const retornoCliente = caminhoDeAvaliacoesValido(retornoSolicitado)
     ? retornoSolicitado
-    : caminhos.avaliacoes
+    : caminhos.meusAgendamentos
   const retorno = caminhoDeAvaliacoesValido(retornoSolicitado) ? retornoSolicitado : caminhos.painel
   const [perfil, definirPerfil] = useState<'GESTOR' | 'CLIENTE'>(
     localizacao.state?.perfil === 'CLIENTE' ? 'CLIENTE' : 'GESTOR',
@@ -59,7 +59,7 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const [errosCampos, definirErrosCampos] = useState<Record<string, string>>({})
 
   if (sessao?.role === 'GESTOR') return <Navigate to={retorno} replace />
-  if (sessao?.role === 'CLIENTE') return <Navigate to={retornoAvaliacoes} replace />
+  if (sessao?.role === 'CLIENTE') return <Navigate to={retornoCliente} replace />
 
   async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -83,7 +83,7 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
     try {
       if (cadastro) {
         if (perfil === 'CLIENTE') {
-          await cadastrarClienteDemo({
+          await cadastrarCliente({
             nome: String(dadosFormulario.get('nomeCompleto') ?? ''),
             telefone: String(dadosFormulario.get('telefone') ?? ''),
             email,
@@ -104,9 +104,13 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
           state: { cadastroConcluido: true, perfil, retorno: localizacao.state?.retorno },
         })
       } else {
-        const perfilEntrada = existeClienteDemo(email) ? 'CLIENTE' : 'GESTOR'
-        await autenticar(email, senha, perfilEntrada)
-        navegar(perfilEntrada === 'CLIENTE' ? retornoAvaliacoes : retorno, { replace: true })
+        const sessaoAutenticada = await autenticar(email, senha)
+        if (sessaoAutenticada.role !== 'GESTOR' && sessaoAutenticada.role !== 'CLIENTE') {
+          throw new Error('Esta conta não possui um perfil de acesso válido.')
+        }
+        navegar(sessaoAutenticada.role === 'CLIENTE' ? retornoCliente : retorno, {
+          replace: true,
+        })
       }
     } catch (falha) {
       if (falha instanceof ErroApi) {
@@ -252,11 +256,6 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
             error={errosCampos.senha}
             required
           />
-          {cadastro && perfil === 'CLIENTE' && (
-            <p className="auth-demo-note">
-              Conta de demonstração salva apenas neste navegador. Use uma senha de teste.
-            </p>
-          )}
           {erro && (
             <p className="auth-error" role="alert">
               {erro}
@@ -296,6 +295,18 @@ function RotaProtegida({ children }: PropsWithChildren) {
   return children
 }
 
+function RotaCliente({ children }: PropsWithChildren) {
+  const { sessao, carregando } = useAutenticacao()
+  if (carregando)
+    return (
+      <main className="auth" role="status">
+        Carregando sessão...
+      </main>
+    )
+  if (sessao?.role !== 'CLIENTE') return <Navigate to={caminhos.login} replace />
+  return children
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -304,6 +315,14 @@ export function App() {
           <Route path="/" element={<Navigate to={caminhos.login} replace />} />
           <Route path={caminhos.login} element={<Autenticacao key="login" />} />
           <Route path={caminhos.cadastro} element={<Autenticacao key="cadastro" cadastro />} />
+          <Route
+            path={caminhos.meusAgendamentos}
+            element={
+              <RotaCliente>
+                <MeusAgendamentos />
+              </RotaCliente>
+            }
+          />
           <Route path={caminhos.estabelecimento} element={<PaginaEstabelecimento />} />
           <Route path={caminhos.avaliacoes} element={<PaginaAvaliacoes />} />
           <Route

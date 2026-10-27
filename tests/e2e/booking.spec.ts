@@ -1,5 +1,25 @@
 import { test, expect } from '@playwright/test'
 
+async function mockAutenticacaoCliente(page: import('@playwright/test').Page) {
+  await page.route('**/api/auth/csrf', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: 'teste' }) }),
+  )
+  await page.route('**/api/clientes', (rota) => rota.fulfill({ status: 201 }))
+  await page.route('**/api/auth/login', (rota) =>
+    rota.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 2,
+        nome: 'Joana da Silva',
+        email: 'joana@exemplo.com',
+        role: 'CLIENTE',
+        estabelecimentoId: null,
+      }),
+    }),
+  )
+}
+
 test('habilita o login após preencher e-mail e senha', async ({ page }) => {
   await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
   await page.goto('/login')
@@ -13,7 +33,8 @@ test('habilita o login após preencher e-mail e senha', async ({ page }) => {
   await expect(entrar).toBeEnabled()
 })
 
-test('conclui a jornada pública como demonstração', async ({ page }) => {
+test('conclui a jornada pública com cadastro de cliente', async ({ page }) => {
+  await mockAutenticacaoCliente(page)
   await page.goto('/estabelecimento/atelie-aurora')
   await page.getByRole('link', { name: /fazer primeiro agendamento/i }).click()
   await page.getByRole('button', { name: /corte feminino/i }).click()
@@ -23,7 +44,7 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   const resumoAntes = await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()
   await page.getByRole('button', { name: 'Já tenho conta no AgendaJá' }).click()
   await expect(page.getByLabel('Nome completo')).toHaveCount(0)
-  await expect(page.getByLabel('E-mail')).toHaveCount(0)
+  await expect(page.getByLabel('E-mail')).toBeVisible()
   await expect(page.getByLabel('Senha', { exact: true })).toBeVisible()
   expect(await page.getByRole('region', { name: 'Resumo das escolhas' }).innerText()).toBe(
     resumoAntes,
@@ -51,21 +72,8 @@ test('conclui a jornada pública como demonstração', async ({ page }) => {
   await expect(page.getByLabel('E-mail')).toHaveValue('joana@exemplo.com')
 })
 
-test('cliente existente entra com telefone e senha durante o agendamento', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'agendaja-demo-clientes-v1',
-      JSON.stringify([
-        {
-          id: -1,
-          nome: 'Joana da Silva',
-          telefone: '(84) 9 9429-1683',
-          email: 'joana@exemplo.com',
-          senha: 'SenhaTeste123',
-        },
-      ]),
-    )
-  })
+test('cliente existente entra com e-mail e senha durante o agendamento', async ({ page }) => {
+  await mockAutenticacaoCliente(page)
   await page.goto('/estabelecimento/atelie-aurora')
   await page.getByRole('link', { name: 'Já sou cliente' }).click()
   await page.getByRole('button', { name: /corte feminino/i }).click()
@@ -74,18 +82,20 @@ test('cliente existente entra com telefone e senha durante o agendamento', async
   await page.getByRole('button', { name: '09:00' }).click()
 
   await expect(page.getByLabel('Nome completo')).toHaveCount(0)
-  await expect(page.getByLabel('E-mail')).toHaveCount(0)
+  await expect(page.getByLabel('E-mail')).toBeVisible()
   await expect(page.getByLabel('Criar senha')).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: 'Ainda não tenho conta no AgendaJá' }),
   ).toBeVisible()
   await page.getByLabel('Telefone / WhatsApp').fill('84994291683')
+  await page.getByLabel('E-mail').fill('joana@exemplo.com')
   await page.getByLabel('Senha', { exact: true }).fill('SenhaTeste123')
   await page.getByRole('button', { name: 'Entrar e revisar agendamento' }).click()
   await expect(page.getByRole('heading', { name: 'Pedido preparado!' })).toBeVisible()
 })
 
 test('troca o acesso de cliente por cadastro sem perder serviço e horário', async ({ page }) => {
+  await mockAutenticacaoCliente(page)
   await page.goto('/estabelecimento/atelie-aurora')
   await page.getByRole('link', { name: 'Já sou cliente' }).click()
   await page.getByRole('button', { name: /corte feminino/i }).click()

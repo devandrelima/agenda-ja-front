@@ -35,6 +35,10 @@ test('mostra e oculta a senha sem enviar o formulário e valida e-mail no login'
 
 test('aplica máscara e valida celular e e-mail no cadastro do cliente', async ({ page }) => {
   await page.route('**/api/auth/me', (rota) => rota.fulfill({ status: 401 }))
+  await page.route('**/api/auth/csrf', (rota) =>
+    rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: 'teste' }) }),
+  )
+  await page.route('**/api/clientes', (rota) => rota.fulfill({ status: 201 }))
   await page.goto('/cadastro')
   await page.getByRole('button', { name: 'Cliente' }).click()
   await page.getByLabel('Nome completo').fill('Marina Silva')

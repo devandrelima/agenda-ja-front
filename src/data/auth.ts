@@ -5,6 +5,7 @@ export type Sessao = {
   id: number
   nome: string
   email: string
+  telefone?: string | null
   role: string
   estabelecimentoId: number | null
 }
@@ -14,6 +15,13 @@ export type CadastroEstabelecimento = {
   categoria: string
   localizacao: string
   nomeGestor: string
+  email: string
+  senha: string
+}
+
+export type CadastroCliente = {
+  nome: string
+  telefone: string
   email: string
   senha: string
 }
@@ -42,6 +50,10 @@ export async function entrar(email: string, senha: string): Promise<Sessao> {
 
 export async function cadastrarEstabelecimento(dados: CadastroEstabelecimento): Promise<void> {
   await enviar('/api/estabelecimentos', dados)
+}
+
+export async function cadastrarCliente(dados: CadastroCliente): Promise<void> {
+  await enviar('/api/clientes', dados)
 }
 
 export async function sair(): Promise<void> {

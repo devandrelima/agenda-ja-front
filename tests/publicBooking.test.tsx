@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { adicionarDias, paraChaveData } from '../src/domain/availability'
 import { AgendamentoPublico } from '../src/features/booking/PublicEstablishment'
 import { ContextoAutenticacao } from '../src/app/authState'
-import { existeClienteDemo } from '../src/data/demoClientAuth'
 
 const caminhoProfissionais = '/api/estabelecimentos/4/servicos/1/profissionais'
 
@@ -39,6 +38,13 @@ const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
 const caminhoEstabelecimento = `/api/estabelecimentos/publico/${publicId}`
 const caminhoServicos = '/api/estabelecimentos/4/servicos'
 const caminhoDisponibilidade = '/api/estabelecimentos/4/servicos/1/disponibilidade'
+const sessaoCliente = {
+  id: 9,
+  nome: 'Paula Reis',
+  email: 'paula@exemplo.com',
+  role: 'CLIENTE',
+  estabelecimentoId: null,
+}
 
 type Rota = () => Response | Promise<Response>
 
@@ -62,6 +68,8 @@ function stubApi(
       return (profissionais.length > 1 ? profissionais.shift()! : profissionais[0])()
     if (rota === caminhoDisponibilidade && rotas.disponibilidade)
       return rotas.disponibilidade(new URLSearchParams(consulta))
+    if (rota === '/api/auth/csrf') return resposta({ token: 'token-teste' })
+    if (rota === '/api/clientes') return resposta({ id: 9 }, 201)
     throw new Error(`Rota inesperada: ${caminho}`)
   })
   vi.stubGlobal('fetch', requisicoes)
@@ -72,7 +80,12 @@ function renderizarAgendamento() {
   render(
     <MemoryRouter initialEntries={[`/estabelecimento/${publicId}/agendar/profissional?servico=1`]}>
       <ContextoAutenticacao.Provider
-        value={{ sessao: null, carregando: false, autenticar: vi.fn(), encerrar: vi.fn() }}
+        value={{
+          sessao: null,
+          carregando: false,
+          autenticar: vi.fn().mockResolvedValue(sessaoCliente),
+          encerrar: vi.fn(),
+        }}
       >
         <Routes>
           <Route
@@ -325,7 +338,6 @@ describe('agendamento de um estabelecimento real', () => {
       .getByRole('heading', { name: 'Pedido preparado!' })
       .closest<HTMLElement>('.confirmation')!
     expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
-    expect(existeClienteDemo('paula@exemplo.com')).toBe(true)
     expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ir para Confirmação' })).toHaveAttribute(
       'aria-current',

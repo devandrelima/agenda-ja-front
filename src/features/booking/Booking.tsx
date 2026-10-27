@@ -17,7 +17,7 @@ import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../.
 import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
-import { buscarClienteDemoPorTelefone, cadastrarClienteDemo } from '../../data/demoClientAuth'
+import { cadastrarCliente } from '../../data/auth'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -585,8 +585,11 @@ export function Agendamento({
 
     definirCadastrando(true)
     try {
-      await cadastrarClienteDemo({ nome, telefone, email, senha })
-      await autenticar(email, senha, 'CLIENTE')
+      await cadastrarCliente({ nome, telefone, email, senha })
+      const sessaoAutenticada = await autenticar(email, senha)
+      if (sessaoAutenticada.role !== 'CLIENTE') {
+        throw new Error('Use uma conta de cliente para continuar o agendamento.')
+      }
       definirEscolhas((atual) => ({ ...atual, cliente: { nome, telefone, email } }))
       irParaEtapa(5)
     } catch (falha) {
@@ -602,10 +605,13 @@ export function Agendamento({
     evento.preventDefault()
     if (cadastrando) return
     const dados = new FormData(evento.currentTarget)
-    const telefone = String(dados.get('phone') ?? '').trim()
+    const identificador = String(dados.get('identificador') ?? '').trim()
     const senha = String(dados.get('senha') ?? '')
     const erros: Record<string, string> = {}
-    if (!telefoneValido(telefone)) erros.phone = 'Informe um celular válido com DDD.'
+    const identificadorValido = identificador.includes('@')
+      ? emailValido(identificador)
+      : telefoneValido(identificador)
+    if (!identificadorValido) erros.identificador = 'Informe um e-mail ou celular válido com DDD.'
     if (!senha) erros.senha = 'Informe sua senha.'
     definirErrosContato(erros)
     definirErroCadastro('')
@@ -613,10 +619,18 @@ export function Agendamento({
 
     definirCadastrando(true)
     try {
-      await autenticar(telefone, senha, 'CLIENTE')
-      const cliente = buscarClienteDemoPorTelefone(telefone)
-      if (!cliente) throw new Error('Não foi possível localizar a conta de cliente.')
-      definirEscolhas((atual) => ({ ...atual, cliente }))
+      const sessaoAutenticada = await autenticar(identificador, senha)
+      if (sessaoAutenticada.role !== 'CLIENTE') {
+        throw new Error('Use uma conta de cliente para continuar o agendamento.')
+      }
+      definirEscolhas((atual) => ({
+        ...atual,
+        cliente: {
+          nome: sessaoAutenticada.nome,
+          telefone: sessaoAutenticada.telefone ?? '',
+          email: sessaoAutenticada.email,
+        },
+      }))
       irParaEtapa(5)
     } catch (falha) {
       definirErroCadastro(
@@ -684,10 +698,8 @@ export function Agendamento({
               <Button variant="ghost" onClick={() => irParaEtapa(4)}>
                 Voltar
               </Button>
-              <Link className="button secondary" to={caminhoDeVolta}>
-                {localizacao.state?.origem === 'painel'
-                  ? 'Voltar ao painel'
-                  : 'Voltar ao estabelecimento'}
+              <Link className="button secondary" to={caminhos.meusAgendamentos}>
+                Área do cliente
               </Link>
             </div>
           </Card>
@@ -835,8 +847,7 @@ export function Agendamento({
             <h2>Seus dados</h2>
             {modoDados === 'cadastro' && (
               <p className="notice">
-                Crie sua conta para continuar. Nesta prévia, ela fica apenas neste navegador; use
-                uma senha de teste.
+                Crie sua conta para continuar e acompanhar seus agendamentos.
               </p>
             )}
             <form
@@ -861,23 +872,39 @@ export function Agendamento({
                   required
                 />
               )}
-              <PhoneField
-                name="phone"
-                label="Telefone / WhatsApp"
-                defaultValue={escolhas.cliente?.telefone}
-                placeholder="(84) 9 9429-1683"
-                onChange={() => definirErrosContato((atual) => ({ ...atual, phone: '' }))}
-                onBlur={(evento) => {
-                  if (evento.target.value && !telefoneValido(evento.target.value)) {
-                    definirErrosContato((atual) => ({
-                      ...atual,
-                      phone: 'Informe um celular válido com DDD.',
-                    }))
+              {modoDados === 'entrar' && (
+                <Field
+                  name="identificador"
+                  label="E-mail ou telefone"
+                  autoComplete="username"
+                  defaultValue={
+                    escolhas.cliente?.email ?? (sessao?.role === 'CLIENTE' ? sessao.email : '')
                   }
-                }}
-                error={errosContato.phone}
-                required
-              />
+                  placeholder="voce@exemplo.com ou (84) 9 9999-9999"
+                  onChange={() => definirErrosContato((atual) => ({ ...atual, identificador: '' }))}
+                  error={errosContato.identificador}
+                  required
+                />
+              )}
+              {modoDados === 'cadastro' && (
+                <PhoneField
+                  name="phone"
+                  label="Telefone / WhatsApp"
+                  defaultValue={escolhas.cliente?.telefone}
+                  placeholder="(84) 9 9429-1683"
+                  onChange={() => definirErrosContato((atual) => ({ ...atual, phone: '' }))}
+                  onBlur={(evento) => {
+                    if (evento.target.value && !telefoneValido(evento.target.value)) {
+                      definirErrosContato((atual) => ({
+                        ...atual,
+                        phone: 'Informe um celular válido com DDD.',
+                      }))
+                    }
+                  }}
+                  error={errosContato.phone}
+                  required
+                />
+              )}
               {modoDados === 'cadastro' && (
                 <Field
                   name="email"
