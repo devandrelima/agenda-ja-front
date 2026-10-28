@@ -18,6 +18,8 @@ import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
 import { cadastrarCliente } from '../../data/auth'
+import { registrarAgendamento } from '../../data/agendamentos'
+import type { AgendamentoRegistrado } from '../../data/agendamentos'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -323,6 +325,10 @@ export function Agendamento({
   const [resolvendoProfissional, definirResolvendoProfissional] = useState(false)
   const [erroProfissional, definirErroProfissional] = useState('')
   const solicitacaoProfissional = useRef(0)
+  const [confirmando, definirConfirmando] = useState(false)
+  const [erroConfirmacao, definirErroConfirmacao] = useState('')
+  const [agendamentoConfirmado, definirAgendamentoConfirmado] =
+    useState<AgendamentoRegistrado | null>(null)
   useEffect(
     () => () => {
       solicitacaoProfissional.current++
@@ -539,6 +545,36 @@ export function Agendamento({
     }
   }
 
+  async function confirmarAgendamento() {
+    if (
+      !estabelecimentoId ||
+      !servicoSelecionado ||
+      !escolhas.idProfissional ||
+      !escolhas.data ||
+      !escolhas.horario
+    )
+      return
+    definirConfirmando(true)
+    definirErroConfirmacao('')
+    try {
+      const registrado = await registrarAgendamento(estabelecimentoId, {
+        servicoId: servicoSelecionado.id,
+        profissionalId: escolhas.idProfissional,
+        data: escolhas.data,
+        horario: escolhas.horario,
+      })
+      definirAgendamentoConfirmado(registrado)
+    } catch (falha) {
+      definirErroConfirmacao(
+        falha instanceof Error
+          ? falha.message
+          : 'Não foi possível confirmar o agendamento. Tente novamente.',
+      )
+    } finally {
+      definirConfirmando(false)
+    }
+  }
+
   function navegarPelasEtapas(destino: number) {
     if (destino > maxStep || destino === etapa) return
     if (publico && destino === 1) {
@@ -651,7 +687,9 @@ export function Agendamento({
         <div className="booking-main">
           <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
           <h1>Fazer agendamento</h1>
-          <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
+          {!agendamentoConfirmado && (
+            <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
+          )}
           <Card className="confirmation">
             <div className="confirmation-header">
               <span className="confirmation-icon" aria-hidden="true">
@@ -664,13 +702,27 @@ export function Agendamento({
               </span>
               <div>
                 <p className="eyebrow">{publico ? 'Confirmação' : 'Agendamento de demonstração'}</p>
-                <h2>{publico ? 'Revise seu agendamento' : 'Pedido preparado!'}</h2>
-                <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
+                <h2>
+                  {!publico
+                    ? 'Pedido preparado!'
+                    : agendamentoConfirmado
+                      ? 'Agendamento confirmado!'
+                      : 'Revise seu agendamento'}
+                </h2>
+                <p className="confirmation-intro">
+                  {agendamentoConfirmado
+                    ? 'Seu horário está reservado.'
+                    : 'Confira os detalhes do atendimento escolhido.'}
+                </p>
               </div>
             </div>
-            <p className="confirmation-status">
+            <p className="confirmation-status" role={agendamentoConfirmado ? 'status' : undefined}>
               <span aria-hidden="true">i</span>
-              Este horário ainda não foi reservado.
+              {!publico
+                ? 'Este horário ainda não foi reservado.'
+                : agendamentoConfirmado
+                  ? `Reserva nº ${agendamentoConfirmado.id} registrada.`
+                  : 'Seu horário só é reservado depois que você confirmar.'}
             </p>
             <dl className="summary confirmation-summary">
               <div>
@@ -694,10 +746,22 @@ export function Agendamento({
                 </dd>
               </div>
             </dl>
+            {erroConfirmacao && (
+              <p className="auth-error" role="alert">
+                {erroConfirmacao}
+              </p>
+            )}
             <div className="form-actions confirmation-actions">
-              <Button variant="ghost" onClick={() => irParaEtapa(4)}>
-                Voltar
-              </Button>
+              {!agendamentoConfirmado && (
+                <Button variant="ghost" disabled={confirmando} onClick={() => irParaEtapa(4)}>
+                  Voltar
+                </Button>
+              )}
+              {publico && !agendamentoConfirmado && (
+                <Button disabled={confirmando} onClick={() => void confirmarAgendamento()}>
+                  {confirmando ? 'Confirmando...' : 'Confirmar agendamento'}
+                </Button>
+              )}
               <Link className="button secondary" to={caminhos.meusAgendamentos}>
                 Área do cliente
               </Link>

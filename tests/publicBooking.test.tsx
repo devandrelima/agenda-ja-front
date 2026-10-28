@@ -38,6 +38,7 @@ const publicId = 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311'
 const caminhoEstabelecimento = `/api/estabelecimentos/publico/${publicId}`
 const caminhoServicos = '/api/estabelecimentos/4/servicos'
 const caminhoDisponibilidade = '/api/estabelecimentos/4/servicos/1/disponibilidade'
+const caminhoAgendamentos = '/api/estabelecimentos/4/agendamentos'
 const sessaoCliente = {
   id: 9,
   nome: 'Paula Reis',
@@ -53,6 +54,7 @@ function stubApi(
   rotas: {
     profissionais?: Rota[]
     disponibilidade?: (parametros: URLSearchParams) => Response
+    agendamento?: Rota
   } = {},
 ) {
   const profissionais = rotas.profissionais ?? [() => resposta([])]
@@ -69,6 +71,7 @@ function stubApi(
     if (rota === caminhoDisponibilidade && rotas.disponibilidade)
       return rotas.disponibilidade(new URLSearchParams(consulta))
     if (rota === '/api/auth/csrf') return resposta({ token: 'token-teste' })
+    if (rota === caminhoAgendamentos && rotas.agendamento) return rotas.agendamento()
     if (rota === '/api/clientes') return resposta({ id: 9 }, 201)
     throw new Error(`Rota inesperada: ${caminho}`)
   })
@@ -369,11 +372,68 @@ describe('agendamento de um estabelecimento real', () => {
     await user.clear(screen.getByLabelText('Criar senha'))
     await user.type(screen.getByLabelText('Criar senha'), 'SenhaTeste123')
     await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
-    expect(await screen.findByRole('heading', { name: 'Revise seu agendamento' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Revise seu agendamento' }),
+    ).toBeInTheDocument()
     const confirmacao = screen
       .getByRole('heading', { name: 'Revise seu agendamento' })
       .closest<HTMLElement>('.confirmation')!
     expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
     expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
+  })
+
+  async function chegarNaRevisao(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await preencherDadosDoCliente(user)
+    await screen.findByRole('heading', { name: 'Revise seu agendamento' })
+  }
+
+  const registrado = {
+    id: 31,
+    servicoId: 1,
+    profissionalId: 7,
+    dataHoraInicio: `${amanha}T09:00:00`,
+    dataHoraFim: `${amanha}T10:00:00`,
+    status: 'CONFIRMADO',
+    valor: 75,
+  }
+
+  it('só reserva ao confirmar e envia o horário local ao backend', async () => {
+    const requisicoes = stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+      agendamento: () => resposta(registrado, 201),
+    })
+    const user = await abrirProfissionais()
+    await chegarNaRevisao(user)
+    expect(requisicoes).not.toHaveBeenCalledWith(caminhoAgendamentos, expect.anything())
+    await user.click(screen.getByRole('button', { name: 'Confirmar agendamento' }))
+    expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeVisible()
+    expect(screen.getByText('Reserva nº 31 registrada.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Confirmar agendamento' })).not.toBeInTheDocument()
+    const chamada = requisicoes.mock.calls.find(([caminho]) => caminho === caminhoAgendamentos)!
+    const opcoes = (chamada as unknown[])[1] as RequestInit
+    expect(opcoes.method).toBe('POST')
+    expect(opcoes.headers).toMatchObject({ 'X-CSRF-TOKEN': 'token-teste' })
+    expect(JSON.parse(String(opcoes.body))).toEqual({
+      servicoId: 1,
+      profissionalId: 7,
+      dataHoraInicio: `${amanha}T09:00:00`,
+    })
+  })
+
+  it('mostra outros erros na revisão e permite tentar de novo', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+      agendamento: () => resposta({ mensagem: 'Serviço não encontrado.' }, 404),
+    })
+    const user = await abrirProfissionais()
+    await chegarNaRevisao(user)
+    await user.click(screen.getByRole('button', { name: 'Confirmar agendamento' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Serviço não encontrado.')
+    expect(screen.getByRole('button', { name: 'Confirmar agendamento' })).toBeEnabled()
   })
 })
