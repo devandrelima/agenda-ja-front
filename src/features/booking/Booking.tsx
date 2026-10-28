@@ -663,8 +663,8 @@ export function Agendamento({
                 </svg>
               </span>
               <div>
-                <p className="eyebrow">Agendamento de demonstração</p>
-                <h2>Pedido preparado!</h2>
+                <p className="eyebrow">{publico ? 'Confirmação' : 'Agendamento de demonstração'}</p>
+                <h2>{publico ? 'Revise seu agendamento' : 'Pedido preparado!'}</h2>
                 <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
               </div>
             </div>

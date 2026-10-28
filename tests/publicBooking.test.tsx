@@ -298,9 +298,9 @@ describe('agendamento de um estabelecimento real', () => {
       'Qualquer Profissional (Lucas Mendes)',
     )
     await preencherDadosDoCliente(user)
-    expect(screen.getByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Revise seu agendamento' })).toBeInTheDocument()
     const confirmacao = screen
-      .getByRole('heading', { name: 'Pedido preparado!' })
+      .getByRole('heading', { name: 'Revise seu agendamento' })
       .closest<HTMLElement>('.confirmation')!
     expect(
       within(confirmacao).getByText('Qualquer Profissional (Lucas Mendes)'),
@@ -335,7 +335,7 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: '09:00' }))
     await preencherDadosDoCliente(user)
     const confirmacao = screen
-      .getByRole('heading', { name: 'Pedido preparado!' })
+      .getByRole('heading', { name: 'Revise seu agendamento' })
       .closest<HTMLElement>('.confirmation')!
     expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
     expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
@@ -347,7 +347,7 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(screen.getByRole('button', { name: 'Ir para Data e horário' }))
     expect(screen.getByRole('heading', { name: 'Data e horário' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ir para Confirmação' }))
-    expect(screen.getByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Revise seu agendamento' })).toBeInTheDocument()
   })
 
   it('valida o cadastro sem perder a seleção do agendamento', async () => {
@@ -369,9 +369,9 @@ describe('agendamento de um estabelecimento real', () => {
     await user.clear(screen.getByLabelText('Criar senha'))
     await user.type(screen.getByLabelText('Criar senha'), 'SenhaTeste123')
     await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
-    expect(await screen.findByRole('heading', { name: 'Pedido preparado!' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Revise seu agendamento' })).toBeInTheDocument()
     const confirmacao = screen
-      .getByRole('heading', { name: 'Pedido preparado!' })
+      .getByRole('heading', { name: 'Revise seu agendamento' })
       .closest<HTMLElement>('.confirmation')!
     expect(within(confirmacao).getByText('Lucas Mendes')).toBeInTheDocument()
     expect(within(confirmacao).getByText(/09:00/)).toBeInTheDocument()
