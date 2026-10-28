@@ -424,6 +424,54 @@ describe('agendamento de um estabelecimento real', () => {
     })
   })
 
+  it('ignora o clique duplicado enquanto a reserva está em andamento', async () => {
+    let responder: (valor: Response) => void = () => {}
+    const requisicoes = stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+      agendamento: () => new Promise<Response>((resolver) => (responder = resolver)),
+    })
+    const user = await abrirProfissionais()
+    await chegarNaRevisao(user)
+    const botao = screen.getByRole('button', { name: 'Confirmar agendamento' })
+    await user.dblClick(botao)
+    expect(await screen.findByRole('button', { name: 'Confirmando...' })).toBeDisabled()
+    responder(resposta(registrado, 201))
+    await screen.findByRole('heading', { name: 'Agendamento confirmado!' })
+    expect(requisicoes.mock.calls.filter(([c]) => c === caminhoAgendamentos)).toHaveLength(1)
+  })
+
+  it('volta à escolha de horário quando o horário foi reservado por outra pessoa', async () => {
+    let consultas = 0
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(++consultas <= 6 ? ['09:00', '10:00'] : ['10:00']),
+      agendamento: () => resposta({ mensagem: 'Indisponível.' }, 409),
+    })
+    const user = await abrirProfissionais()
+    await chegarNaRevisao(user)
+    await user.click(screen.getByRole('button', { name: 'Confirmar agendamento' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Esse horário acabou de ser reservado. Escolha outro horário.',
+    )
+    expect(screen.getByRole('heading', { name: 'Data e horário' })).toBeInTheDocument()
+    await screen.findByRole('button', { name: '10:00' })
+    expect(screen.queryByRole('button', { name: '09:00' })).not.toBeInTheDocument()
+  })
+
+  it('pede novo login quando a sessão expirou na hora de confirmar', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+      agendamento: () => resposta({}, 401),
+    })
+    const user = await abrirProfissionais()
+    await chegarNaRevisao(user)
+    await user.click(screen.getByRole('button', { name: 'Confirmar agendamento' }))
+    expect(await screen.findByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Sua sessão expirou')
+  })
+
   it('mostra outros erros na revisão e permite tentar de novo', async () => {
     stubApi({
       profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],

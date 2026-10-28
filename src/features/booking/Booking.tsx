@@ -17,7 +17,7 @@ import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../.
 import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
-import { cadastrarCliente } from '../../data/auth'
+import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
 import type { AgendamentoRegistrado } from '../../data/agendamentos'
 import { useAutenticacao } from '../../app/useAutenticacao'
@@ -329,6 +329,8 @@ export function Agendamento({
   const [erroConfirmacao, definirErroConfirmacao] = useState('')
   const [agendamentoConfirmado, definirAgendamentoConfirmado] =
     useState<AgendamentoRegistrado | null>(null)
+  // O estado só muda na próxima renderização; a ref barra um segundo clique no mesmo instante.
+  const confirmacaoEmAndamento = useRef(false)
   useEffect(
     () => () => {
       solicitacaoProfissional.current++
@@ -551,9 +553,11 @@ export function Agendamento({
       !servicoSelecionado ||
       !escolhas.idProfissional ||
       !escolhas.data ||
-      !escolhas.horario
+      !escolhas.horario ||
+      confirmacaoEmAndamento.current
     )
       return
+    confirmacaoEmAndamento.current = true
     definirConfirmando(true)
     definirErroConfirmacao('')
     try {
@@ -565,12 +569,30 @@ export function Agendamento({
       })
       definirAgendamentoConfirmado(registrado)
     } catch (falha) {
-      definirErroConfirmacao(
-        falha instanceof Error
-          ? falha.message
-          : 'Não foi possível confirmar o agendamento. Tente novamente.',
-      )
+      const status = falha instanceof ErroApi ? falha.status : 0
+      if (status === 409) {
+        // Outro cliente levou o horário: volta à escolha com os horários atualizados.
+        definirEscolhas((atual) => ({
+          ...atual,
+          horario: undefined,
+          idProfissional: atual.qualquerProfissional ? undefined : atual.idProfissional,
+        }))
+        horariosRemotos.tentarNovamente()
+        irParaEtapa(3)
+        definirErroProfissional('Esse horário acabou de ser reservado. Escolha outro horário.')
+      } else if (status === 401) {
+        definirModoDados('entrar')
+        irParaEtapa(4)
+        definirErroCadastro('Sua sessão expirou. Entre novamente para confirmar o agendamento.')
+      } else {
+        definirErroConfirmacao(
+          falha instanceof Error
+            ? falha.message
+            : 'Não foi possível confirmar o agendamento. Tente novamente.',
+        )
+      }
     } finally {
+      confirmacaoEmAndamento.current = false
       definirConfirmando(false)
     }
   }
