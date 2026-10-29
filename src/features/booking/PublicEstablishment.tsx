@@ -101,21 +101,26 @@ export function PaginaEstabelecimentoPublico() {
       }}
       rotaBase={`/estabelecimento/${publicId}`}
       identificadorPublico={publicId}
+      estabelecimentoId={estabelecimento.id}
     />
   )
 }
 
 export function PaginaAvaliacoesPublicas() {
   const { estabelecimentoId: publicId } = useParams()
-  const [resultado, definirResultado] = useState<{ publicId: string; erro?: string } | null>(null)
+  const [resultado, definirResultado] = useState<{
+    publicId: string
+    estabelecimentoId?: number
+    erro?: string
+  } | null>(null)
 
   useEffect(() => {
     if (!publicId || !identificadorPublicoValido(publicId)) return
 
     let ativo = true
     buscarEstabelecimentoPublico(publicId)
-      .then(() => {
-        if (ativo) definirResultado({ publicId })
+      .then((estabelecimento) => {
+        if (ativo) definirResultado({ publicId, estabelecimentoId: estabelecimento.id })
       })
       .catch((falha: unknown) => {
         if (ativo)
@@ -145,7 +150,11 @@ export function PaginaAvaliacoesPublicas() {
   if (resultado.erro) return <ErroLinkPublico mensagem={resultado.erro} />
 
   return (
-    <PaginaAvaliacoes identificadorPublico={publicId} rotaBase={`/estabelecimento/${publicId}`} />
+    <PaginaAvaliacoes
+      identificadorPublico={publicId}
+      rotaBase={`/estabelecimento/${publicId}`}
+      estabelecimentoId={resultado.estabelecimentoId}
+    />
   )
 }
 

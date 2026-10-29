@@ -9,6 +9,12 @@ import {
   resumoAvaliacoes,
   useAvaliacoesDemo,
 } from '../../data/demoReviews'
+import {
+  editarAvaliacaoApi,
+  excluirAvaliacaoApi,
+  listarAvaliacoes,
+  publicarAvaliacaoApi,
+} from '../../data/reviews'
 import type { Avaliacao } from '../../domain/models'
 import { MarcaAgendaJa } from '../booking/Booking'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
@@ -86,11 +92,15 @@ function ordenar(avaliacoes: Avaliacao[], ordem: Ordem) {
 export function PaginaAvaliacoes({
   identificadorPublico,
   rotaBase = caminhos.estabelecimento,
+  estabelecimentoId,
 }: {
   identificadorPublico?: string
   rotaBase?: string
+  estabelecimentoId?: number
 }) {
-  const avaliacoes = useAvaliacoesDemo(identificadorPublico)
+  const avaliacoesDemo = useAvaliacoesDemo(identificadorPublico)
+  const [avaliacoesRemotas, definirAvaliacoesRemotas] = useState<Avaliacao[] | null>(null)
+  const [erroCarregamento, definirErroCarregamento] = useState(false)
   const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const { sessao, carregando, encerrar } = useAutenticacao()
   const [ordem, definirOrdem] = useState<Ordem>('mais-estrelas')
@@ -109,6 +119,39 @@ export function PaginaAvaliacoes({
   const [saindo, definirSaindo] = useState(false)
   const [erroSaida, definirErroSaida] = useState('')
   const deslocamento = useDeslocamentoDoTeclado()
+  const usarApi = estabelecimentoId != null
+  const avaliacoes = useMemo(
+    () => (usarApi ? (avaliacoesRemotas ?? []) : avaliacoesDemo),
+    [avaliacoesDemo, avaliacoesRemotas, usarApi],
+  )
+
+  async function recarregarAvaliacoes() {
+    if (estabelecimentoId == null) return
+    try {
+      const dados = await listarAvaliacoes(estabelecimentoId)
+      definirAvaliacoesRemotas(dados)
+      definirErroCarregamento(false)
+    } catch {
+      definirErroCarregamento(true)
+    }
+  }
+
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    let ativo = true
+    listarAvaliacoes(estabelecimentoId)
+      .then((dados) => {
+        if (!ativo) return
+        definirAvaliacoesRemotas(dados)
+        definirErroCarregamento(false)
+      })
+      .catch(() => {
+        if (ativo) definirErroCarregamento(true)
+      })
+    return () => {
+      ativo = false
+    }
+  }, [estabelecimentoId])
   const { quantidade, media } = resumoAvaliacoes(avaliacoes)
   const minhaAvaliacao = sessao
     ? avaliacoes.find((avaliacao) => avaliacao.autorId === sessao.id)
@@ -137,11 +180,16 @@ export function PaginaAvaliacoes({
     definirEnviando(true)
     definirAviso(null)
     try {
-      await publicarAvaliacao(sessao, comentario, estrelas, identificadorPublico)
+      if (estabelecimentoId != null) {
+        await publicarAvaliacaoApi(estabelecimentoId, comentario, estrelas)
+        await recarregarAvaliacoes()
+      } else {
+        await publicarAvaliacao(sessao, comentario, estrelas, identificadorPublico)
+      }
       definirComentario('')
       definirEstrelas(0)
       definirPagina(1)
-      definirAviso({ texto: 'Avaliação publicada nesta demonstração.', erro: false })
+      definirAviso({ texto: usarApi ? 'Avaliação publicada.' : 'Avaliação publicada nesta demonstração.', erro: false })
     } catch (falha) {
       definirAviso({
         texto:
@@ -161,10 +209,15 @@ export function PaginaAvaliacoes({
     definirOperacao(id)
     definirAviso(null)
     try {
-      await editarAvaliacao(id, sessao.id, textoEdicao, estrelasEdicao, identificadorPublico)
+      if (estabelecimentoId != null) {
+        await editarAvaliacaoApi(estabelecimentoId, textoEdicao, estrelasEdicao)
+        await recarregarAvaliacoes()
+      } else {
+        await editarAvaliacao(id, sessao.id, textoEdicao, estrelasEdicao, identificadorPublico)
+      }
       definirEditando(null)
       definirPagina(1)
-      definirAviso({ texto: 'Comentário atualizado nesta demonstração.', erro: false })
+      definirAviso({ texto: usarApi ? 'Comentário atualizado.' : 'Comentário atualizado nesta demonstração.', erro: false })
     } catch {
       definirAviso({ texto: 'Não foi possível salvar as alterações.', erro: true })
     } finally {
@@ -177,7 +230,12 @@ export function PaginaAvaliacoes({
     definirOperacao(id)
     definirAviso(null)
     try {
-      await excluirAvaliacao(id, sessao.id, identificadorPublico)
+      if (estabelecimentoId != null) {
+        await excluirAvaliacaoApi(estabelecimentoId)
+        await recarregarAvaliacoes()
+      } else {
+        await excluirAvaliacao(id, sessao.id, identificadorPublico)
+      }
       definirConfirmandoExclusao(null)
       definirPagina(1)
       definirAviso({ texto: 'Comentário excluído desta demonstração.', erro: false })
@@ -238,6 +296,12 @@ export function PaginaAvaliacoes({
           <p className="reviews-feedback" role={aviso.erro ? 'alert' : 'status'}>
             {aviso.texto}
           </p>
+        )}
+        {usarApi && avaliacoesRemotas == null && !erroCarregamento && (
+          <p className="reviews-feedback" role="status">Carregando comentários...</p>
+        )}
+        {erroCarregamento && (
+          <p className="reviews-feedback" role="alert">Não foi possível carregar os comentários.</p>
         )}
 
         <section className="reviews-content" aria-label="Avaliações dos clientes">
@@ -470,7 +534,7 @@ export function PaginaAvaliacoes({
               {enviando ? 'Enviando...' : 'Enviar'}
             </button>
           </div>
-          <small>Prévia local: avaliações salvas neste navegador.</small>
+          {!usarApi && <small>Prévia local: avaliações salvas neste navegador.</small>}
         </form>
       )}
       {confirmandoSaida && (

@@ -4,7 +4,7 @@ import { formatarTelefone } from '../domain/contact'
 import './ui.css'
 export function Logo() {
   return (
-    <a className="logo" href="/">
+    <div className="logo" aria-label="AgendaJá">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="3" y="5" width="18" height="16" rx="3" />
         <path d="M7 3v4M17 3v4M3 10h18M8 15h4" />
@@ -12,7 +12,7 @@ export function Logo() {
       <span>
         Agenda<strong>Já</strong>
       </span>
-    </a>
+    </div>
   )
 }
 export function Button({

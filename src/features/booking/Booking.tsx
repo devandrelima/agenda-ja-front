@@ -24,6 +24,7 @@ import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
+import { buscarResumoAvaliacoes, type ResumoAvaliacoesApi } from '../../data/reviews'
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
 import { useDadosNegocioDemo } from '../../data/businessProfile'
@@ -57,12 +58,29 @@ export function PaginaEstabelecimento({
   dados,
   rotaBase = caminhos.estabelecimento,
   identificadorPublico,
+  estabelecimentoId,
 }: {
   dados?: DadosPaginaEstabelecimento
   rotaBase?: string
   identificadorPublico?: string
+  estabelecimentoId?: number
 }) {
   const avaliacoesLocais = useAvaliacoesDemo(identificadorPublico)
+  const [resumoRemoto, definirResumoRemoto] = useState<ResumoAvaliacoesApi | null>(null)
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    let ativo = true
+    buscarResumoAvaliacoes(estabelecimentoId)
+      .then((resumo) => {
+        if (ativo) definirResumoRemoto(resumo)
+      })
+      .catch(() => {
+        if (ativo) definirResumoRemoto(null)
+      })
+    return () => {
+      ativo = false
+    }
+  }, [estabelecimentoId])
   const capaDemo = useCapaNegocio()
   const dadosNegocioDemo = useDadosNegocioDemo()
   const estabelecimento = dados ?? {
@@ -76,7 +94,8 @@ export function PaginaEstabelecimento({
       : {}),
   }
   const avaliacoes = dados?.avaliacoes ?? avaliacoesLocais
-  const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoAvaliacoes(avaliacoes)
+  const resumoLocal = resumoAvaliacoes(avaliacoes)
+  const { quantidade: quantidadeAvaliacoes, media: avaliacaoMedia } = resumoRemoto ?? resumoLocal
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
   const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const imagemUrl = dados ? dados.imagemUrl : capaDemo
