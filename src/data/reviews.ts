@@ -48,9 +48,24 @@ export async function listarAvaliacoes(estabelecimentoId: number): Promise<Avali
   return (await resposta.json() as AvaliacaoApi[]).map(paraAvaliacao)
 }
 
+// Formato do backend (`AvaliacaoResumoDTO`); aceita também `quantidade`/`media`, o formato antigo.
+type ResumoAvaliacoesResposta = {
+  estabelecimentoId?: number
+  totalAvaliacoes?: number
+  mediaNotas?: number | string
+  quantidade?: number
+  media?: number | string
+}
+
+const numeroOuZero = (valor: unknown) => (Number.isFinite(Number(valor)) ? Number(valor) : 0)
+
 export async function buscarResumoAvaliacoes(estabelecimentoId: number): Promise<ResumoAvaliacoesApi> {
   const resposta = await requisitar(`${caminho(estabelecimentoId)}/resumo`)
-  return resposta.json()
+  const resumo: ResumoAvaliacoesResposta = await resposta.json()
+  return {
+    quantidade: numeroOuZero(resumo.totalAvaliacoes ?? resumo.quantidade),
+    media: numeroOuZero(resumo.mediaNotas ?? resumo.media),
+  }
 }
 
 export function publicarAvaliacaoApi(estabelecimentoId: number, comentario: string, estrelas: number) {
