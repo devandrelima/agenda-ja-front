@@ -706,10 +706,16 @@ export function Agendamento({
           <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
           <h1>Fazer agendamento</h1>
           <ConfirmacaoDoAgendamento
-            agendamento={agendamentoConfirmado}
-            nomeEstabelecimento={publico.nomeEstabelecimento}
-            nomeServico={servicoSelecionado.nome}
-            nomeProfissional={nomeProfissional}
+            detalhes={{
+              id: agendamentoConfirmado.id,
+              estabelecimentoNome: publico.nomeEstabelecimento,
+              servicoNome: servicoSelecionado.nome,
+              profissionalNome: nomeProfissional,
+              dataHoraInicio: agendamentoConfirmado.dataHoraInicio,
+              dataHoraFim: agendamentoConfirmado.dataHoraFim,
+              status: agendamentoConfirmado.status,
+              valor: agendamentoConfirmado.valor,
+            }}
             nomeCliente={escolhas.cliente.nome}
             caminhoDoEstabelecimento={publico.rotaBase}
           />

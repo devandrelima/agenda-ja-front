@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
-import type { AgendamentoRegistrado } from '../../data/agendamentos'
+import type { DetalhesAgendamento } from '../../data/agendamentos'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { Badge, Card } from '../../design-system/ui'
 
@@ -11,22 +11,17 @@ const formatarHora = (data: Date) =>
 
 /** Tela exibida depois que o backend registrou a reserva: resumo, valor e atalho para a lista. */
 export function ConfirmacaoDoAgendamento({
-  agendamento,
-  nomeEstabelecimento,
-  nomeServico,
-  nomeProfissional,
+  detalhes,
   nomeCliente,
   caminhoDoEstabelecimento,
 }: {
-  agendamento: AgendamentoRegistrado
-  nomeEstabelecimento: string
-  nomeServico: string
-  nomeProfissional: string
-  nomeCliente: string
+  detalhes: DetalhesAgendamento
+  nomeCliente?: string
   caminhoDoEstabelecimento: string
 }) {
-  const inicio = new Date(agendamento.dataHoraInicio)
-  const fim = new Date(agendamento.dataHoraFim)
+  const confirmado = detalhes.status === 'CONFIRMADO'
+  const inicio = new Date(detalhes.dataHoraInicio)
+  const fim = new Date(detalhes.dataHoraFim)
   return (
     <Card className="confirmation confirmation-success">
       <div className="confirmation-header">
@@ -38,22 +33,26 @@ export function ConfirmacaoDoAgendamento({
         </span>
         <div>
           <p className="eyebrow">Confirmação</p>
-          <h2>Agendamento confirmado!</h2>
-          <p className="confirmation-intro">Seu horário está reservado em {nomeEstabelecimento}.</p>
+          <h2>{confirmado ? 'Agendamento confirmado!' : 'Detalhes do agendamento'}</h2>
+          <p className="confirmation-intro">
+            {confirmado
+              ? `Seu horário está reservado em ${detalhes.estabelecimentoNome}.`
+              : `Reserva em ${detalhes.estabelecimentoNome}.`}
+          </p>
         </div>
       </div>
       <p className="confirmation-status" role="status">
         <span aria-hidden="true">i</span>
-        Reserva nº {agendamento.id} registrada.
+        Reserva nº {detalhes.id} registrada.
       </p>
       <dl className="summary confirmation-summary" aria-label="Detalhes da reserva">
         <div>
           <dt>Serviço</dt>
-          <dd>{nomeServico}</dd>
+          <dd>{detalhes.servicoNome}</dd>
         </div>
         <div>
           <dt>Profissional</dt>
-          <dd>{nomeProfissional}</dd>
+          <dd>{detalhes.profissionalNome}</dd>
         </div>
         <div>
           <dt>Data</dt>
@@ -65,19 +64,21 @@ export function ConfirmacaoDoAgendamento({
             {formatarHora(inicio)} às {formatarHora(fim)}
           </dd>
         </div>
-        <div>
-          <dt>Cliente</dt>
-          <dd>{nomeCliente}</dd>
-        </div>
+        {nomeCliente && (
+          <div>
+            <dt>Cliente</dt>
+            <dd>{nomeCliente}</dd>
+          </div>
+        )}
         <div>
           <dt>Status</dt>
           <dd>
-            <Badge status={rotuloDoStatus(agendamento.status)} />
+            <Badge status={rotuloDoStatus(detalhes.status)} />
           </dd>
         </div>
         <div className="confirmation-total">
           <dt>Valor</dt>
-          <dd>{formatarMoeda(agendamento.valor)}</dd>
+          <dd>{formatarMoeda(detalhes.valor)}</dd>
         </div>
       </dl>
       <div className="form-actions confirmation-actions">

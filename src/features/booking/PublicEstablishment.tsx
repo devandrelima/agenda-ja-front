@@ -8,6 +8,7 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import { ErroApi } from '../../data/api'
+import { buscarAgendamento, type DetalhesAgendamento } from '../../data/agendamentos'
 import {
   buscarEstabelecimentoPublico,
   identificadorPublicoValido,
@@ -22,6 +23,7 @@ import { nomesDias, resumirHorario } from '../../data/businessHours'
 import { caminhos } from '../../app/paths'
 import { Card, Steps } from '../../design-system/ui'
 import { Agendamento, MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
+import { ConfirmacaoDoAgendamento } from './BookingConfirmation'
 import { PaginaAvaliacoes } from '../reviews/Reviews'
 
 const formatarMoeda = (valor: number) =>
@@ -102,6 +104,75 @@ export function PaginaEstabelecimentoPublico() {
       rotaBase={`/estabelecimento/${publicId}`}
       identificadorPublico={publicId}
     />
+  )
+}
+
+function mensagemDaConfirmacao(falha: unknown) {
+  if (falha instanceof ErroApi) {
+    if (falha.status === 403) return 'Você não tem permissão para ver este agendamento.'
+    if (falha.status === 404) return 'Agendamento não encontrado.'
+  }
+  return 'Não foi possível carregar o agendamento. Entre na sua conta e tente novamente.'
+}
+
+/** Confirmação de uma reserva carregada pelo backend, para reabrir ou compartilhar o link. */
+export function PaginaConfirmacaoPublica() {
+  const { estabelecimentoId: publicId, agendamentoId } = useParams()
+  const localizacao = useLocation()
+  const valido = Boolean(
+    publicId &&
+    identificadorPublicoValido(publicId) &&
+    agendamentoId &&
+    /^\d+$/.test(agendamentoId),
+  )
+  const chave = `${publicId}/${agendamentoId}`
+  const [resultado, definirResultado] = useState<{
+    chave: string
+    detalhes?: DetalhesAgendamento
+    erro?: string
+  } | null>(null)
+
+  useEffect(() => {
+    if (!valido) return
+    let ativo = true
+    buscarEstabelecimentoPublico(publicId!)
+      .then((estabelecimento) => buscarAgendamento(estabelecimento.id, agendamentoId!))
+      .then((detalhes) => {
+        if (ativo) definirResultado({ chave, detalhes })
+      })
+      .catch((falha: unknown) => {
+        if (ativo) definirResultado({ chave, erro: mensagemDaConfirmacao(falha) })
+      })
+    return () => {
+      ativo = false
+    }
+  }, [chave, valido, publicId, agendamentoId])
+
+  if (!valido) return <ErroLinkPublico mensagem="Agendamento não encontrado." />
+  if (resultado?.chave !== chave)
+    return (
+      <main className="public-state" role="status">
+        Carregando agendamento...
+      </main>
+    )
+  if (resultado.erro || !resultado.detalhes)
+    return <ErroLinkPublico mensagem={resultado.erro || 'Agendamento não encontrado.'} />
+
+  const rotaBase = `/estabelecimento/${publicId}`
+  const nomeCliente =
+    typeof localizacao.state?.nomeCliente === 'string' ? localizacao.state.nomeCliente : undefined
+  return (
+    <main className="booking container">
+      <div className="booking-main">
+        <Link to={rotaBase}>← {resultado.detalhes.estabelecimentoNome}</Link>
+        <h1>Seu agendamento</h1>
+        <ConfirmacaoDoAgendamento
+          detalhes={resultado.detalhes}
+          nomeCliente={nomeCliente}
+          caminhoDoEstabelecimento={rotaBase}
+        />
+      </div>
+    </main>
   )
 }
 

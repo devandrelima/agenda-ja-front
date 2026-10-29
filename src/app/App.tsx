@@ -17,6 +17,7 @@ import {
   PaginaEstabelecimentoPublico,
   ProximaEtapaPublica,
   AgendamentoPublico,
+  PaginaConfirmacaoPublica,
 } from '../features/booking/PublicEstablishment'
 import {
   Agenda,
@@ -344,6 +345,10 @@ export function App() {
           <Route
             path="/estabelecimento/:estabelecimentoId/agendar/profissional"
             element={<AgendamentoPublico />}
+          />
+          <Route
+            path="/estabelecimento/:estabelecimentoId/agendamentos/:agendamentoId"
+            element={<PaginaConfirmacaoPublica />}
           />
           <Route path={caminhos.disponibilidade} element={<Disponibilidade />} />
           <Route path={caminhos.agendamento} element={<Agendamento />} />
