@@ -17,6 +17,7 @@ import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../.
 import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
+import { ConfirmacaoDoAgendamento } from './BookingConfirmation'
 import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
 import type { AgendamentoRegistrado } from '../../data/agendamentos'
@@ -698,6 +699,23 @@ export function Agendamento({
       definirCadastrando(false)
     }
   }
+  if (agendamentoConfirmado && publico && servicoSelecionado && escolhas.cliente)
+    return (
+      <main className="booking container">
+        <div className="booking-main">
+          <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
+          <h1>Fazer agendamento</h1>
+          <ConfirmacaoDoAgendamento
+            agendamento={agendamentoConfirmado}
+            nomeEstabelecimento={publico.nomeEstabelecimento}
+            nomeServico={servicoSelecionado.nome}
+            nomeProfissional={nomeProfissional}
+            nomeCliente={escolhas.cliente.nome}
+            caminhoDoEstabelecimento={publico.rotaBase}
+          />
+        </div>
+      </main>
+    )
   if (
     etapa === 5 &&
     servicoSelecionado &&
@@ -709,9 +727,7 @@ export function Agendamento({
         <div className="booking-main">
           <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
           <h1>Fazer agendamento</h1>
-          {!agendamentoConfirmado && (
-            <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
-          )}
+          <Steps step={etapa} maxStep={maxStep} onStepClick={navegarPelasEtapas} />
           <Card className="confirmation">
             <div className="confirmation-header">
               <span className="confirmation-icon" aria-hidden="true">
@@ -724,27 +740,15 @@ export function Agendamento({
               </span>
               <div>
                 <p className="eyebrow">{publico ? 'Confirmação' : 'Agendamento de demonstração'}</p>
-                <h2>
-                  {!publico
-                    ? 'Pedido preparado!'
-                    : agendamentoConfirmado
-                      ? 'Agendamento confirmado!'
-                      : 'Revise seu agendamento'}
-                </h2>
-                <p className="confirmation-intro">
-                  {agendamentoConfirmado
-                    ? 'Seu horário está reservado.'
-                    : 'Confira os detalhes do atendimento escolhido.'}
-                </p>
+                <h2>{publico ? 'Revise seu agendamento' : 'Pedido preparado!'}</h2>
+                <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
               </div>
             </div>
-            <p className="confirmation-status" role={agendamentoConfirmado ? 'status' : undefined}>
+            <p className="confirmation-status">
               <span aria-hidden="true">i</span>
-              {!publico
-                ? 'Este horário ainda não foi reservado.'
-                : agendamentoConfirmado
-                  ? `Reserva nº ${agendamentoConfirmado.id} registrada.`
-                  : 'Seu horário só é reservado depois que você confirmar.'}
+              {publico
+                ? 'Seu horário só é reservado depois que você confirmar.'
+                : 'Este horário ainda não foi reservado.'}
             </p>
             <dl className="summary confirmation-summary">
               <div>
@@ -774,19 +778,18 @@ export function Agendamento({
               </p>
             )}
             <div className="form-actions confirmation-actions">
-              {!agendamentoConfirmado && (
-                <Button variant="ghost" disabled={confirmando} onClick={() => irParaEtapa(4)}>
-                  Voltar
-                </Button>
-              )}
-              {publico && !agendamentoConfirmado && (
+              <Button variant="ghost" disabled={confirmando} onClick={() => irParaEtapa(4)}>
+                Voltar
+              </Button>
+              {publico ? (
                 <Button disabled={confirmando} onClick={() => void confirmarAgendamento()}>
                   {confirmando ? 'Confirmando...' : 'Confirmar agendamento'}
                 </Button>
+              ) : (
+                <Link className="button secondary" to={caminhos.meusAgendamentos}>
+                  Área do cliente
+                </Link>
               )}
-              <Link className="button secondary" to={caminhos.meusAgendamentos}>
-                Área do cliente
-              </Link>
             </div>
           </Card>
         </div>
