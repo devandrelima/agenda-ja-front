@@ -419,6 +419,10 @@ describe('agendamento de um estabelecimento real', () => {
     expect(within(detalhes).getByText('Confirmado')).toBeVisible()
     expect(within(detalhes).getByText('Paula Reis')).toBeVisible()
     expect(within(detalhes).getByText('R$ 75,00')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Ver meus agendamentos' })).toHaveAttribute(
+      'href',
+      '/meus-agendamentos',
+    )
     expect(screen.queryByRole('button', { name: 'Confirmar agendamento' })).not.toBeInTheDocument()
     const chamada = requisicoes.mock.calls.find(([caminho]) => caminho === caminhoAgendamentos)!
     const opcoes = (chamada as unknown[])[1] as RequestInit

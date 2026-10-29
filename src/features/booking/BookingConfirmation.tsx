@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { caminhos } from '../../app/paths'
 import type { AgendamentoRegistrado } from '../../data/agendamentos'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { Badge, Card } from '../../design-system/ui'
@@ -82,6 +83,9 @@ export function ConfirmacaoDoAgendamento({
       <div className="form-actions confirmation-actions">
         <Link className="button secondary" to={caminhoDoEstabelecimento}>
           Voltar ao estabelecimento
+        </Link>
+        <Link className="button primary" to={caminhos.meusAgendamentos}>
+          Ver meus agendamentos
         </Link>
       </div>
     </Card>

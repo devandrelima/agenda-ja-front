@@ -4,13 +4,14 @@ import { useLocation } from 'react-router-dom'
 import { buscarSessao, entrar, ErroApi, sair } from '../data/auth'
 import type { Sessao } from '../data/auth'
 import { ContextoAutenticacao } from './authState'
-import { caminhoDeAvaliacoesValido } from './paths'
+import { caminhoDeAvaliacoesValido, caminhos } from './paths'
 
 export function ProvedorAutenticacao({ children }: PropsWithChildren) {
   const { pathname } = useLocation()
   const precisaSessao =
     pathname === '/login' ||
     pathname === '/cadastro' ||
+    pathname === caminhos.meusAgendamentos ||
     pathname.startsWith('/painel') ||
     caminhoDeAvaliacoesValido(pathname)
   const [sessao, definirSessao] = useState<Sessao | null>(null)
