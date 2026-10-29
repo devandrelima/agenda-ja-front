@@ -416,7 +416,9 @@ describe('agendamento de um estabelecimento real', () => {
     expect(within(detalhes).getByText('Corte feminino')).toBeVisible()
     expect(within(detalhes).getByText('Lucas Mendes')).toBeVisible()
     expect(within(detalhes).getByText('09:00 às 10:00')).toBeVisible()
+    expect(within(detalhes).getByText('Confirmado')).toBeVisible()
     expect(within(detalhes).getByText('Paula Reis')).toBeVisible()
+    expect(within(detalhes).getByText('R$ 75,00')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Confirmar agendamento' })).not.toBeInTheDocument()
     const chamada = requisicoes.mock.calls.find(([caminho]) => caminho === caminhoAgendamentos)!
     const opcoes = (chamada as unknown[])[1] as RequestInit

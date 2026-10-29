@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import type { AgendamentoRegistrado } from '../../data/agendamentos'
-import { Card } from '../../design-system/ui'
+import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { Badge, Card } from '../../design-system/ui'
 
+const formatarMoeda = (valor: number) =>
+  valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const formatarHora = (data: Date) =>
   data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
@@ -64,6 +67,16 @@ export function ConfirmacaoDoAgendamento({
         <div>
           <dt>Cliente</dt>
           <dd>{nomeCliente}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <Badge status={rotuloDoStatus(agendamento.status)} />
+          </dd>
+        </div>
+        <div className="confirmation-total">
+          <dt>Valor</dt>
+          <dd>{formatarMoeda(agendamento.valor)}</dd>
         </div>
       </dl>
       <div className="form-actions confirmation-actions">

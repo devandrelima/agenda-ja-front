@@ -1658,6 +1658,14 @@ a.rating-count:hover {
   flex: none;
   white-space: nowrap;
 }
+.confirmation-summary dd .badge {
+  white-space: nowrap;
+}
+.confirmation-total dt,
+.confirmation-total dd {
+  font-size: 1rem;
+  font-weight: 700;
+}
 .confirmation-actions {
   margin-top: 24px;
   padding-top: 20px;
