@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { adicionarDias, paraChaveData } from '../src/domain/availability'
 import { AgendamentoPublico } from '../src/features/booking/PublicEstablishment'
@@ -49,6 +49,16 @@ const sessaoCliente = {
 
 type Rota = () => Response | Promise<Response>
 
+function ConfirmacaoAberta() {
+  const { agendamentoId } = useParams()
+  const { state } = useLocation()
+  return (
+    <p>
+      Confirmação {agendamentoId} de {state?.nomeCliente}
+    </p>
+  )
+}
+
 /** Responde às consultas públicas da página e do assistente; `rotas` sobrescreve algumas. */
 function stubApi(
   rotas: {
@@ -96,6 +106,10 @@ function renderizarAgendamento() {
             element={<AgendamentoPublico />}
           />
           <Route path="/estabelecimento/:estabelecimentoId/agendar" element={<p>Serviços</p>} />
+          <Route
+            path="/estabelecimento/:estabelecimentoId/agendamentos/:agendamentoId"
+            element={<ConfirmacaoAberta />}
+          />
         </Routes>
       </ContextoAutenticacao.Provider>
     </MemoryRouter>,
@@ -410,20 +424,7 @@ describe('agendamento de um estabelecimento real', () => {
     await chegarNaRevisao(user)
     expect(requisicoes).not.toHaveBeenCalledWith(caminhoAgendamentos, expect.anything())
     await user.click(screen.getByRole('button', { name: 'Confirmar agendamento' }))
-    expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeVisible()
-    expect(screen.getByText('Reserva nº 31 registrada.')).toBeVisible()
-    const detalhes = screen.getByLabelText('Detalhes da reserva')
-    expect(within(detalhes).getByText('Corte feminino')).toBeVisible()
-    expect(within(detalhes).getByText('Lucas Mendes')).toBeVisible()
-    expect(within(detalhes).getByText('09:00 às 10:00')).toBeVisible()
-    expect(within(detalhes).getByText('Confirmado')).toBeVisible()
-    expect(within(detalhes).getByText('Paula Reis')).toBeVisible()
-    expect(within(detalhes).getByText('R$ 75,00')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Ver meus agendamentos' })).toHaveAttribute(
-      'href',
-      '/meus-agendamentos',
-    )
-    expect(screen.queryByRole('button', { name: 'Confirmar agendamento' })).not.toBeInTheDocument()
+    expect(await screen.findByText('Confirmação 31 de Paula Reis')).toBeVisible()
     const chamada = requisicoes.mock.calls.find(([caminho]) => caminho === caminhoAgendamentos)!
     const opcoes = (chamada as unknown[])[1] as RequestInit
     expect(opcoes.method).toBe('POST')
@@ -448,7 +449,7 @@ describe('agendamento de um estabelecimento real', () => {
     await user.dblClick(botao)
     expect(await screen.findByRole('button', { name: 'Confirmando...' })).toBeDisabled()
     responder(resposta(registrado, 201))
-    await screen.findByRole('heading', { name: 'Agendamento confirmado!' })
+    await screen.findByText('Confirmação 31 de Paula Reis')
     expect(requisicoes.mock.calls.filter(([c]) => c === caminhoAgendamentos)).toHaveLength(1)
   })
 

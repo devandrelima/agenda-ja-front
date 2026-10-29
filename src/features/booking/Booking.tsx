@@ -17,10 +17,8 @@ import type { Avaliacao, EscolhasAgendamento, Profissional, Servico } from '../.
 import { etapaDisponivel } from '../../domain/bookingProgress'
 import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
-import { ConfirmacaoDoAgendamento } from './BookingConfirmation'
 import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
-import type { AgendamentoRegistrado } from '../../data/agendamentos'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -328,8 +326,6 @@ export function Agendamento({
   const solicitacaoProfissional = useRef(0)
   const [confirmando, definirConfirmando] = useState(false)
   const [erroConfirmacao, definirErroConfirmacao] = useState('')
-  const [agendamentoConfirmado, definirAgendamentoConfirmado] =
-    useState<AgendamentoRegistrado | null>(null)
   // O estado só muda na próxima renderização; a ref barra um segundo clique no mesmo instante.
   const confirmacaoEmAndamento = useRef(false)
   useEffect(
@@ -568,7 +564,10 @@ export function Agendamento({
         data: escolhas.data,
         horario: escolhas.horario,
       })
-      definirAgendamentoConfirmado(registrado)
+      navegar(`${publico!.rotaBase}/agendamentos/${registrado.id}`, {
+        replace: true,
+        state: { nomeCliente: escolhas.cliente?.nome },
+      })
     } catch (falha) {
       const status = falha instanceof ErroApi ? falha.status : 0
       if (status === 409) {
@@ -699,29 +698,6 @@ export function Agendamento({
       definirCadastrando(false)
     }
   }
-  if (agendamentoConfirmado && publico && servicoSelecionado && escolhas.cliente)
-    return (
-      <main className="booking container">
-        <div className="booking-main">
-          <Link to={caminhoDeVolta}>{rotuloDeVolta}</Link>
-          <h1>Fazer agendamento</h1>
-          <ConfirmacaoDoAgendamento
-            detalhes={{
-              id: agendamentoConfirmado.id,
-              estabelecimentoNome: publico.nomeEstabelecimento,
-              servicoNome: servicoSelecionado.nome,
-              profissionalNome: nomeProfissional,
-              dataHoraInicio: agendamentoConfirmado.dataHoraInicio,
-              dataHoraFim: agendamentoConfirmado.dataHoraFim,
-              status: agendamentoConfirmado.status,
-              valor: agendamentoConfirmado.valor,
-            }}
-            nomeCliente={escolhas.cliente.nome}
-            caminhoDoEstabelecimento={publico.rotaBase}
-          />
-        </div>
-      </main>
-    )
   if (
     etapa === 5 &&
     servicoSelecionado &&
