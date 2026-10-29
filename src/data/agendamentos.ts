@@ -42,3 +42,25 @@ export async function registrarAgendamento(
   )
   return resposta.json()
 }
+
+export type DetalhesAgendamento = {
+  id: number
+  estabelecimentoNome: string
+  servicoNome: string
+  profissionalNome: string
+  dataHoraInicio: string
+  dataHoraFim: string
+  status: string
+  valor: number
+}
+
+/** Detalhes de uma reserva. Só o cliente dono ou o gestor do estabelecimento podem consultar. */
+export async function buscarAgendamento(
+  estabelecimentoId: number | string,
+  agendamentoId: number | string,
+): Promise<DetalhesAgendamento> {
+  const resposta = await requisitar(
+    `/api/estabelecimentos/${encodeURIComponent(estabelecimentoId)}/agendamentos/${encodeURIComponent(agendamentoId)}`,
+  )
+  return resposta.json()
+}
