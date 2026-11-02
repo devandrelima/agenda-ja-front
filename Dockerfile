@@ -6,7 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . ./
-RUN npm run lint \
+RUN mkdir -p /app/reports \
+    && npm run lint -- --format json --output-file /app/reports/eslint.json \
     && npm run typecheck \
     && npm run test:coverage \
     && npm run build
