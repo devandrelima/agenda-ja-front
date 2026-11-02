@@ -19,6 +19,7 @@ import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
 import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
+import { cancelarMeuAgendamento } from '../../data/clientAppointments'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -27,6 +28,7 @@ import { buscarResumoAvaliacoes, type ResumoAvaliacoesApi } from '../../data/rev
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
 import { useDadosNegocioDemo } from '../../data/businessProfile'
+import { useLogoDoNegocio } from '../../data/businessLogo'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -65,6 +67,7 @@ export function PaginaEstabelecimento({
   estabelecimentoId?: number
 }) {
   const avaliacoesLocais = useAvaliacoesDemo(identificadorPublico)
+  const logoDoNegocio = useLogoDoNegocio(estabelecimentoId)
   const [resumoRemoto, definirResumoRemoto] = useState<ResumoAvaliacoesApi | null>(null)
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -107,7 +110,16 @@ export function PaginaEstabelecimento({
 
         <div className="presentation-intro">
           <p className="public-business-category">{estabelecimento.categoria}</p>
-          <h1 id="business-name">{estabelecimento.nome}</h1>
+          <div className="public-business-name">
+            {logoDoNegocio ? (
+              <img className="public-business-logo" src={logoDoNegocio} alt={`Logo do ${estabelecimento.nome}`} />
+            ) : (
+              <span className="public-business-logo public-business-logo-fallback" aria-hidden="true">
+                {estabelecimento.nome.slice(0, 1)}
+              </span>
+            )}
+            <h1 id="business-name">{estabelecimento.nome}</h1>
+          </div>
           <p>Escolha um horário sem precisar enviar mensagem.</p>
         </div>
 
@@ -318,6 +330,11 @@ export function Agendamento({
   const estabelecimentoId = publico?.estabelecimentoId
   const localizacao = useLocation()
   const navegar = useNavigate()
+  const reagendamentoId =
+    typeof localizacao.state?.reagendamentoId === 'string'
+      ? localizacao.state.reagendamentoId
+      : undefined
+  const reagendamento = Boolean(reagendamentoId)
   const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>(() => {
     const anteriores = localizacao.state?.escolhasAgendamento as EscolhasAgendamento | undefined
     return publico
@@ -583,6 +600,9 @@ export function Agendamento({
         data: escolhas.data,
         horario: escolhas.horario,
       })
+      // No backend, esta troca deverá ser atômica. No fluxo atual, só atualizamos a reserva
+      // demonstrativa depois que a nova reserva foi aceita; em caso de erro, a antiga permanece.
+      if (reagendamentoId) cancelarMeuAgendamento(reagendamentoId)
       navegar(`${publico!.rotaBase}/agendamentos/${registrado.id}`, {
         replace: true,
         state: { nomeCliente: escolhas.cliente?.nome },
@@ -741,14 +761,16 @@ export function Agendamento({
               </span>
               <div>
                 <p className="eyebrow">{publico ? 'Confirmação' : 'Agendamento de demonstração'}</p>
-                <h2>{publico ? 'Revise seu agendamento' : 'Pedido preparado!'}</h2>
+                <h2>{publico ? (reagendamento ? 'Revise seu reagendamento' : 'Revise seu agendamento') : 'Pedido preparado!'}</h2>
                 <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
               </div>
             </div>
             <p className="confirmation-status">
               <span aria-hidden="true">i</span>
               {publico
-                ? 'Seu horário só é reservado depois que você confirmar.'
+                ? reagendamento
+                  ? 'A reserva atual só será cancelada após você confirmar este reagendamento.'
+                  : 'Seu horário só é reservado depois que você confirmar.'
                 : 'Este horário ainda não foi reservado.'}
             </p>
             <dl className="summary confirmation-summary">
@@ -784,7 +806,11 @@ export function Agendamento({
               </Button>
               {publico ? (
                 <Button disabled={confirmando} onClick={() => void confirmarAgendamento()}>
-                  {confirmando ? 'Confirmando...' : 'Confirmar agendamento'}
+                  {confirmando
+                    ? 'Confirmando...'
+                    : reagendamento
+                      ? 'Confirmar reagendamento'
+                      : 'Confirmar agendamento'}
                 </Button>
               ) : (
                 <Link className="button secondary" to={caminhos.meusAgendamentos}>

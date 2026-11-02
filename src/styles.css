@@ -66,7 +66,7 @@
   padding: 0;
   list-style: none;
 }
-.client-appointments-list button {
+.client-appointments-list a {
   width: 100%;
   min-height: 114px;
   display: flex;
@@ -79,10 +79,16 @@
   color: inherit;
   font: inherit;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
+.client-appointments-list a:hover { box-shadow: 0 8px 28px rgb(18 26 49 / 10%); }
+.client-appointment-copy { display: grid; gap: 5px; }
 .client-appointments-list strong { font-size: 1.12rem; }
-.client-appointments-list span { font-size: 2rem; line-height: 1; }
+.client-appointment-service, .client-appointment-date { color: #4b5d78; }
+.client-appointment-date { font-size: .92rem; text-transform: capitalize; }
+.client-appointment-side { display: grid; justify-items: end; gap: 10px; }
+.client-appointment-side i { font-size: 2rem; font-style: normal; line-height: 1; }
 .client-new-booking {
   min-height: 84px;
   display: flex;
@@ -98,19 +104,63 @@
   text-decoration: none;
 }
 .client-new-booking span:last-child { font-size: 1.6rem; }
-.client-appointment-actions {
+.client-back { display: inline-block; margin-top: 42px; color: #4b5d78; font-weight: 700; text-decoration: none; }
+.client-detail-intro { margin: 32px 10px 36px; }
+.client-detail-intro p { margin-bottom: 8px; color: #11847c; font-weight: 700; }
+.client-detail-intro .badge { display: inline-flex; margin-top: 16px; }
+.client-appointment-details {
   display: grid;
-  gap: 52px;
-  margin-top: 430px;
+  margin: 0;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
 }
-.client-appointment-actions button {
-  border: 0;
-  background: transparent;
-  color: #fff;
-  font: inherit;
-  font-size: 1.25rem;
-  font-weight: 700;
+.client-appointment-details div { display: grid; gap: 5px; padding: 18px 22px; border-bottom: 1px solid #dbe3ef; }
+.client-appointment-details div:last-child { border-bottom: 0; }
+.client-appointment-details dt { color: #4b5d78; font-size: .92rem; }
+.client-appointment-details dd { margin: 0; font-size: 1.08rem; font-weight: 700; }
+.client-confirm-appointment {
+  width: 100%; min-height: 62px; margin-top: 28px; border: 0; border-radius: 16px;
+  background: #11847c; color: #fff; font: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer;
 }
+.client-confirm-appointment:disabled { opacity: .65; cursor: wait; }
+.client-reschedule-appointment {
+  width: 100%; min-height: 52px; display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 28px; border: 1px solid #11847c; border-radius: 16px; color: #08766e;
+  font-weight: 700; text-decoration: none;
+}
+.client-reschedule-appointment:hover { background: #eaf9f6; }
+.client-cancel-appointment {
+  width: 100%; min-height: 52px; margin-top: 12px; border: 1px solid #b91c1c; border-radius: 16px;
+  background: transparent; color: #b91c1c; font: inherit; font-weight: 700; cursor: pointer;
+}
+.client-cancel-appointment:hover { background: #fef2f2; }
+.client-appointment-feedback { margin: 24px 0 0; color: #08766e; font-weight: 700; }
+.client-empty { display: grid; place-content: center; gap: 16px; text-align: center; }
+.client-empty h1 { margin: 0; }
+.client-empty a { color: #08766e; font-weight: 700; }
+.client-map-link { color: #08766e; text-decoration: underline; text-underline-offset: 3px; }
+.client-map-link span { font-size: .9em; }
+.client-cancel-dialog > p { margin: 0 0 24px; color: var(--muted); line-height: 1.5; }
+.client-cancel-confirm { background: #b91c1c !important; }
+.client-cancel-confirm:hover { background: #991b1b !important; }
+.business-picker-page { min-height: 100svh; padding: 6px 18px 24px; background: #faf9f7; }
+.business-picker-shell { width: min(100%, 640px); min-height: calc(100dvh - 30px); margin: auto; padding: 48px 30px 72px; border-radius: 36px; background: #f5f6f8; color: #121a31; }
+.business-picker-intro { margin: 48px 10px 38px; }
+.business-picker-intro h1 { margin: 0 0 4px; font-size: clamp(2rem, 8vw, 2.5rem); letter-spacing: -.04em; }
+.business-picker-intro p { margin: 0; color: #4b5d78; font-size: 1.08rem; }
+.business-picker-shell section + section { margin-top: 34px; }
+.business-picker-shell h2 { margin: 0 0 14px 10px; color: #087a74; font-size: 1rem; }
+.business-picker-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.business-picker-list a { min-height: 94px; display: flex; align-items: center; gap: 15px; padding: 15px 18px; border-radius: 18px; background: #fff; color: inherit; text-decoration: none; }
+.business-picker-list a:hover { box-shadow: 0 8px 28px rgb(18 26 49 / 10%); }
+.business-avatar, .public-business-logo { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 50%; object-fit: cover; }
+.business-avatar-fallback, .public-business-logo-fallback { display: grid; place-items: center; background: #d9f3ef; color: #087a74; font-weight: 800; }
+.business-picker-copy { min-width: 0; display: grid; gap: 3px; }
+.business-picker-copy strong { font-size: 1.05rem; }
+.business-picker-copy small { color: #4b5d78; }
+.business-picker-rating { color: #087a74 !important; font-size: .82rem; }
+.business-picker-arrow { margin-left: auto; font-size: 2rem; }
 @media (max-width: 420px) {
   .client-appointments-shell { padding: 48px 30px 64px; }
   .client-appointments-intro { margin-top: 60px; }
@@ -321,6 +371,9 @@
   font-size: clamp(2rem, 8vw, 2.5rem);
   letter-spacing: -0.04em;
 }
+.public-business-name { display: flex; align-items: center; gap: 13px; }
+.public-business-name h1 { margin: 0 0 8px; }
+.public-business-logo { width: 54px; height: 54px; flex-basis: 54px; }
 .presentation-intro p {
   margin: 0;
   color: #4b5d78;
@@ -1116,6 +1169,11 @@ a.rating-count:hover {
   justify-items: start;
   gap: 18px;
 }
+.business-cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .business-cover-heading h2 {
   margin: 0 0 6px;
 }
@@ -1129,6 +1187,12 @@ a.rating-count:hover {
 .business-cover-card .auth-error {
   grid-column: 1 / -1;
 }
+.business-logo-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.business-logo-card h2 { margin: 0 0 6px; }
+.business-logo-card .button { margin-top: 18px; }
+.business-logo-card .auth-error { margin: 12px 0 0; }
+.business-logo-preview { width: 110px; height: 110px; flex: 0 0 110px; border-radius: 50%; object-fit: cover; border: 3px solid #d9f3ef; }
+.business-logo-placeholder { display: grid; place-items: center; background: #d9f3ef; color: #087a74; font-weight: 800; }
 .business-profile-list {
   display: grid;
   margin: 18px 0 0;

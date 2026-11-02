@@ -4,6 +4,7 @@ export const caminhos = {
   login: '/login',
   cadastro: '/cadastro',
   meusAgendamentos: '/meus-agendamentos',
+  novoAgendamento: '/novo-agendamento',
   painel: '/painel',
   configuracoes: '/painel/configuracoes',
   profissionais: '/painel/profissionais',
@@ -13,6 +14,9 @@ export const caminhos = {
   disponibilidade: '/estabelecimento/atelie-aurora/disponibilidade',
   agendamento: '/estabelecimento/atelie-aurora/agendar',
 } as const
+
+export const caminhoDoMeuAgendamento = (agendamentoId: string) =>
+  `${caminhos.meusAgendamentos}/${encodeURIComponent(agendamentoId)}`
 
 export function caminhoDeAvaliacoesValido(caminho: unknown): caminho is string {
   if (caminho === caminhos.avaliacoes) return true

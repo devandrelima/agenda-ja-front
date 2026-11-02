@@ -1,16 +1,16 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { adicionarDias, paraChaveData } from '../src/domain/availability'
 import { AgendamentoPublico } from '../src/features/booking/PublicEstablishment'
 import { ContextoAutenticacao } from '../src/app/authState'
 
 const caminhoProfissionais = '/api/estabelecimentos/4/servicos/1/profissionais'
 
-// Datas relativas a hoje, como no assistente, para não depender do dia em que o teste roda.
-const amanha = paraChaveData(adicionarDias(new Date(), 1))
-const depoisDeAmanha = paraChaveData(adicionarDias(new Date(), 2))
+const dataBase = new Date('2026-11-02T12:00:00')
+const amanha = paraChaveData(adicionarDias(dataBase, 1))
+const depoisDeAmanha = paraChaveData(adicionarDias(dataBase, 2))
 const rotuloDaData = (data: string) =>
   new Date(`${data}T12:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' })
 
@@ -118,17 +118,21 @@ function renderizarAgendamento() {
 
 /** Abre a página do profissional com o serviço já escolhido na etapa anterior. */
 async function abrirProfissionais() {
-  const user = userEvent.setup()
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   renderizarAgendamento()
   await screen.findByRole('heading', { name: 'Escolha o profissional' })
   return user
 }
 
 async function preencherDadosDoCliente(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
-  await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
-  await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
-  await user.type(screen.getByLabelText('Criar senha'), 'SenhaTeste123')
+  await user.click(screen.getByLabelText('Nome completo'))
+  await user.paste('Paula Reis')
+  await user.click(screen.getByLabelText('Telefone / WhatsApp'))
+  await user.paste('84994291683')
+  await user.click(screen.getByLabelText('E-mail'))
+  await user.paste('paula@exemplo.com')
+  await user.click(screen.getByLabelText('Criar senha'))
+  await user.paste('SenhaTeste123')
   await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
 }
 
@@ -138,9 +142,15 @@ const horariosPorProfissional: Record<string, string[]> = {
 }
 
 describe('agendamento de um estabelecimento real', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(dataBase)
+  })
+
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
+    vi.useRealTimers()
     localStorage.clear()
   })
 
@@ -376,15 +386,19 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
     await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
     await user.click(await screen.findByRole('button', { name: '09:00' }))
-    await user.type(screen.getByLabelText('Nome completo'), 'Paula Reis')
-    await user.type(screen.getByLabelText('Telefone / WhatsApp'), '84994291683')
-    await user.type(screen.getByLabelText('E-mail'), 'paula@exemplo.com')
-    await user.type(screen.getByLabelText('Criar senha'), 'curta')
+    await user.click(screen.getByLabelText('Nome completo'))
+    await user.paste('Paula Reis')
+    await user.click(screen.getByLabelText('Telefone / WhatsApp'))
+    await user.paste('84994291683')
+    await user.click(screen.getByLabelText('E-mail'))
+    await user.paste('paula@exemplo.com')
+    await user.click(screen.getByLabelText('Criar senha'))
+    await user.paste('curta')
     await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
     expect(screen.getByRole('alert')).toHaveTextContent('A senha deve ter pelo menos 8 caracteres.')
     expect(screen.getByRole('heading', { name: 'Seus dados' })).toBeInTheDocument()
     await user.clear(screen.getByLabelText('Criar senha'))
-    await user.type(screen.getByLabelText('Criar senha'), 'SenhaTeste123')
+    await user.paste('SenhaTeste123')
     await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
     expect(
       await screen.findByRole('heading', { name: 'Revise seu agendamento' }),

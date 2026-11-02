@@ -4,6 +4,7 @@ import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { repositorioMock } from '../../data/mockRepository'
 import { prepararCapa } from '../../data/businessCover'
+import { lerLogoDoNegocio, salvarLogoDoNegocio } from '../../data/businessLogo'
 import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, salvarConfiguracao } from '../../data/publicEstablishment'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 import { paraChaveData } from '../../domain/availability'
@@ -179,6 +180,24 @@ function CapaDoNegocio() {
     }
   }
 
+  async function removerFoto() {
+    if (estabelecimentoId == null) return
+    definirErro('')
+    definirSalvando(true)
+    try {
+      await salvarConfiguracao(estabelecimentoId, 'capa', { imagemUrl: null })
+      definirCapa(imagemPlaceholder)
+    } catch (falha) {
+      definirErro(
+        falha instanceof Error
+          ? falha.message
+          : 'Não foi possível remover a foto.',
+      )
+    } finally {
+      definirSalvando(false)
+    }
+  }
+
   return (
     <Card className="business-cover-card">
       <div className="business-cover-heading">
@@ -194,14 +213,24 @@ function CapaDoNegocio() {
           aria-label="Escolher foto de capa"
           onChange={(evento) => void escolherFoto(evento)}
         />
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={salvando}
-          onClick={() => campoArquivo.current?.click()}
-        >
-          {salvando ? 'Salvando...' : 'Trocar foto'}
-        </Button>
+        <div className="business-cover-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={salvando}
+            onClick={() => campoArquivo.current?.click()}
+          >
+            {salvando ? 'Salvando...' : 'Trocar foto'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={salvando || capa === imagemPlaceholder}
+            onClick={() => void removerFoto()}
+          >
+            Deixar sem foto
+          </Button>
+        </div>
       </div>
       <img
         className="presentation-photo business-cover-photo"
@@ -213,6 +242,43 @@ function CapaDoNegocio() {
           {erro}
         </p>
       )}
+    </Card>
+  )
+}
+
+function LogoDoNegocio() {
+  const { sessao } = useAutenticacao()
+  const estabelecimentoId = sessao?.estabelecimentoId
+  const [logo, definirLogo] = useState<string | null>(() =>
+    estabelecimentoId == null ? null : lerLogoDoNegocio(estabelecimentoId),
+  )
+  const campoArquivo = useRef<HTMLInputElement>(null)
+  const [erro, definirErro] = useState('')
+
+  async function escolherLogo(evento: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!arquivo || estabelecimentoId == null) return
+    try {
+      definirErro('')
+      const imagemUrl = await prepararCapa(arquivo)
+      salvarLogoDoNegocio(estabelecimentoId, imagemUrl)
+      definirLogo(imagemUrl)
+    } catch (falha) {
+      definirErro(falha instanceof Error ? falha.message : 'Não foi possível salvar a logo.')
+    }
+  }
+
+  return (
+    <Card className="business-logo-card">
+      <div>
+        <h2>Logo do negócio</h2>
+        <p className="muted">Aparece ao lado do nome na página pública e na escolha de agendamento.</p>
+        <input ref={campoArquivo} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Escolher logo do negócio" onChange={(evento) => void escolherLogo(evento)} />
+        <Button type="button" variant="secondary" onClick={() => campoArquivo.current?.click()}>Adicionar logo</Button>
+        {erro && <p className="auth-error" role="alert">{erro}</p>}
+      </div>
+      {logo ? <img className="business-logo-preview" src={logo} alt="Logo do negócio" /> : <span className="business-logo-preview business-logo-placeholder" aria-hidden="true">Logo</span>}
     </Card>
   )
 }
@@ -249,6 +315,9 @@ export function ConfiguracoesDoNegocio() {
         </Link>
         <h1>Configurações</h1>
       </header>
+      <section className="section dashboard-section">
+        <LogoDoNegocio />
+      </section>
       <section className="section dashboard-section">
         <CapaDoNegocio />
       </section>

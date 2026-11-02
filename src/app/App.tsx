@@ -11,7 +11,8 @@ import {
 } from 'react-router-dom'
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { PaginaAvaliacoes } from '../features/reviews/Reviews'
-import { MeusAgendamentos } from '../features/client/Appointments'
+import { DetalheDoAgendamento, MeusAgendamentos } from '../features/client/Appointments'
+import { EscolherNegocioParaAgendar } from '../features/client/BusinessPicker'
 import {
   PaginaAvaliacoesPublicas,
   PaginaEstabelecimentoPublico,
@@ -321,6 +322,18 @@ export function App() {
             element={
               <RotaCliente>
                 <MeusAgendamentos />
+              </RotaCliente>
+            }
+          />
+          <Route
+            path={caminhos.novoAgendamento}
+            element={<RotaCliente><EscolherNegocioParaAgendar /></RotaCliente>}
+          />
+          <Route
+            path="/meus-agendamentos/:agendamentoId"
+            element={
+              <RotaCliente>
+                <DetalheDoAgendamento />
               </RotaCliente>
             }
           />

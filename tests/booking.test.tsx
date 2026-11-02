@@ -20,7 +20,7 @@ it('invalida seleção posterior ao trocar de serviço', async () => {
   )
   await user.click(screen.getByRole('button', { name: /corte feminino/i }))
   await user.click(screen.getByRole('button', { name: /ana martins/i }))
-  await user.click(screen.getByRole('button', { name: /seg/i }))
+  await user.click(screen.getAllByRole('button', { name: /^(seg|ter|qua|qui|sex|sáb)\./i })[0])
   const time = screen.queryByRole('button', { name: '10:00' })
   if (time) await user.click(time)
   await user.click(screen.getByRole('button', { name: 'Ir para Serviço' }))
