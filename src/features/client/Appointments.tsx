@@ -1,16 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge, Logo } from '../../design-system/ui'
 import { caminhoDoMeuAgendamento, caminhos } from '../../app/paths'
 import {
   buscarMeuAgendamento,
-  cancelarMeuAgendamento,
   confirmarMeuAgendamento,
   listarMeusAgendamentos,
   type MeuAgendamento,
 } from '../../data/clientAppointments'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
-import { ConfirmarCancelamento } from './ConfirmCancel'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -47,7 +45,27 @@ function ResumoDoAgendamento({ agendamento }: { agendamento: MeuAgendamento }) {
 }
 
 export function MeusAgendamentos() {
-  const agendamentos = listarMeusAgendamentos()
+  const [agendamentos, definirAgendamentos] = useState<MeuAgendamento[]>([])
+  const [carregando, definirCarregando] = useState(true)
+  const [erro, definirErro] = useState('')
+
+  useEffect(() => {
+    let ativo = true
+    listarMeusAgendamentos()
+      .then((dados) => {
+        if (ativo) definirAgendamentos(dados)
+      })
+      .catch((falha) => {
+        if (ativo)
+          definirErro(falha instanceof Error ? falha.message : 'Não foi possível carregar seus agendamentos.')
+      })
+      .finally(() => {
+        if (ativo) definirCarregando(false)
+      })
+    return () => {
+      ativo = false
+    }
+  }, [])
   return (
     <main className="client-appointments-page">
       <section className="client-appointments-shell" aria-labelledby="client-appointments-title">
@@ -58,7 +76,9 @@ export function MeusAgendamentos() {
           <p>Acompanhe os detalhes das suas reservas.</p>
         </div>
 
-        <ul className="client-appointments-list" aria-label="Lista de agendamentos">
+        {carregando && <p role="status">Carregando agendamentos...</p>}
+        {erro && <p className="auth-error" role="alert">{erro}</p>}
+        {!carregando && !erro && <ul className="client-appointments-list" aria-label="Lista de agendamentos">
           {agendamentos.map((agendamento) => (
             <li key={agendamento.id}>
               <Link to={caminhoDoMeuAgendamento(agendamento.id)} aria-label={`Ver agendamento em ${agendamento.estabelecimento}`}>
@@ -67,7 +87,7 @@ export function MeusAgendamentos() {
               </Link>
             </li>
           ))}
-        </ul>
+        </ul>}
 
         <Link
           className="client-new-booking"
@@ -83,38 +103,53 @@ export function MeusAgendamentos() {
 
 export function DetalheDoAgendamento() {
   const { agendamentoId } = useParams()
-  const [agendamento, definirAgendamento] = useState(() =>
-    agendamentoId ? buscarMeuAgendamento(agendamentoId) : undefined,
-  )
+  const [agendamento, definirAgendamento] = useState<MeuAgendamento>()
+  const [carregando, definirCarregando] = useState(() => Boolean(agendamentoId))
+  const [erro, definirErro] = useState('')
   const [confirmando, definirConfirmando] = useState(false)
   const [aviso, definirAviso] = useState('')
-  const [confirmandoCancelamento, definirConfirmandoCancelamento] = useState(false)
+
+  useEffect(() => {
+    if (!agendamentoId) return
+    let ativo = true
+    buscarMeuAgendamento(agendamentoId)
+      .then((dados) => {
+        if (ativo) definirAgendamento(dados)
+      })
+      .catch((falha) => {
+        if (ativo)
+          definirErro(falha instanceof Error ? falha.message : 'Não foi possível carregar o agendamento.')
+      })
+      .finally(() => {
+        if (ativo) definirCarregando(false)
+      })
+    return () => {
+      ativo = false
+    }
+  }, [agendamentoId])
+
+  if (carregando)
+    return <main className="client-appointments-page"><section className="client-appointments-shell client-empty"><p role="status">Carregando agendamento...</p></section></main>
 
   if (!agendamento)
     return (
-      <main className="client-appointments-page"><section className="client-appointments-shell client-empty"><h1>Agendamento não encontrado</h1><Link to={caminhos.meusAgendamentos}>Voltar para seus agendamentos</Link></section></main>
+      <main className="client-appointments-page"><section className="client-appointments-shell client-empty"><h1>Agendamento não encontrado</h1>{erro && <p className="auth-error" role="alert">{erro}</p>}<Link to={caminhos.meusAgendamentos}>Voltar para seus agendamentos</Link></section></main>
     )
 
   const pendente = agendamento.status === 'AGUARDANDO_CONFIRMACAO'
-  function confirmar() {
+  async function confirmar() {
     if (!agendamentoId || confirmando || !pendente) return
     definirConfirmando(true)
-    const confirmado = confirmarMeuAgendamento(agendamentoId)
-    if (confirmado) {
-      definirAgendamento({ ...confirmado })
+    definirAviso('')
+    try {
+      const confirmado = await confirmarMeuAgendamento(agendamentoId)
+      definirAgendamento(confirmado)
       definirAviso('Agendamento confirmado com sucesso.')
+    } catch (falha) {
+      definirAviso(falha instanceof Error ? falha.message : 'Não foi possível confirmar o agendamento.')
+    } finally {
+      definirConfirmando(false)
     }
-    definirConfirmando(false)
-  }
-
-  function cancelar() {
-    if (!agendamentoId) return
-    const cancelado = cancelarMeuAgendamento(agendamentoId)
-    if (cancelado) {
-      definirAgendamento({ ...cancelado })
-      definirAviso('Reserva cancelada. A data e o horário foram liberados.')
-    }
-    definirConfirmandoCancelamento(false)
   }
 
   const agendamentoAtivo = !['CANCELADO', 'CONCLUIDO'].includes(agendamento.status)
@@ -151,26 +186,10 @@ export function DetalheDoAgendamento() {
           <div><dt>Valor</dt><dd>{agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</dd></div>
         </dl>
         {aviso && <p className="client-appointment-feedback" role="status">{aviso}</p>}
-        {pendente && <button className="client-confirm-appointment" type="button" onClick={confirmar} disabled={confirmando}>{confirmando ? 'Confirmando...' : 'Confirmar agendamento'}</button>}
-        {agendamentoAtivo && (
-          <Link
-            className="client-reschedule-appointment"
-            to={caminhoNovoAgendamento}
-            state={{ reagendamentoId: agendamento.id, fluxoCliente: 'entrar' }}
-          >
-            Reagendar
-          </Link>
-        )}
-        {agendamentoAtivo && <button className="client-cancel-appointment" type="button" onClick={() => definirConfirmandoCancelamento(true)}>Cancelar reserva</button>}
+        {pendente && <button className="client-confirm-appointment" type="button" onClick={() => void confirmar()} disabled={confirmando}>{confirmando ? 'Confirmando...' : 'Confirmar agendamento'}</button>}
+        {agendamentoAtivo && <p className="notice">Cancelamento e reagendamento estarão disponíveis em breve.</p>}
         <Link className="client-new-booking" to={caminhoNovoAgendamento}><span>Novo Agendamento</span><span aria-hidden="true">+</span></Link>
       </section>
-      {confirmandoCancelamento && (
-        <ConfirmarCancelamento
-          estabelecimento={agendamento.estabelecimento}
-          aoCancelar={() => definirConfirmandoCancelamento(false)}
-          aoConfirmar={cancelar}
-        />
-      )}
     </main>
   )
 }

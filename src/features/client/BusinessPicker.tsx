@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Logo } from '../../design-system/ui'
 import { negociosDoCatalogo, type NegocioDoCatalogo } from '../../data/businessCatalog'
@@ -37,7 +38,23 @@ function LinhaDeNegocio({ negocio }: { negocio: NegocioDoCatalogo }) {
 }
 
 export function EscolherNegocioParaAgendar() {
-  const idsAgendados = new Set(listarMeusAgendamentos().map((agendamento) => agendamento.publicId))
+  const [idsAgendados, definirIdsAgendados] = useState<Set<string>>(new Set())
+  const [erro, definirErro] = useState('')
+
+  useEffect(() => {
+    let ativo = true
+    listarMeusAgendamentos()
+      .then((agendamentos) => {
+        if (ativo) definirIdsAgendados(new Set(agendamentos.map((agendamento) => agendamento.publicId)))
+      })
+      .catch((falha) => {
+        if (ativo)
+          definirErro(falha instanceof Error ? falha.message : 'Não foi possível carregar seus agendamentos.')
+      })
+    return () => {
+      ativo = false
+    }
+  }, [])
   const jaAgendados = negociosDoCatalogo.filter((negocio) => idsAgendados.has(negocio.publicId))
   const outros = negociosDoCatalogo.filter((negocio) => !idsAgendados.has(negocio.publicId))
 
@@ -50,6 +67,7 @@ export function EscolherNegocioParaAgendar() {
           <h1 id="business-picker-title">Novo agendamento</h1>
           <p>Escolha onde você quer agendar.</p>
         </div>
+        {erro && <p className="auth-error" role="alert">{erro}</p>}
         {jaAgendados.length > 0 && (
           <section aria-labelledby="previous-businesses-title">
             <h2 id="previous-businesses-title">Já fiz agendamento</h2>

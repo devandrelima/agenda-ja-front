@@ -1,5 +1,14 @@
+import { requisitar, tokenCsrf } from './api'
+
+export type StatusDoMeuAgendamento =
+  | 'AGUARDANDO_CONFIRMACAO'
+  | 'CONFIRMADO'
+  | 'CONCLUIDO'
+  | 'CANCELADO'
+
 export type MeuAgendamento = {
   id: string
+  estabelecimentoId: number
   estabelecimento: string
   servico: string
   profissional: string
@@ -7,58 +16,57 @@ export type MeuAgendamento = {
   publicId: string
   inicio: string
   fim: string
-  status: 'AGUARDANDO_CONFIRMACAO' | 'CONFIRMADO' | 'CONCLUIDO' | 'CANCELADO'
+  status: StatusDoMeuAgendamento
   valor: number
 }
 
-// O backend ainda não disponibiliza HU18-BE01/BE03. Este repositório em memória
-// mantém o fluxo demonstrável e deve ser substituído pelas respostas da API.
-const agendamentos: MeuAgendamento[] = [
-  {
-    id: '1',
-    estabelecimento: 'Studio Marina',
-    servico: 'Corte e escova',
-    profissional: 'Marina Souza',
-    localizacao: 'Av. Rio Branco, 214, Centro',
-    publicId: 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311',
-    inicio: '2026-11-07T14:00:00',
-    fim: '2026-11-07T15:00:00',
-    status: 'AGUARDANDO_CONFIRMACAO',
-    valor: 75,
-  },
-  {
-    id: '2',
-    estabelecimento: 'Vivian Unhas',
-    servico: 'Manicure',
-    profissional: 'Vivian Lima',
-    localizacao: 'Rua das Flores, 89, Tirol',
-    publicId: 'f8eb95f4-692a-4a9e-8873-fd0cd2b95311',
-    inicio: '2026-11-12T10:30:00',
-    fim: '2026-11-12T11:30:00',
-    status: 'CONFIRMADO',
-    valor: 45,
-  },
-]
-
-export function listarMeusAgendamentos() {
-  return [...agendamentos].sort((primeiro, segundo) => primeiro.inicio.localeCompare(segundo.inicio))
+type MeuAgendamentoApi = {
+  id: number
+  estabelecimentoId: number
+  estabelecimentoPublicId: string
+  estabelecimentoNome: string
+  estabelecimentoLocalizacao: string
+  servicoNome: string
+  profissionalNome: string
+  dataHoraInicio: string
+  dataHoraFim: string
+  status: StatusDoMeuAgendamento
+  valor: number
 }
 
-export function buscarMeuAgendamento(id: string) {
-  return agendamentos.find((agendamento) => agendamento.id === id)
+const caminho = '/api/clientes/me/agendamentos'
+
+function doApi(dados: MeuAgendamentoApi): MeuAgendamento {
+  return {
+    id: String(dados.id),
+    estabelecimentoId: dados.estabelecimentoId,
+    estabelecimento: dados.estabelecimentoNome,
+    servico: dados.servicoNome,
+    profissional: dados.profissionalNome,
+    localizacao: dados.estabelecimentoLocalizacao,
+    publicId: dados.estabelecimentoPublicId,
+    inicio: dados.dataHoraInicio,
+    fim: dados.dataHoraFim,
+    status: dados.status,
+    valor: dados.valor,
+  }
 }
 
-export function confirmarMeuAgendamento(id: string) {
-  const agendamento = buscarMeuAgendamento(id)
-  if (!agendamento || agendamento.status !== 'AGUARDANDO_CONFIRMACAO') return agendamento
-  agendamento.status = 'CONFIRMADO'
-  return agendamento
+/** HU18: reservas pertencentes exclusivamente ao cliente autenticado. */
+export async function listarMeusAgendamentos(): Promise<MeuAgendamento[]> {
+  const resposta = await requisitar(caminho)
+  return (await resposta.json() as MeuAgendamentoApi[]).map(doApi)
 }
 
-/** Simula HU18-BE03: o backend deverá cancelar e liberar o horário no calendário. */
-export function cancelarMeuAgendamento(id: string) {
-  const agendamento = buscarMeuAgendamento(id)
-  if (!agendamento || ['CANCELADO', 'CONCLUIDO'].includes(agendamento.status)) return agendamento
-  agendamento.status = 'CANCELADO'
-  return agendamento
+export async function buscarMeuAgendamento(id: string): Promise<MeuAgendamento> {
+  const resposta = await requisitar(`${caminho}/${encodeURIComponent(id)}`)
+  return doApi(await resposta.json() as MeuAgendamentoApi)
+}
+
+export async function confirmarMeuAgendamento(id: string): Promise<MeuAgendamento> {
+  const resposta = await requisitar(`${caminho}/${encodeURIComponent(id)}/confirmacao`, {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': await tokenCsrf() },
+  })
+  return doApi(await resposta.json() as MeuAgendamentoApi)
 }
