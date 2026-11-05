@@ -1,4 +1,7 @@
 import { requisitar, tokenCsrf } from './api'
+import { listarProfissionais } from './professionals'
+import { listarHorariosDisponiveis } from './publicAvailability'
+import { listarServicos } from './services'
 
 export type AgendamentoRegistrado = {
   id: number
@@ -103,4 +106,57 @@ export async function reagendarAgendamento(
       body: JSON.stringify({ dataHoraInicio: `${data}T${horario}:00` }),
     },
   )
+}
+
+/** De onde o modal da reserva lê e para onde grava: a API real ou, na demonstração, o mock. */
+export type FonteReserva = {
+  /** Os dados não vêm do servidor; o modal avisa que são um exemplo. */
+  demonstracao?: boolean
+  buscar(): Promise<DetalhesAgendamento>
+  alterarStatus(status: NovoStatusAgendamento): Promise<void>
+  listarHorarios(reserva: DetalhesAgendamento, data: string): Promise<string[]>
+  reagendar(data: string, horario: string): Promise<void>
+}
+
+/**
+ * A consulta da reserva traz só os nomes; os ids vêm do cadastro do estabelecimento. Entre
+ * profissionais homônimos, vale o que atende o serviço.
+ */
+async function descobrirAlvo(estabelecimentoId: number, reserva: DetalhesAgendamento) {
+  const [servicos, profissionais] = await Promise.all([
+    listarServicos(estabelecimentoId),
+    listarProfissionais(estabelecimentoId),
+  ])
+  const servico = servicos.find((item) => item.nome === reserva.servicoNome)
+  const candidatos = profissionais.filter((item) => item.nome === reserva.profissionalNome)
+  const profissional =
+    candidatos.find((item) => servico && item.idsServicos.includes(servico.id)) ?? candidatos[0]
+  if (!servico || !profissional)
+    throw new Error('Não foi possível identificar o serviço ou o profissional desta reserva.')
+  return { servicoId: String(servico.id), profissionalId: String(profissional.id) }
+}
+
+export function criarFonteApi(estabelecimentoId: number, agendamentoId: number): FonteReserva {
+  let alvo: ReturnType<typeof descobrirAlvo> | undefined
+  return {
+    buscar: () => buscarAgendamento(estabelecimentoId, agendamentoId),
+    alterarStatus: (status) => alterarStatusAgendamento(estabelecimentoId, agendamentoId, status),
+    async listarHorarios(reserva, data) {
+      alvo ??= descobrirAlvo(estabelecimentoId, reserva)
+      try {
+        const { servicoId, profissionalId } = await alvo
+        return await listarHorariosDisponiveis(
+          String(estabelecimentoId),
+          servicoId,
+          data,
+          profissionalId,
+        )
+      } catch (falha) {
+        alvo = undefined
+        throw falha
+      }
+    },
+    reagendar: (data, horario) =>
+      reagendarAgendamento(estabelecimentoId, agendamentoId, data, horario),
+  }
 }

@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { criarFonteApi } from '../src/data/agendamentos'
 import { DetalhesDaReserva } from '../src/features/provider/ReservaDetalhes'
 
 const reserva = {
@@ -30,7 +31,7 @@ describe('detalhes da reserva no painel', () => {
   it('mostra serviço, profissional, horário, valor e status da reserva', async () => {
     const requisicoes = vi.fn(async () => resposta(reserva))
     vi.stubGlobal('fetch', requisicoes)
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
 
     expect(await screen.findByText('Corte feminino')).toBeInTheDocument()
     expect(screen.getByText('Ana Martins')).toBeInTheDocument()
@@ -50,7 +51,7 @@ describe('detalhes da reserva no painel', () => {
       .mockResolvedValueOnce(resposta({}, 404))
       .mockResolvedValueOnce(resposta(reserva))
     vi.stubGlobal('fetch', requisicoes)
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Reserva não encontrada.')
     await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
@@ -64,7 +65,7 @@ describe('detalhes da reserva no painel', () => {
       vi.fn(async () => resposta(reserva)),
     )
     const aoFechar = vi.fn()
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={aoFechar} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={aoFechar} />)
 
     await user.click(await screen.findByRole('button', { name: 'Fechar' }))
     await user.keyboard('{Escape}')
@@ -103,8 +104,7 @@ describe('ações sobre a reserva', () => {
     const aoAtualizar = vi.fn()
     render(
       <DetalhesDaReserva
-        estabelecimentoId={4}
-        agendamentoId={31}
+        fonte={criarFonteApi(4, 31)}
         aoFechar={() => {}}
         aoAtualizar={aoAtualizar}
       />,
@@ -128,7 +128,7 @@ describe('ações sobre a reserva', () => {
   it('pede confirmação antes de cancelar', async () => {
     const user = userEvent.setup()
     const requisicoes = simular('CONFIRMADO', 'CANCELADO')
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
 
     await user.click(await screen.findByRole('button', { name: 'Cancelar reserva' }))
     expect(patch(requisicoes)).toBeUndefined()
@@ -145,8 +145,7 @@ describe('ações sobre a reserva', () => {
     simular('AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 400)
     render(
       <DetalhesDaReserva
-        estabelecimentoId={4}
-        agendamentoId={31}
+        fonte={criarFonteApi(4, 31)}
         aoFechar={() => {}}
         aoAtualizar={aoAtualizar}
       />,
@@ -162,7 +161,7 @@ describe('ações sobre a reserva', () => {
 
   it('não oferece ações para reservas concluídas', async () => {
     simular('CONCLUIDO', 'CONCLUIDO')
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
 
     expect(await screen.findByText('Concluído')).toBeInTheDocument()
     expect(screen.getAllByRole('button').map((botao) => botao.textContent)).toEqual(['Fechar'])
@@ -216,7 +215,7 @@ describe('reagendamento da reserva', () => {
   }
 
   async function abrirReagendamento(user: ReturnType<typeof userEvent.setup>) {
-    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
     await user.click(await screen.findByRole('button', { name: 'Reagendar' }))
     return await screen.findByLabelText('Nova data')
   }

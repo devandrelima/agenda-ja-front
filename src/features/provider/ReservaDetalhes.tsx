@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge, Button } from '../../design-system/ui'
 import {
-  alterarStatusAgendamento,
-  buscarAgendamento,
   type DetalhesAgendamento,
+  type FonteReserva,
   type NovoStatusAgendamento,
 } from '../../data/agendamentos'
 import { ErroApi } from '../../data/api'
@@ -57,13 +56,12 @@ const formatarHora = (momento: string) =>
   new Date(momento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
 export function DetalhesDaReserva({
-  estabelecimentoId,
-  agendamentoId,
+  fonte,
   aoFechar,
   aoAtualizar,
 }: {
-  estabelecimentoId: number
-  agendamentoId: number
+  /** Mantenha a mesma referência entre renderizações; uma nova fonte recarrega a reserva. */
+  fonte: FonteReserva
   aoFechar: () => void
   /** Chamado depois de uma alteração salva, para a tela de origem recarregar seus dados. */
   aoAtualizar?: () => void
@@ -87,7 +85,8 @@ export function DetalhesDaReserva({
 
   useEffect(() => {
     let ativo = true
-    buscarAgendamento(estabelecimentoId, agendamentoId)
+    fonte
+      .buscar()
       .then((dados) => {
         if (ativo) definirReserva(dados)
       })
@@ -97,7 +96,7 @@ export function DetalhesDaReserva({
     return () => {
       ativo = false
     }
-  }, [estabelecimentoId, agendamentoId, tentativa])
+  }, [fonte, tentativa])
 
   async function executar(acao: AcaoStatus) {
     definirExecutando(true)
@@ -105,7 +104,7 @@ export function DetalhesDaReserva({
     definirFeedback('')
     definirConfirmandoCancelamento(false)
     try {
-      await alterarStatusAgendamento(estabelecimentoId, agendamentoId, acao.status)
+      await fonte.alterarStatus(acao.status)
       definirFeedback(acao.sucesso)
       aoAtualizar?.()
     } catch (falha) {
@@ -147,6 +146,11 @@ export function DetalhesDaReserva({
         <h2 id="reserva-dialog-title">
           {reagendando ? 'Reagendar reserva' : 'Detalhes da reserva'}
         </h2>
+        {fonte.demonstracao && (
+          <p className="muted reserva-demo">
+            Exemplo de demonstração: as alterações valem só nesta sessão do navegador.
+          </p>
+        )}
         {erro ? (
           <>
             <p className="auth-error" role="alert">
@@ -171,8 +175,7 @@ export function DetalhesDaReserva({
           <p className="muted">Carregando reserva...</p>
         ) : reagendando ? (
           <ReagendarReserva
-            estabelecimentoId={estabelecimentoId}
-            agendamentoId={agendamentoId}
+            fonte={fonte}
             reserva={reserva}
             aoReagendar={aoReagendar}
             aoVoltar={() => definirReagendando(false)}
