@@ -1,9 +1,45 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge, Button } from '../../design-system/ui'
-import { buscarAgendamento, type DetalhesAgendamento } from '../../data/agendamentos'
+import {
+  alterarStatusAgendamento,
+  buscarAgendamento,
+  type DetalhesAgendamento,
+  type NovoStatusAgendamento,
+} from '../../data/agendamentos'
+import { ErroApi } from '../../data/api'
 import { mensagemFalhaReserva } from './reservaErros'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
+
+type AcaoStatus = {
+  status: NovoStatusAgendamento
+  rotulo: string
+  sucesso: string
+  secundaria?: boolean
+}
+
+const confirmar: AcaoStatus = {
+  status: 'CONFIRMADO',
+  rotulo: 'Confirmar',
+  sucesso: 'Reserva confirmada.',
+}
+const concluir: AcaoStatus = {
+  status: 'CONCLUIDO',
+  rotulo: 'Concluir',
+  sucesso: 'Reserva concluída.',
+}
+const cancelar: AcaoStatus = {
+  status: 'CANCELADO',
+  rotulo: 'Cancelar reserva',
+  sucesso: 'Reserva cancelada.',
+  secundaria: true,
+}
+
+// Espelha as transições aceitas pelo backend (StatusAgendamento).
+const acoesPorStatus: Record<string, AcaoStatus[]> = {
+  AGUARDANDO_CONFIRMACAO: [confirmar, cancelar],
+  CONFIRMADO: [concluir, cancelar],
+}
 
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -23,14 +59,21 @@ export function DetalhesDaReserva({
   estabelecimentoId,
   agendamentoId,
   aoFechar,
+  aoAtualizar,
 }: {
   estabelecimentoId: number
   agendamentoId: number
   aoFechar: () => void
+  /** Chamado depois de uma alteração salva, para a tela de origem recarregar seus dados. */
+  aoAtualizar?: () => void
 }) {
   const [reserva, definirReserva] = useState<DetalhesAgendamento | null>(null)
   const [erro, definirErro] = useState('')
   const [tentativa, definirTentativa] = useState(0)
+  const [executando, definirExecutando] = useState(false)
+  const [confirmandoCancelamento, definirConfirmandoCancelamento] = useState(false)
+  const [erroAcao, definirErroAcao] = useState('')
+  const [feedback, definirFeedback] = useState('')
 
   useEffect(() => {
     function fecharComEsc(evento: KeyboardEvent) {
@@ -53,6 +96,30 @@ export function DetalhesDaReserva({
       ativo = false
     }
   }, [estabelecimentoId, agendamentoId, tentativa])
+
+  async function executar(acao: AcaoStatus) {
+    definirExecutando(true)
+    definirErroAcao('')
+    definirFeedback('')
+    definirConfirmandoCancelamento(false)
+    try {
+      await alterarStatusAgendamento(estabelecimentoId, agendamentoId, acao.status)
+      definirFeedback(acao.sucesso)
+      aoAtualizar?.()
+    } catch (falha) {
+      definirErroAcao(
+        falha instanceof ErroApi && falha.status === 400
+          ? 'Esta ação não é permitida para o status atual da reserva.'
+          : mensagemFalhaReserva(falha),
+      )
+    } finally {
+      definirExecutando(false)
+      // Recarrega para exibir o status que o backend guardou, tenha a ação funcionado ou não.
+      definirTentativa((atual) => atual + 1)
+    }
+  }
+
+  const acoes = reserva ? (acoesPorStatus[reserva.status] ?? []) : []
 
   return createPortal(
     <div
@@ -110,11 +177,53 @@ export function DetalhesDaReserva({
               <dt>Valor</dt>
               <dd>{formatarMoeda(reserva.valor)}</dd>
             </dl>
-            <div className="form-actions">
-              <Button type="button" variant="ghost" autoFocus onClick={aoFechar}>
-                Fechar
-              </Button>
-            </div>
+            {feedback && (
+              <p className="notice" role="status">
+                {feedback}
+              </p>
+            )}
+            {erroAcao && (
+              <p className="auth-error" role="alert">
+                {erroAcao}
+              </p>
+            )}
+            {confirmandoCancelamento ? (
+              <div className="form-actions">
+                <span>Cancelar esta reserva?</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={executando}
+                  onClick={() => definirConfirmandoCancelamento(false)}
+                >
+                  Manter reserva
+                </Button>
+                <Button type="button" disabled={executando} onClick={() => void executar(cancelar)}>
+                  Sim, cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="form-actions">
+                <Button type="button" variant="ghost" autoFocus onClick={aoFechar}>
+                  Fechar
+                </Button>
+                {acoes.map((acao) => (
+                  <Button
+                    key={acao.status}
+                    type="button"
+                    variant={acao.secundaria ? 'secondary' : 'primary'}
+                    disabled={executando}
+                    onClick={() =>
+                      acao.status === 'CANCELADO'
+                        ? definirConfirmandoCancelamento(true)
+                        : void executar(acao)
+                    }
+                  >
+                    {acao.rotulo}
+                  </Button>
+                ))}
+              </div>
+            )}
           </>
         )}
       </section>

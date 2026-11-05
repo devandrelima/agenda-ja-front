@@ -64,3 +64,22 @@ export async function buscarAgendamento(
   )
   return resposta.json()
 }
+
+export type NovoStatusAgendamento = 'CONFIRMADO' | 'CONCLUIDO' | 'CANCELADO'
+
+/** O gestor confirma, conclui ou cancela a reserva. O backend recusa transições inválidas (400). */
+export async function alterarStatusAgendamento(
+  estabelecimentoId: number | string,
+  agendamentoId: number | string,
+  status: NovoStatusAgendamento,
+): Promise<void> {
+  const token = await tokenCsrf()
+  await requisitar(
+    `/api/admin/estabelecimentos/${encodeURIComponent(estabelecimentoId)}/agendamentos/${encodeURIComponent(agendamentoId)}/status`,
+    {
+      method: 'PATCH',
+      headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+  )
+}
