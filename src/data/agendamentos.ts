@@ -83,3 +83,24 @@ export async function alterarStatusAgendamento(
     },
   )
 }
+
+/**
+ * O gestor move a reserva para outro início (`YYYY-MM-DD` + `HH:mm`, enviado como horário local
+ * sem fuso). Se o horário colidir com outra reserva, o backend responde 409.
+ */
+export async function reagendarAgendamento(
+  estabelecimentoId: number | string,
+  agendamentoId: number | string,
+  data: string,
+  horario: string,
+): Promise<void> {
+  const token = await tokenCsrf()
+  await requisitar(
+    `/api/admin/estabelecimentos/${encodeURIComponent(estabelecimentoId)}/agendamentos/${encodeURIComponent(agendamentoId)}/horario`,
+    {
+      method: 'PATCH',
+      headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataHoraInicio: `${data}T${horario}:00` }),
+    },
+  )
+}

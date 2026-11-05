@@ -168,3 +168,112 @@ describe('ações sobre a reserva', () => {
     expect(screen.getAllByRole('button').map((botao) => botao.textContent)).toEqual(['Fechar'])
   })
 })
+
+describe('reagendamento da reserva', () => {
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  const servicos = [
+    { id: 10, nome: 'Corte feminino', duracaoMinutos: 60, valor: 75, estabelecimentoId: 4 },
+  ]
+  const profissionais = [
+    {
+      id: 7,
+      nome: 'Ana Martins',
+      especialidades: ['Corte feminino'],
+      idsServicos: [10],
+      diasDeAtendimento: [1],
+      diasDeFolga: [],
+      estabelecimentoId: 4,
+    },
+  ]
+
+  function simular(respostaPatch = 204, horarios = ['09:00', '10:00']) {
+    let inicio = reserva.dataHoraInicio
+    let fim = reserva.dataHoraFim
+    const requisicoes = vi.fn(async (caminho: string, opcoes?: RequestInit) => {
+      if (caminho === '/api/auth/csrf') return resposta({ token: 'csrf' })
+      if (caminho === '/api/admin/estabelecimentos/4/servicos') return resposta(servicos)
+      if (caminho === '/api/admin/estabelecimentos/4/profissionais') return resposta(profissionais)
+      if (caminho.includes('/disponibilidade')) return resposta(horarios)
+      if (opcoes?.method === 'PATCH') {
+        if (respostaPatch !== 204) return resposta({}, respostaPatch)
+        inicio = JSON.parse(String(opcoes.body)).dataHoraInicio
+        fim = inicio.replace(/T(\d\d)/, (_, hora) => `T${Number(hora) + 1}`)
+        return new Response(null, { status: 204 })
+      }
+      return resposta({
+        ...reserva,
+        status: 'CONFIRMADO',
+        dataHoraInicio: inicio,
+        dataHoraFim: fim,
+      })
+    })
+    vi.stubGlobal('fetch', requisicoes)
+    return requisicoes
+  }
+
+  async function abrirReagendamento(user: ReturnType<typeof userEvent.setup>) {
+    render(<DetalhesDaReserva estabelecimentoId={4} agendamentoId={31} aoFechar={() => {}} />)
+    await user.click(await screen.findByRole('button', { name: 'Reagendar' }))
+    return await screen.findByLabelText('Nova data')
+  }
+
+  it('lista os horários livres da data e reagenda para o escolhido', async () => {
+    const user = userEvent.setup()
+    const requisicoes = simular()
+    const campoData = await abrirReagendamento(user)
+
+    await user.type(campoData, '2099-01-05')
+    await user.click(await screen.findByRole('button', { name: '10:00' }))
+    await user.click(screen.getByRole('button', { name: 'Confirmar novo horário' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Reserva reagendada.')
+    expect(await screen.findByText('10:00 às 11:00')).toBeInTheDocument()
+    expect(requisicoes).toHaveBeenCalledWith(
+      '/api/estabelecimentos/4/servicos/10/disponibilidade?data=2099-01-05&profissionalId=7',
+      expect.anything(),
+    )
+    const [caminho, opcoes] = requisicoes.mock.calls.find(([, o]) => o?.method === 'PATCH')!
+    expect(caminho).toBe('/api/admin/estabelecimentos/4/agendamentos/31/horario')
+    expect(opcoes?.body).toBe(JSON.stringify({ dataHoraInicio: '2099-01-05T10:00:00' }))
+  })
+
+  it('avisa quando o horário escolhido colidiu e pede outro', async () => {
+    const user = userEvent.setup()
+    simular(409)
+    const campoData = await abrirReagendamento(user)
+
+    await user.type(campoData, '2099-01-05')
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await user.click(screen.getByRole('button', { name: 'Confirmar novo horário' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Esse horário acabou de ser ocupado. Escolha outro horário.',
+    )
+    expect(screen.getByRole('button', { name: 'Confirmar novo horário' })).toBeDisabled()
+  })
+
+  it('informa quando a data não tem horários livres', async () => {
+    const user = userEvent.setup()
+    simular(204, [])
+    const campoData = await abrirReagendamento(user)
+
+    await user.type(campoData, '2099-01-05')
+
+    expect(await screen.findByText(/Nenhum horário livre nesta data/)).toBeInTheDocument()
+  })
+
+  it('volta aos detalhes sem alterar nada', async () => {
+    const user = userEvent.setup()
+    const requisicoes = simular()
+    await abrirReagendamento(user)
+
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+
+    expect(screen.getByText('Corte feminino')).toBeInTheDocument()
+    expect(requisicoes.mock.calls.some(([, o]) => o?.method === 'PATCH')).toBe(false)
+  })
+})

@@ -8,6 +8,7 @@ import {
   type NovoStatusAgendamento,
 } from '../../data/agendamentos'
 import { ErroApi } from '../../data/api'
+import { ReagendarReserva } from './ReagendarReserva'
 import { mensagemFalhaReserva } from './reservaErros'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 
@@ -74,6 +75,7 @@ export function DetalhesDaReserva({
   const [confirmandoCancelamento, definirConfirmandoCancelamento] = useState(false)
   const [erroAcao, definirErroAcao] = useState('')
   const [feedback, definirFeedback] = useState('')
+  const [reagendando, definirReagendando] = useState(false)
 
   useEffect(() => {
     function fecharComEsc(evento: KeyboardEvent) {
@@ -119,6 +121,14 @@ export function DetalhesDaReserva({
     }
   }
 
+  function aoReagendar() {
+    definirReagendando(false)
+    definirFeedback('Reserva reagendada.')
+    definirErroAcao('')
+    aoAtualizar?.()
+    definirTentativa((atual) => atual + 1)
+  }
+
   const acoes = reserva ? (acoesPorStatus[reserva.status] ?? []) : []
 
   return createPortal(
@@ -134,7 +144,9 @@ export function DetalhesDaReserva({
         aria-modal="true"
         aria-labelledby="reserva-dialog-title"
       >
-        <h2 id="reserva-dialog-title">Detalhes da reserva</h2>
+        <h2 id="reserva-dialog-title">
+          {reagendando ? 'Reagendar reserva' : 'Detalhes da reserva'}
+        </h2>
         {erro ? (
           <>
             <p className="auth-error" role="alert">
@@ -157,6 +169,14 @@ export function DetalhesDaReserva({
           </>
         ) : !reserva ? (
           <p className="muted">Carregando reserva...</p>
+        ) : reagendando ? (
+          <ReagendarReserva
+            estabelecimentoId={estabelecimentoId}
+            agendamentoId={agendamentoId}
+            reserva={reserva}
+            aoReagendar={aoReagendar}
+            aoVoltar={() => definirReagendando(false)}
+          />
         ) : (
           <>
             <dl className="reserva-dados">
@@ -222,6 +242,20 @@ export function DetalhesDaReserva({
                     {acao.rotulo}
                   </Button>
                 ))}
+                {acoes.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={executando}
+                    onClick={() => {
+                      definirFeedback('')
+                      definirErroAcao('')
+                      definirReagendando(true)
+                    }}
+                  >
+                    Reagendar
+                  </Button>
+                )}
               </div>
             )}
           </>
