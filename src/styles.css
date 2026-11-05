@@ -2180,3 +2180,20 @@ a.rating-count:hover {
   gap: 8px;
   margin: 12px 0;
 }
+.appointment[role='button'],
+.slot[role='button'] {
+  cursor: pointer;
+}
+.appointment[role='button']:hover,
+.slot[role='button']:hover {
+  background: var(--selected);
+}
+.appointment[role='button']:focus-visible,
+.slot[role='button']:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: -2px;
+}
+.reserva-demo {
+  margin: -8px 0 16px;
+  font-size: 0.88rem;
+}

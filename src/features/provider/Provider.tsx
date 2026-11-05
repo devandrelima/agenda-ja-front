@@ -12,6 +12,7 @@ import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
 import { HorariosDoNegocio } from './BusinessHours'
 import { DadosDoNegocio } from './BusinessProfile'
+import { propsDeAbrir, useReservaMock } from './useReservaMock'
 
 type IconeMenu =
   'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
@@ -110,7 +111,7 @@ export function LayoutPrestador({
     </div>
   )
 }
-function ProximosAtendimentos() {
+function ProximosAtendimentos({ aoAbrir }: { aoAbrir: (id: string) => void }) {
   const agendamentos = repositorioMock.buscarAgendamentos()
   const servicos = repositorioMock.buscarServicos()
   const profissionais = repositorioMock.buscarProfissionais()
@@ -123,7 +124,11 @@ function ProximosAtendimentos() {
         const profissional = profissionais.find((item) => item.id === agendamento.idProfissional)!
         const cliente = clientes.find((item) => item.id === agendamento.idCliente)!
         return (
-          <article className="appointment" key={agendamento.id}>
+          <article
+            className="appointment"
+            key={agendamento.id}
+            {...propsDeAbrir(() => aoAbrir(agendamento.id))}
+          >
             <time>
               {new Date(agendamento.inicio).toLocaleTimeString('pt-BR', {
                 hour: '2-digit',
@@ -358,6 +363,7 @@ export function ConfiguracoesDoNegocio() {
 }
 export function Dashboard() {
   const navegar = useNavigate()
+  const reserva = useReservaMock()
   const { sessao } = useAutenticacao()
   const [avisoCopia, definirAvisoCopia] = useState<{ mensagem: string; erro: boolean } | null>(null)
   const [copiandoLink, definirCopiandoLink] = useState(false)
@@ -490,12 +496,14 @@ export function Dashboard() {
         ))}
       </div>
       <section className="section dashboard-section">
-        <ProximosAtendimentos />
+        <ProximosAtendimentos aoAbrir={reserva.abrir} />
       </section>
+      {reserva.modal}
     </>
   )
 }
 export function Agenda() {
+  const reserva = useReservaMock()
   const [idProfissional, definirIdProfissional] = useState('')
   const agendamentos = repositorioMock
     .buscarAgendamentos()
@@ -560,6 +568,7 @@ export function Agenda() {
                       className="slot"
                       key={`${data}-${time}`}
                       title={`${cliente.nome} — ${servico.nome}`}
+                      {...propsDeAbrir(() => reserva.abrir(agendamento.id))}
                     >
                       <strong>{cliente.nome}</strong>
                       <br />
@@ -572,6 +581,7 @@ export function Agenda() {
           </div>
         </div>
       </Card>
+      {reserva.modal}
     </>
   )
 }

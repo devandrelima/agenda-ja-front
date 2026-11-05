@@ -1,4 +1,4 @@
-export type StatusAgendamento = 'Confirmado' | 'Aguardando confirmação' | 'Cancelado'
+export type StatusAgendamento = 'Confirmado' | 'Aguardando confirmação' | 'Concluído' | 'Cancelado'
 
 export type Servico = {
   id: string
