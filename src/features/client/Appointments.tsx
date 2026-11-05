@@ -4,11 +4,13 @@ import { Badge, Logo } from '../../design-system/ui'
 import { caminhoDoMeuAgendamento, caminhos } from '../../app/paths'
 import {
   buscarMeuAgendamento,
+  cancelarMeuAgendamento,
   confirmarMeuAgendamento,
   listarMeusAgendamentos,
   type MeuAgendamento,
 } from '../../data/clientAppointments'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { ConfirmarCancelamento } from './ConfirmCancel'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -107,7 +109,9 @@ export function DetalheDoAgendamento() {
   const [carregando, definirCarregando] = useState(() => Boolean(agendamentoId))
   const [erro, definirErro] = useState('')
   const [confirmando, definirConfirmando] = useState(false)
+  const [cancelando, definirCancelando] = useState(false)
   const [aviso, definirAviso] = useState('')
+  const [confirmandoCancelamento, definirConfirmandoCancelamento] = useState(false)
 
   useEffect(() => {
     if (!agendamentoId) return
@@ -152,6 +156,22 @@ export function DetalheDoAgendamento() {
     }
   }
 
+  async function cancelar() {
+    if (!agendamentoId || cancelando) return
+    definirCancelando(true)
+    definirAviso('')
+    try {
+      const cancelado = await cancelarMeuAgendamento(agendamentoId)
+      definirAgendamento(cancelado)
+      definirAviso('Reserva cancelada. A data e o horário foram liberados.')
+      definirConfirmandoCancelamento(false)
+    } catch (falha) {
+      definirAviso(falha instanceof Error ? falha.message : 'Não foi possível cancelar a reserva.')
+    } finally {
+      definirCancelando(false)
+    }
+  }
+
   const agendamentoAtivo = !['CANCELADO', 'CONCLUIDO'].includes(agendamento.status)
   const caminhoNovoAgendamento = `/estabelecimento/${agendamento.publicId}/agendar`
 
@@ -187,9 +207,26 @@ export function DetalheDoAgendamento() {
         </dl>
         {aviso && <p className="client-appointment-feedback" role="status">{aviso}</p>}
         {pendente && <button className="client-confirm-appointment" type="button" onClick={() => void confirmar()} disabled={confirmando}>{confirmando ? 'Confirmando...' : 'Confirmar agendamento'}</button>}
-        {agendamentoAtivo && <p className="notice">Cancelamento e reagendamento estarão disponíveis em breve.</p>}
+        {agendamentoAtivo && (
+          <Link
+            className="client-reschedule-appointment"
+            to={caminhoNovoAgendamento}
+            state={{ reagendamentoId: agendamento.id, fluxoCliente: 'entrar' }}
+          >
+            Reagendar
+          </Link>
+        )}
+        {agendamentoAtivo && <button className="client-cancel-appointment" type="button" onClick={() => definirConfirmandoCancelamento(true)}>Cancelar reserva</button>}
         <Link className="client-new-booking" to={caminhoNovoAgendamento}><span>Novo Agendamento</span><span aria-hidden="true">+</span></Link>
       </section>
+      {confirmandoCancelamento && (
+        <ConfirmarCancelamento
+          estabelecimento={agendamento.estabelecimento}
+          confirmando={cancelando}
+          aoCancelar={() => definirConfirmandoCancelamento(false)}
+          aoConfirmar={() => void cancelar()}
+        />
+      )}
     </main>
   )
 }

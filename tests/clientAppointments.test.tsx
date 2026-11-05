@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -44,6 +44,8 @@ beforeEach(() => {
     if (caminho === '/api/clientes/me/agendamentos/1') return resposta(reservaPendente)
     if (caminho === '/api/clientes/me/agendamentos/1/confirmacao')
       return resposta({ ...reservaPendente, status: 'CONFIRMADO' })
+    if (caminho === '/api/clientes/me/agendamentos/1/cancelamento')
+      return resposta({ ...reservaPendente, status: 'CANCELADO' })
     return resposta({ mensagem: 'Rota não esperada.' }, 404)
   }))
 })
@@ -85,7 +87,7 @@ it('separa negócios já agendados com base na lista da HU18', async () => {
   )
 })
 
-it('confirma uma reserva pendente pela HU18', async () => {
+it('confirma e cancela uma reserva pendente pelas HUs 18 e 19', async () => {
   const user = userEvent.setup()
   render(
     <MemoryRouter initialEntries={['/meus-agendamentos/1']}>
@@ -103,10 +105,23 @@ it('confirma uma reserva pendente pela HU18', async () => {
     'href',
     expect.stringContaining('google.com/maps/search'),
   )
-  expect(screen.getByText('Cancelamento e reagendamento estarão disponíveis em breve.')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Reagendar' })).toHaveAttribute(
+    'href',
+    '/estabelecimento/f8eb95f4-692a-4a9e-8873-fd0cd2b95311/agendar',
+  )
+  await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }))
+  const dialogo = screen.getByRole('dialog', { name: 'Cancelar reserva?' })
+  expect(dialogo).toHaveTextContent('ficarão disponíveis novamente')
+  await user.click(within(dialogo).getByRole('button', { name: 'Cancelar reserva' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('data e o horário foram liberados')
+  expect(screen.getByText('Cancelado')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Cancelar reserva' })).not.toBeInTheDocument()
   expect(globalThis.fetch).toHaveBeenCalledWith(
     '/api/clientes/me/agendamentos/1/confirmacao',
+    expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-TOKEN': 'csrf' } }),
+  )
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    '/api/clientes/me/agendamentos/1/cancelamento',
     expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-TOKEN': 'csrf' } }),
   )
 })

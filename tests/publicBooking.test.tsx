@@ -65,6 +65,7 @@ function stubApi(
     profissionais?: Rota[]
     disponibilidade?: (parametros: URLSearchParams) => Response
     agendamento?: Rota
+    reagendamento?: Rota
   } = {},
 ) {
   const profissionais = rotas.profissionais ?? [() => resposta([])]
@@ -82,6 +83,8 @@ function stubApi(
       return rotas.disponibilidade(new URLSearchParams(consulta))
     if (rota === '/api/auth/csrf') return resposta({ token: 'token-teste' })
     if (rota === caminhoAgendamentos && rotas.agendamento) return rotas.agendamento()
+    if (rota === '/api/clientes/me/agendamentos/18/reagendamento' && rotas.reagendamento)
+      return rotas.reagendamento()
     if (rota === '/api/clientes') return resposta({ id: 9 }, 201)
     throw new Error(`Rota inesperada: ${caminho}`)
   })
@@ -89,9 +92,13 @@ function stubApi(
   return requisicoes
 }
 
-function renderizarAgendamento() {
+function renderizarAgendamento(estado?: object) {
   render(
-    <MemoryRouter initialEntries={[`/estabelecimento/${publicId}/agendar/profissional?servico=1`]}>
+    <MemoryRouter initialEntries={[{
+      pathname: `/estabelecimento/${publicId}/agendar/profissional`,
+      search: '?servico=1',
+      state: estado,
+    }]}>
       <ContextoAutenticacao.Provider
         value={{
           sessao: null,
@@ -134,6 +141,14 @@ async function preencherDadosDoCliente(user: ReturnType<typeof userEvent.setup>)
   await user.click(screen.getByLabelText('Criar senha'))
   await user.paste('SenhaTeste123')
   await user.click(screen.getByRole('button', { name: 'Revisar agendamento' }))
+}
+
+async function entrarComoCliente(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByLabelText('E-mail ou telefone'))
+  await user.paste('paula@exemplo.com')
+  await user.click(screen.getByLabelText('Senha'))
+  await user.paste('SenhaTeste123')
+  await user.click(screen.getByRole('button', { name: 'Entrar e revisar agendamento' }))
 }
 
 const horariosPorProfissional: Record<string, string[]> = {
@@ -448,6 +463,37 @@ describe('agendamento de um estabelecimento real', () => {
       profissionalId: 7,
       dataHoraInicio: `${amanha}T09:00:00`,
     })
+  })
+
+  it('reagenda atomicamente somente após a confirmação', async () => {
+    const requisicoes = stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: () => resposta(['09:00']),
+      reagendamento: () => resposta({ ...registrado, id: 32 }, 201),
+    })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderizarAgendamento({ reagendamentoId: '18', fluxoCliente: 'entrar' })
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(amanha) }))
+    await user.click(await screen.findByRole('button', { name: '09:00' }))
+    await entrarComoCliente(user)
+    expect(await screen.findByRole('heading', { name: 'Revise seu reagendamento' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Confirmar reagendamento' }))
+    expect(await screen.findByText('Confirmação 32 de Paula Reis')).toBeVisible()
+
+    const chamada = requisicoes.mock.calls.find(
+      ([caminho]) => caminho === '/api/clientes/me/agendamentos/18/reagendamento',
+    )!
+    const opcoes = (chamada as unknown[])[1] as RequestInit
+    expect(opcoes.method).toBe('POST')
+    expect(opcoes.headers).toMatchObject({ 'X-CSRF-TOKEN': 'token-teste' })
+    expect(JSON.parse(String(opcoes.body))).toEqual({
+      estabelecimentoId: 4,
+      servicoId: 1,
+      profissionalId: 7,
+      dataHoraInicio: `${amanha}T09:00:00`,
+    })
+    expect(requisicoes.mock.calls.some(([caminho]) => caminho === caminhoAgendamentos)).toBe(false)
   })
 
   it('ignora o clique duplicado enquanto a reserva está em andamento', async () => {

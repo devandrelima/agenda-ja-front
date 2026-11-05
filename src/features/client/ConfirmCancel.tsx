@@ -4,26 +4,28 @@ import { Button } from '../../design-system/ui'
 
 export function ConfirmarCancelamento({
   estabelecimento,
+  confirmando,
   aoCancelar,
   aoConfirmar,
 }: {
   estabelecimento: string
+  confirmando: boolean
   aoCancelar: () => void
   aoConfirmar: () => void
 }) {
   useEffect(() => {
     function fecharComEscape(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') aoCancelar()
+      if (evento.key === 'Escape' && !confirmando) aoCancelar()
     }
     document.addEventListener('keydown', fecharComEscape)
     return () => document.removeEventListener('keydown', fecharComEscape)
-  }, [aoCancelar])
+  }, [aoCancelar, confirmando])
 
   return createPortal(
     <div
       className="modal-backdrop"
       onMouseDown={(evento) => {
-        if (evento.target === evento.currentTarget) aoCancelar()
+        if (evento.target === evento.currentTarget && !confirmando) aoCancelar()
       }}
     >
       <section
@@ -39,11 +41,11 @@ export function ConfirmarCancelamento({
           novamente para outra pessoa.
         </p>
         <div className="form-actions">
-          <Button type="button" variant="ghost" autoFocus onClick={aoCancelar}>
+          <Button type="button" variant="ghost" autoFocus disabled={confirmando} onClick={aoCancelar}>
             Manter reserva
           </Button>
-          <Button type="button" className="client-cancel-confirm" onClick={aoConfirmar}>
-            Cancelar reserva
+          <Button type="button" className="client-cancel-confirm" disabled={confirmando} onClick={aoConfirmar}>
+            {confirmando ? 'Cancelando...' : 'Cancelar reserva'}
           </Button>
         </div>
       </section>

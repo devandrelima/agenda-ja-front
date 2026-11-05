@@ -19,6 +19,7 @@ import { emailValido, telefoneValido } from '../../domain/contact'
 import { BookingSelectionSummary } from './BookingSelectionSummary'
 import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
+import { reagendarMeuAgendamento } from '../../data/clientAppointments'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
@@ -329,6 +330,11 @@ export function Agendamento({
   const estabelecimentoId = publico?.estabelecimentoId
   const localizacao = useLocation()
   const navegar = useNavigate()
+  const reagendamentoId =
+    typeof localizacao.state?.reagendamentoId === 'string'
+      ? localizacao.state.reagendamentoId
+      : undefined
+  const reagendamento = Boolean(reagendamentoId)
   const [escolhas, definirEscolhas] = useState<EscolhasAgendamento>(() => {
     const anteriores = localizacao.state?.escolhasAgendamento as EscolhasAgendamento | undefined
     return publico
@@ -588,12 +594,20 @@ export function Agendamento({
     definirConfirmando(true)
     definirErroConfirmacao('')
     try {
-      const registrado = await registrarAgendamento(estabelecimentoId, {
-        servicoId: servicoSelecionado.id,
-        profissionalId: escolhas.idProfissional,
-        data: escolhas.data,
-        horario: escolhas.horario,
-      })
+      const registrado = reagendamentoId
+        ? await reagendarMeuAgendamento(reagendamentoId, {
+            estabelecimentoId,
+            servicoId: servicoSelecionado.id,
+            profissionalId: escolhas.idProfissional,
+            data: escolhas.data,
+            horario: escolhas.horario,
+          })
+        : await registrarAgendamento(estabelecimentoId, {
+            servicoId: servicoSelecionado.id,
+            profissionalId: escolhas.idProfissional,
+            data: escolhas.data,
+            horario: escolhas.horario,
+          })
       navegar(`${publico!.rotaBase}/agendamentos/${registrado.id}`, {
         replace: true,
         state: { nomeCliente: escolhas.cliente?.nome },
@@ -752,14 +766,16 @@ export function Agendamento({
               </span>
               <div>
                 <p className="eyebrow">{publico ? 'Confirmação' : 'Agendamento de demonstração'}</p>
-                <h2>{publico ? 'Revise seu agendamento' : 'Pedido preparado!'}</h2>
+                <h2>{publico ? (reagendamento ? 'Revise seu reagendamento' : 'Revise seu agendamento') : 'Pedido preparado!'}</h2>
                 <p className="confirmation-intro">Confira os detalhes do atendimento escolhido.</p>
               </div>
             </div>
             <p className="confirmation-status">
               <span aria-hidden="true">i</span>
               {publico
-                ? 'Seu horário só é reservado depois que você confirmar.'
+                ? reagendamento
+                  ? 'A reserva atual só será cancelada após você confirmar este reagendamento.'
+                  : 'Seu horário só é reservado depois que você confirmar.'
                 : 'Este horário ainda não foi reservado.'}
             </p>
             <dl className="summary confirmation-summary">
@@ -797,7 +813,9 @@ export function Agendamento({
                 <Button disabled={confirmando} onClick={() => void confirmarAgendamento()}>
                   {confirmando
                     ? 'Confirmando...'
-                    : 'Confirmar agendamento'}
+                    : reagendamento
+                      ? 'Confirmar reagendamento'
+                      : 'Confirmar agendamento'}
                 </Button>
               ) : (
                 <Link className="button secondary" to={caminhos.meusAgendamentos}>

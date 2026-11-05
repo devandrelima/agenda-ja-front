@@ -70,3 +70,38 @@ export async function confirmarMeuAgendamento(id: string): Promise<MeuAgendament
   })
   return doApi(await resposta.json() as MeuAgendamentoApi)
 }
+
+/** HU19: cancela a reserva no servidor e libera o horário. */
+export async function cancelarMeuAgendamento(id: string): Promise<MeuAgendamento> {
+  const resposta = await requisitar(`${caminho}/${encodeURIComponent(id)}/cancelamento`, {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': await tokenCsrf() },
+  })
+  return doApi(await resposta.json() as MeuAgendamentoApi)
+}
+
+export type DadosDeReagendamento = {
+  estabelecimentoId: string
+  servicoId: string
+  profissionalId: string
+  data: string
+  horario: string
+}
+
+/** HU19: cria a nova reserva e cancela a anterior numa única transação. */
+export async function reagendarMeuAgendamento(
+  id: string,
+  dados: DadosDeReagendamento,
+): Promise<MeuAgendamento> {
+  const resposta = await requisitar(`${caminho}/${encodeURIComponent(id)}/reagendamento`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': await tokenCsrf() },
+    body: JSON.stringify({
+      estabelecimentoId: Number(dados.estabelecimentoId),
+      servicoId: Number(dados.servicoId),
+      profissionalId: Number(dados.profissionalId),
+      dataHoraInicio: `${dados.data}T${dados.horario}:00`,
+    }),
+  })
+  return doApi(await resposta.json() as MeuAgendamentoApi)
+}
