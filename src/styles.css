@@ -2095,3 +2095,20 @@ a.rating-count:hover {
     grid-template-columns: 1fr;
   }
 }
+.reserva-dialog {
+  width: min(100%, 480px);
+}
+.reserva-dados {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 16px;
+  margin: 0 0 20px;
+}
+.reserva-dados dt {
+  color: var(--muted);
+}
+.reserva-dados dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
