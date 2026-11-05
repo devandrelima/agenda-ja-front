@@ -2153,6 +2153,13 @@ a.rating-count:hover {
 .reserva-dialog {
   width: min(100%, 480px);
 }
+.reserva-dialog .form-actions {
+  flex-wrap: wrap;
+}
+.reserva-dialog .auth-error,
+.reserva-dialog .notice {
+  margin: 0 0 16px;
+}
 .reserva-dados {
   display: grid;
   grid-template-columns: max-content 1fr;
