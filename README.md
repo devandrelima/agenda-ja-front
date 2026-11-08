@@ -51,6 +51,10 @@ Acesse `http://localhost:8092/login` e, após entrar, `http://localhost:8092/pai
 
 `domain` contém tipos e disponibilidade; `data/api.ts` centraliza requisições, erros e CSRF; `data/auth.ts` implementa cadastro e sessão; `data/services.ts` e `data/professionals.ts` integram a gestão de serviços e profissionais; `data/repository.ts` define o contrato de agenda ainda implementado por `data/mockRepository.ts`; `features` reúne portal e painel; `design-system` centraliza tokens e componentes.
 
+## Integração de e-mail planejada
+
+O contrato dos endpoints e o guia para o back-end implementar a confirmação de reserva (HU20) e recuperação de senha (HU28), com Gmail SMTP ou Resend, estão em [docs/INTEGRACAO_EMAIL_HU20_HU28.md](docs/INTEGRACAO_EMAIL_HU20_HU28.md).
+
 ## Sessão e implantação
 
 As chamadas de escrita obtêm um token em `GET /api/auth/csrf` e enviam `X-CSRF-TOKEN` com o cookie de sessão. O login usa `POST /api/auth/login`, a restauração usa `GET /api/auth/me` e o botão Sair usa `POST /api/auth/logout`. Erros de credenciais, validação e e-mail duplicado são exibidos no formulário.
