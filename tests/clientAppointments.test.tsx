@@ -97,7 +97,8 @@ it('lista reservas do cliente retornadas pela HU18', async () => {
   )
 })
 
-it('separa negócios já agendados com base na lista da HU18', async () => {
+it('separa negócios já agendados com base na lista da HU18 e permite buscar pelo nome', async () => {
+  const user = userEvent.setup()
   render(
     <MemoryRouter>
       <EscolherNegocioParaAgendar />
@@ -105,12 +106,15 @@ it('separa negócios já agendados com base na lista da HU18', async () => {
   )
 
   expect(await screen.findByRole('heading', { name: 'Já fiz agendamento' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /studio marina/i })).toHaveTextContent('4,8 ★ · 124 comentários')
+  expect(screen.getByRole('link', { name: /studio marina/i })).toHaveTextContent('Av. Rio Branco, 214, Centro')
   expect(screen.getByRole('heading', { name: 'Outros negócios' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /barbearia central/i })).toHaveAttribute(
     'href',
     '/estabelecimento/8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24',
   )
+  await user.type(screen.getByRole('searchbox', { name: 'Buscar negócio' }), 'BaR')
+  expect(screen.getByRole('link', { name: /barbearia central/i })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /studio marina/i })).not.toBeInTheDocument()
 })
 
 it('confirma e cancela uma reserva pendente pelas HUs 18 e 19', async () => {
