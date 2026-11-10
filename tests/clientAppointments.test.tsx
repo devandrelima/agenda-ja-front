@@ -109,7 +109,7 @@ it('separa negócios já agendados com base na lista da HU18', async () => {
   expect(screen.getByRole('heading', { name: 'Outros negócios' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /barbearia central/i })).toHaveAttribute(
     'href',
-    '/estabelecimento/8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24/agendar',
+    '/estabelecimento/8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24',
   )
 })
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { repositorioMock } from '../../data/mockRepository'
 import {
@@ -21,6 +21,7 @@ import { cadastrarCliente, ErroApi } from '../../data/auth'
 import { registrarAgendamento } from '../../data/agendamentos'
 import { reagendarMeuAgendamento } from '../../data/clientAppointments'
 import { useAutenticacao } from '../../app/useAutenticacao'
+import { ContextoAutenticacao } from '../../app/authState'
 import { Button, Card, Field, PhoneField, Steps } from '../../design-system/ui'
 import { caminhos } from '../../app/paths'
 import { resumoAvaliacoes, useAvaliacoesDemo } from '../../data/demoReviews'
@@ -52,6 +53,7 @@ export type DadosPaginaEstabelecimento = {
   categoria: string
   endereco: string
   imagemUrl?: string | null
+  logoUrl?: string | null
   avaliacoes?: Avaliacao[]
 }
 
@@ -66,8 +68,9 @@ export function PaginaEstabelecimento({
   identificadorPublico?: string
   estabelecimentoId?: number
 }) {
+  const autenticacao = useContext(ContextoAutenticacao)
   const avaliacoesLocais = useAvaliacoesDemo(identificadorPublico)
-  const logoDoNegocio = useLogoDoNegocio(estabelecimentoId)
+  const logoLocal = useLogoDoNegocio(estabelecimentoId)
   const [resumoRemoto, definirResumoRemoto] = useState<ResumoAvaliacoesApi | null>(null)
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -101,6 +104,7 @@ export function PaginaEstabelecimento({
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
   const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const imagemUrl = dados ? dados.imagemUrl : capaDemo
+  const logoDoNegocio = dados?.logoUrl ?? logoLocal
   const caminhoServicos = dados ? `${rotaBase}/servicos` : caminhos.disponibilidade
   const caminhoAgendamento = dados ? `${rotaBase}/agendar` : caminhos.agendamento
   return (
@@ -179,20 +183,32 @@ export function PaginaEstabelecimento({
         </Link>
 
         <div className="presentation-actions">
-          <Link
-            className="presentation-action"
-            to={caminhoAgendamento}
-            state={{ origem: 'apresentacao', fluxoCliente: 'cadastro' }}
-          >
-            Fazer primeiro agendamento
-          </Link>
-          <Link
-            className="presentation-action"
-            to={caminhoAgendamento}
-            state={{ origem: 'apresentacao', fluxoCliente: 'entrar' }}
-          >
-            Já sou cliente
-          </Link>
+          {autenticacao?.sessao ? (
+            <Link
+              className="presentation-action"
+              to={caminhoAgendamento}
+              state={{ origem: 'apresentacao', fluxoCliente: 'entrar' }}
+            >
+              Fazer agendamento
+            </Link>
+          ) : (
+            <>
+              <Link
+                className="presentation-action"
+                to={caminhoAgendamento}
+                state={{ origem: 'apresentacao', fluxoCliente: 'cadastro' }}
+              >
+                Fazer primeiro agendamento
+              </Link>
+              <Link
+                className="presentation-action"
+                to={caminhoAgendamento}
+                state={{ origem: 'apresentacao', fluxoCliente: 'entrar' }}
+              >
+                Já sou cliente
+              </Link>
+            </>
+          )}
         </div>
       </section>
     </main>

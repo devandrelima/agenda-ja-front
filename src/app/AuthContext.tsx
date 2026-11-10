@@ -13,6 +13,7 @@ export function ProvedorAutenticacao({ children }: PropsWithChildren) {
     pathname === '/cadastro' ||
     pathname.startsWith(caminhos.meusAgendamentos) ||
     pathname === caminhos.meuPerfil ||
+    pathname.startsWith('/estabelecimento/') ||
     pathname.startsWith('/painel') ||
     caminhoDeAvaliacoesValido(pathname)
   const [sessao, definirSessao] = useState<Sessao | null>(null)

@@ -18,7 +18,7 @@ function AvatarDoNegocio({ negocio }: { negocio: EstabelecimentoResumoPublico })
 function LinhaDeNegocio({ negocio }: { negocio: EstabelecimentoResumoPublico }) {
   return (
     <li>
-      <Link to={`/estabelecimento/${negocio.publicId}/agendar`}>
+      <Link to={`/estabelecimento/${negocio.publicId}`}>
         <AvatarDoNegocio negocio={negocio} />
         <span className="business-picker-copy">
           <strong>{negocio.nome}</strong>
