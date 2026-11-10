@@ -140,7 +140,6 @@
   text-decoration: none;
 }
 .client-new-booking span:last-child { font-size: 1.6rem; }
-.client-appointments-list + .client-new-booking { margin-top: 36px; }
 .client-back { display: inline-block; margin-top: 42px; color: #4b5d78; font-weight: 700; text-decoration: none; }
 .client-detail-intro { margin: 32px 10px 36px; }
 .client-detail-intro p { margin-bottom: 8px; color: #11847c; font-weight: 700; }
