@@ -79,7 +79,7 @@ export function EscolherNegocioParaAgendar() {
             type="search"
             value={busca}
             onChange={(evento) => definirBusca(evento.target.value)}
-            placeholder="Digite ao menos 2 letras"
+            placeholder="Digite o nome do negócio aqui"
             autoComplete="off"
           />
         </label>

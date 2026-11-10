@@ -193,7 +193,7 @@
 .business-picker-intro { margin: 48px 10px 38px; }
 .business-picker-intro h1 { margin: 0 0 4px; font-size: clamp(2rem, 8vw, 2.5rem); letter-spacing: -.04em; }
 .business-picker-intro p { margin: 0; color: #4b5d78; font-size: 1.08rem; }
-.business-picker-search { display: grid; gap: 7px; margin: 0 10px 34px; color: #31415c; font-size: .92rem; font-weight: 700; }
+.business-picker-search { display: grid; gap: 7px; margin: 0 10px 34px; color: #087a74; font-size: .92rem; font-weight: 700; }
 .business-picker-search input { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 13px; background: #fff; color: #121a31; font: inherit; font-weight: 400; }
 .business-picker-search input:focus { outline: 3px solid rgb(17 132 124 / 25%); border-color: #11847c; }
 .business-picker-shell section + section { margin-top: 34px; }
