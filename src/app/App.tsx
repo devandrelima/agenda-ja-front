@@ -12,6 +12,7 @@ import {
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { PaginaAvaliacoes } from '../features/reviews/Reviews'
 import { DetalheDoAgendamento, MeusAgendamentos } from '../features/client/Appointments'
+import { PerfilCliente } from '../features/client/Profile'
 import { EscolherNegocioParaAgendar } from '../features/client/BusinessPicker'
 import {
   PaginaAvaliacoesPublicas,
@@ -173,6 +174,11 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
           {!cadastro && localizacao.state?.senhaRedefinida && (
             <p className="notice" role="status">
               Senha redefinida. Entre com sua nova senha.
+            </p>
+          )}
+          {!cadastro && localizacao.state?.perfilAtualizado && (
+            <p className="notice" role="status">
+              E-mail atualizado. Entre novamente para continuar.
             </p>
           )}
           {cadastro && perfil === 'GESTOR' && (
@@ -470,6 +476,14 @@ export function App() {
           <Route
             path={caminhos.novoAgendamento}
             element={<RotaCliente><EscolherNegocioParaAgendar /></RotaCliente>}
+          />
+          <Route
+            path={caminhos.meuPerfil}
+            element={
+              <RotaCliente>
+                <PerfilCliente />
+              </RotaCliente>
+            }
           />
           <Route
             path="/meus-agendamentos/:agendamentoId"

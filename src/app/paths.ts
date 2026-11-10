@@ -6,6 +6,7 @@ export const caminhos = {
   esqueciSenha: '/esqueci-senha',
   redefinirSenha: '/redefinir-senha',
   meusAgendamentos: '/meus-agendamentos',
+  meuPerfil: '/meu-perfil',
   novoAgendamento: '/novo-agendamento',
   painel: '/painel',
   configuracoes: '/painel/configuracoes',
