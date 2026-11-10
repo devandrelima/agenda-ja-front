@@ -220,7 +220,6 @@ export function DetalheDoAgendamento() {
           </Link>
         )}
         {agendamentoAtivo && <button className="client-cancel-appointment" type="button" onClick={() => definirConfirmandoCancelamento(true)}>Cancelar reserva</button>}
-        <Link className="client-new-booking" to={caminhoNovoAgendamento}><span>Novo Agendamento</span><span aria-hidden="true">+</span></Link>
       </section>
       {confirmandoCancelamento && (
         <ConfirmarCancelamento
