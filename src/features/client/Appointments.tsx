@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge, Logo } from '../../design-system/ui'
 import { caminhoDoMeuAgendamento, caminhos } from '../../app/paths'
@@ -11,6 +11,7 @@ import {
 } from '../../data/clientAppointments'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { ConfirmarCancelamento } from './ConfirmCancel'
+import { ContextoAutenticacao } from '../../app/authState'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -47,6 +48,7 @@ function ResumoDoAgendamento({ agendamento }: { agendamento: MeuAgendamento }) {
 }
 
 export function MeusAgendamentos() {
+  const autenticacao = useContext(ContextoAutenticacao)
   const [agendamentos, definirAgendamentos] = useState<MeuAgendamento[]>([])
   const [carregando, definirCarregando] = useState(true)
   const [erro, definirErro] = useState('')
@@ -74,6 +76,7 @@ export function MeusAgendamentos() {
         <CabecalhoCliente />
 
         <div className="client-appointments-intro">
+          <p className="client-welcome">Bem-vindo, {autenticacao?.sessao?.nome ?? 'cliente'}</p>
           <h1 id="client-appointments-title">Seus agendamentos</h1>
           <p>Acompanhe os detalhes das suas reservas.</p>
         </div>

@@ -8,7 +8,7 @@ import { emailValido, formatarTelefone, telefoneValido } from '../../domain/cont
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 
-const TAMANHO_MAXIMO_FOTO = 1_400_000
+const TAMANHO_MAXIMO_FOTO = 5_000_000
 
 function IconePerfil() {
   return (
@@ -53,7 +53,7 @@ export function PerfilCliente() {
     const arquivo = evento.target.files?.[0]
     if (!arquivo) return
     if (!arquivo.type.startsWith('image/') || arquivo.size > TAMANHO_MAXIMO_FOTO) {
-      definirErro('Escolha uma imagem de até 1,4 MB.')
+      definirErro('Escolha uma imagem de até 5 MB.')
       evento.target.value = ''
       return
     }

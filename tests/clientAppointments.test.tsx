@@ -28,6 +28,31 @@ const reservaConfirmada = {
   status: 'CONFIRMADO',
 }
 
+const negocios = [
+  {
+    id: 4,
+    publicId: reservaPendente.estabelecimentoPublicId,
+    nome: 'Studio Marina',
+    categoria: 'Salão de beleza',
+    localizacao: 'Av. Rio Branco, 214, Centro',
+    imagemUrl: '/assets/negocios/capa-salao.png',
+    logoUrl: '/assets/negocios/logo-salao.svg',
+    mediaAvaliacoes: 4.8,
+    quantidadeAvaliacoes: 124,
+  },
+  {
+    id: 8,
+    publicId: '8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24',
+    nome: 'Barbearia Central',
+    categoria: 'Barbearia',
+    localizacao: 'Centro, Fortaleza - CE',
+    imagemUrl: '/assets/negocios/capa-barbearia.png',
+    logoUrl: '/assets/negocios/logo-barbearia.svg',
+    mediaAvaliacoes: 0,
+    quantidadeAvaliacoes: 0,
+  },
+]
+
 function resposta(dados: unknown, status = 200) {
   return new Response(JSON.stringify(dados), {
     status,
@@ -41,6 +66,7 @@ beforeEach(() => {
     if (caminho === '/api/auth/csrf') return resposta({ token: 'csrf' })
     if (caminho === '/api/clientes/me/agendamentos')
       return resposta([reservaPendente, reservaConfirmada])
+    if (caminho === '/api/estabelecimentos/publico') return resposta(negocios)
     if (caminho === '/api/clientes/me/agendamentos/1') return resposta(reservaPendente)
     if (caminho === '/api/clientes/me/agendamentos/1/confirmacao')
       return resposta({ ...reservaPendente, status: 'CONFIRMADO' })
