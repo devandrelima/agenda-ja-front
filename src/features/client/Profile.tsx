@@ -124,9 +124,13 @@ export function PerfilCliente() {
                 {fotoUrl ? <img src={fotoUrl} alt="Foto de perfil" /> : <IconePerfil />}
               </div>
               <input ref={campoFoto} type="file" accept="image/*" hidden onChange={selecionarFoto} />
-              <div className="client-photo-actions">
-                <Button type="button" variant="secondary" onClick={() => campoFoto.current?.click()}>Adicionar foto</Button>
-                {fotoUrl && <Button type="button" variant="ghost" onClick={() => { definirFotoUrl(null); if (campoFoto.current) campoFoto.current.value = '' }}>Remover foto</Button>}
+              <div className="client-photo-details">
+                <strong>Foto de perfil</strong>
+                <small>JPG, PNG ou WebP de até 5 MB.</small>
+                <div className="client-photo-actions">
+                  <Button type="button" variant="secondary" onClick={() => campoFoto.current?.click()}>{fotoUrl ? 'Trocar foto' : 'Adicionar foto'}</Button>
+                  {fotoUrl && <Button type="button" variant="ghost" onClick={() => { definirFotoUrl(null); if (campoFoto.current) campoFoto.current.value = '' }}>Remover</Button>}
+                </div>
               </div>
             </div>
             <Field label="Nome completo" name="nome" autoComplete="name" maxLength={100} value={nome} onChange={(evento) => definirNome(evento.target.value)} required />
