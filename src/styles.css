@@ -968,6 +968,13 @@ a.rating-count:hover {
   justify-self: center;
   font-size: 1rem;
 }
+.auth-navigation {
+  display: grid;
+  gap: 4px;
+}
+.auth-navigation .muted {
+  margin: 0;
+}
 .auth-error {
   margin: 0;
   color: var(--danger);

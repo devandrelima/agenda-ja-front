@@ -281,20 +281,22 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
           >
             {enviando ? 'Aguarde...' : cadastro ? 'Criar conta' : 'Entrar'}
           </Button>
-          {!cadastro && (
+          <div className="auth-navigation">
+            {!cadastro && (
+              <p className="muted">
+                <Link to={caminhos.esqueciSenha}>Esqueci minha senha</Link>
+              </p>
+            )}
             <p className="muted">
-              <Link to={caminhos.esqueciSenha}>Esqueci minha senha</Link>
+              {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
+              <Link
+                to={cadastro ? caminhos.login : caminhos.cadastro}
+                state={{ perfil, retorno: localizacao.state?.retorno }}
+              >
+                {cadastro ? 'Entrar' : <strong>Criar conta</strong>}
+              </Link>
             </p>
-          )}
-          <p className="muted">
-            {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
-            <Link
-              to={cadastro ? caminhos.login : caminhos.cadastro}
-              state={{ perfil, retorno: localizacao.state?.retorno }}
-            >
-              {cadastro ? 'Entrar' : 'Criar conta'}
-            </Link>
-          </p>
+          </div>
         </form>
       </Card>
     </main>
