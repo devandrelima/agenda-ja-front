@@ -3,6 +3,8 @@ import { identificadorPublicoValido } from '../data/publicEstablishment'
 export const caminhos = {
   login: '/login',
   cadastro: '/cadastro',
+  esqueciSenha: '/esqueci-senha',
+  redefinirSenha: '/redefinir-senha',
   meusAgendamentos: '/meus-agendamentos',
   novoAgendamento: '/novo-agendamento',
   painel: '/painel',

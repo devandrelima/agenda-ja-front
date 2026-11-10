@@ -21,7 +21,7 @@ MAIL_PORT=587
 MAIL_USERNAME=agendaja.projeto@gmail.com
 MAIL_PASSWORD=senha_de_app_gerada_pelo_google
 MAIL_FROM='AgendaJá <agendaja.projeto@gmail.com>'
-APP_FRONTEND_URL=http://localhost:5173
+FRONTEND_RESET_PASSWORD_URL=http://localhost:5173/redefinir-senha
 ```
 
 Configuração Spring Boot (`application.properties`):
@@ -33,7 +33,7 @@ spring.mail.username=${MAIL_USERNAME}
 spring.mail.password=${MAIL_PASSWORD}
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
-app.frontend-url=${APP_FRONTEND_URL:http://localhost:5173}
+app.frontend.password-reset-url=${FRONTEND_RESET_PASSWORD_URL:http://localhost:5173/redefinir-senha}
 ```
 
 Adicionar ao `pom.xml`:
@@ -52,7 +52,7 @@ Resend exige um domínio verificado para enviar a qualquer destinatário. Depois
 ```bash
 RESEND_API_KEY=re_...
 RESEND_FROM='AgendaJá <noreply@seu-dominio.dev>'
-APP_FRONTEND_URL=https://app.seu-dominio.dev
+FRONTEND_RESET_PASSWORD_URL=https://app.seu-dominio.dev/redefinir-senha
 ```
 
 O back-end deve chamar `POST https://api.resend.com/emails`, usando o header `Authorization: Bearer <RESEND_API_KEY>` e o corpo:
@@ -124,14 +124,14 @@ Regras obrigatórias:
 Link sugerido no e-mail:
 
 ```text
-{APP_FRONTEND_URL}/redefinir-senha?token={token-url-encoded}
+{FRONTEND_RESET_PASSWORD_URL}?token={token-url-encoded}
 ```
 
 ## Contrato HTTP a ser consumido pelo front-end
 
 Os dois endpoints são públicos, mas continuam protegidos por CSRF como os demais `POST` da aplicação. O front deve chamar primeiro `GET /api/auth/csrf`, manter o cookie da sessão e enviar o header `X-CSRF-TOKEN`.
 
-### `POST /api/auth/esqueci-senha`
+### `POST /api/auth/senha/solicitar-recuperacao`
 
 Solicita o e-mail de recuperação. Não exige usuário autenticado.
 
@@ -143,7 +143,13 @@ Requisição:
 }
 ```
 
-Resposta de sucesso: `204 No Content`, tanto para e-mail existente quanto inexistente.
+Resposta de sucesso: `200 OK`, tanto para e-mail existente quanto inexistente.
+
+```json
+{
+  "mensagem": "Se houver uma conta ativa com esse e-mail, você receberá instruções de recuperação."
+}
+```
 
 Erros de validação: `400 Bad Request`.
 
@@ -156,7 +162,7 @@ Erros de validação: `400 Bad Request`.
 }
 ```
 
-### `POST /api/auth/redefinir-senha`
+### `POST /api/auth/senha/redefinir`
 
 Consome o token e troca a senha. Não exige usuário autenticado.
 
@@ -165,7 +171,7 @@ Requisição:
 ```json
 {
   "token": "token-recebido-no-link",
-  "senha": "NovaSenhaSegura123"
+  "novaSenha": "NovaSenhaSegura123"
 }
 ```
 
@@ -189,9 +195,9 @@ Corpo sugerido para token inválido/expirado:
 Quando os endpoints estiverem disponíveis, adicionar:
 
 1. Link **“Esqueci minha senha”** na tela de login para a rota `/esqueci-senha`.
-2. Formulário de e-mail que chama `POST /api/auth/esqueci-senha` e sempre exibe: “Se houver uma conta com este e-mail, enviaremos um link de recuperação.”
+2. Formulário de e-mail que chama `POST /api/auth/senha/solicitar-recuperacao` e exibe a mensagem retornada pelo back-end.
 3. Rota `/redefinir-senha?token=...` com nova senha e confirmação, mínimo de 8 caracteres.
-4. Após `204` em `POST /api/auth/redefinir-senha`, redirecionamento ao login com a mensagem “Senha redefinida. Entre com sua nova senha.”
+4. Após `204` em `POST /api/auth/senha/redefinir`, redirecionamento ao login com a mensagem “Senha redefinida. Entre com sua nova senha.”
 
 O módulo `src/data/auth.ts` deve centralizar essas requisições e reutilizar a função atual que busca e envia o token CSRF.
 
@@ -199,7 +205,7 @@ O módulo `src/data/auth.ts` deve centralizar essas requisições e reutilizar a
 
 - Criar uma reserva e confirmar que ela continua criada mesmo se o provedor de e-mail falhar.
 - Conferir no e-mail os dados corretos da reserva.
-- Pedir recuperação para conta existente e inexistente: ambas devem retornar `204`.
+- Pedir recuperação para conta existente e inexistente: ambas devem retornar `200` e a mesma mensagem genérica.
 - Trocar a senha com token válido e autenticar com a nova senha.
 - Confirmar que token expirado, já usado e token anterior invalidado são recusados.
 - Mockar `EmailService` nos testes de controller/service: os testes não devem chamar Gmail nem Resend.

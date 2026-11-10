@@ -111,6 +111,61 @@ it('mantém o usuário no login quando as credenciais são inválidas', async ()
   expect(window.location.pathname).toBe('/login')
 })
 
+it('solicita recuperação de senha pelo endpoint do back-end', async () => {
+  const requisicoes = vi.fn(async (...argumentos: [string, RequestInit?]) => {
+    const entrada = argumentos[0]
+    if (entrada === '/api/auth/me') return resposta(null, 401)
+    if (entrada === '/api/auth/csrf') return resposta({ token: 'token-teste' })
+    if (entrada === '/api/auth/senha/solicitar-recuperacao') {
+      return resposta({
+        mensagem: 'Se houver uma conta ativa com esse e-mail, você receberá instruções de recuperação.',
+      })
+    }
+    throw new Error(`Rota inesperada: ${entrada}`)
+  })
+  vi.stubGlobal('fetch', requisicoes)
+  window.history.replaceState(null, '', '/login')
+  const usuario = userEvent.setup()
+
+  render(<App />)
+  await usuario.click(await screen.findByRole('link', { name: 'Esqueci minha senha' }))
+  await usuario.type(screen.getByLabelText('E-mail'), 'cliente@exemplo.com')
+  await usuario.click(screen.getByRole('button', { name: 'Enviar instruções' }))
+
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'Se houver uma conta ativa com esse e-mail',
+  )
+  const recuperacao = requisicoes.mock.calls.find(
+    ([caminho]) => caminho === '/api/auth/senha/solicitar-recuperacao',
+  )
+  expect(JSON.parse(String(recuperacao?.[1]?.body))).toEqual({ email: 'cliente@exemplo.com' })
+})
+
+it('redefine a senha usando o token recebido por e-mail', async () => {
+  const requisicoes = vi.fn(async (...argumentos: [string, RequestInit?]) => {
+    const entrada = argumentos[0]
+    if (entrada === '/api/auth/me') return resposta(null, 401)
+    if (entrada === '/api/auth/csrf') return resposta({ token: 'token-teste' })
+    if (entrada === '/api/auth/senha/redefinir') return resposta(null, 204)
+    throw new Error(`Rota inesperada: ${entrada}`)
+  })
+  vi.stubGlobal('fetch', requisicoes)
+  window.history.replaceState(null, '', '/redefinir-senha?token=token-recebido')
+  const usuario = userEvent.setup()
+
+  render(<App />)
+  await usuario.type(await screen.findByLabelText('Nova senha'), 'NovaSenha123')
+  await usuario.type(screen.getByLabelText('Confirme a nova senha'), 'NovaSenha123')
+  await usuario.click(screen.getByRole('button', { name: 'Redefinir senha' }))
+
+  expect(await screen.findByRole('status')).toHaveTextContent('Senha redefinida.')
+  const redefinicao = requisicoes.mock.calls.find(([caminho]) => caminho === '/api/auth/senha/redefinir')
+  expect(JSON.parse(String(redefinicao?.[1]?.body))).toEqual({
+    token: 'token-recebido',
+    novaSenha: 'NovaSenha123',
+  })
+})
+
 it('cadastra estabelecimento com os campos exigidos e mostra erros da API', async () => {
   let tentativa = 0
   const requisicoes = vi.fn(async (...argumentos: [string, RequestInit?]) => {
