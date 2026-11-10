@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge, Logo } from '../../design-system/ui'
 import { caminhoDoMeuAgendamento, caminhos } from '../../app/paths'
@@ -11,6 +11,7 @@ import {
 } from '../../data/clientAppointments'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { ConfirmarCancelamento } from './ConfirmCancel'
+import { ContextoAutenticacao } from '../../app/authState'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -24,12 +25,12 @@ function CabecalhoCliente() {
   return (
     <header className="client-appointments-header">
       <Logo />
-      <span className="client-avatar" aria-label="Perfil do cliente" role="img">
+      <Link className="client-avatar" aria-label="Abrir perfil" to={caminhos.meuPerfil}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c.8-4.1 3.5-6.2 8-6.2s7.2 2.1 8 6.2" />
         </svg>
-      </span>
+      </Link>
     </header>
   )
 }
@@ -47,6 +48,7 @@ function ResumoDoAgendamento({ agendamento }: { agendamento: MeuAgendamento }) {
 }
 
 export function MeusAgendamentos() {
+  const autenticacao = useContext(ContextoAutenticacao)
   const [agendamentos, definirAgendamentos] = useState<MeuAgendamento[]>([])
   const [carregando, definirCarregando] = useState(true)
   const [erro, definirErro] = useState('')
@@ -74,6 +76,7 @@ export function MeusAgendamentos() {
         <CabecalhoCliente />
 
         <div className="client-appointments-intro">
+          <p className="client-welcome">Bem-vindo, {autenticacao?.sessao?.nome ?? 'cliente'}</p>
           <h1 id="client-appointments-title">Seus agendamentos</h1>
           <p>Acompanhe os detalhes das suas reservas.</p>
         </div>
@@ -217,7 +220,6 @@ export function DetalheDoAgendamento() {
           </Link>
         )}
         {agendamentoAtivo && <button className="client-cancel-appointment" type="button" onClick={() => definirConfirmandoCancelamento(true)}>Cancelar reserva</button>}
-        <Link className="client-new-booking" to={caminhoNovoAgendamento}><span>Novo Agendamento</span><span aria-hidden="true">+</span></Link>
       </section>
       {confirmandoCancelamento && (
         <ConfirmarCancelamento

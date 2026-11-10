@@ -12,6 +12,7 @@ import {
 import { Agendamento, Disponibilidade, PaginaEstabelecimento } from '../features/booking/Booking'
 import { PaginaAvaliacoes } from '../features/reviews/Reviews'
 import { DetalheDoAgendamento, MeusAgendamentos } from '../features/client/Appointments'
+import { PerfilCliente } from '../features/client/Profile'
 import { EscolherNegocioParaAgendar } from '../features/client/BusinessPicker'
 import {
   PaginaAvaliacoesPublicas,
@@ -30,7 +31,13 @@ import {
 import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
-import { cadastrarCliente, cadastrarEstabelecimento, ErroApi } from '../data/auth'
+import {
+  cadastrarCliente,
+  cadastrarEstabelecimento,
+  ErroApi,
+  redefinirSenha,
+  solicitarRecuperacaoSenha,
+} from '../data/auth'
 import { categoriasNegocio } from '../data/businessProfile'
 import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
@@ -164,6 +171,16 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
               Conta criada. Entre com seu e-mail e senha.
             </p>
           )}
+          {!cadastro && localizacao.state?.senhaRedefinida && (
+            <p className="notice" role="status">
+              Senha redefinida. Entre com sua nova senha.
+            </p>
+          )}
+          {!cadastro && localizacao.state?.perfilAtualizado && (
+            <p className="notice" role="status">
+              E-mail atualizado. Entre novamente para continuar.
+            </p>
+          )}
           {cadastro && perfil === 'GESTOR' && (
             <>
               <Field
@@ -270,15 +287,144 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
           >
             {enviando ? 'Aguarde...' : cadastro ? 'Criar conta' : 'Entrar'}
           </Button>
-          <p className="muted">
-            {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
-            <Link
-              to={cadastro ? caminhos.login : caminhos.cadastro}
-              state={{ perfil, retorno: localizacao.state?.retorno }}
-            >
-              {cadastro ? 'Entrar' : 'Criar conta'}
-            </Link>
-          </p>
+          <div className="auth-navigation">
+            {!cadastro && (
+              <p className="muted">
+                <Link to={caminhos.esqueciSenha}>Esqueci minha senha</Link>
+              </p>
+            )}
+            <p className="muted">
+              {cadastro ? 'Já possui conta?' : 'Ainda não tem conta?'}{' '}
+              <Link
+                to={cadastro ? caminhos.login : caminhos.cadastro}
+                state={{ perfil, retorno: localizacao.state?.retorno }}
+              >
+                {cadastro ? 'Entrar' : <strong>Criar conta</strong>}
+              </Link>
+            </p>
+          </div>
+        </form>
+      </Card>
+    </main>
+  )
+}
+
+function EsqueciSenha() {
+  const [email, definirEmail] = useState('')
+  const [enviando, definirEnviando] = useState(false)
+  const [mensagem, definirMensagem] = useState('')
+  const [erro, definirErro] = useState('')
+
+  async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault()
+    if (!emailValido(email)) {
+      definirErro('Informe um e-mail válido.')
+      return
+    }
+
+    definirErro('')
+    definirEnviando(true)
+    try {
+      definirMensagem(await solicitarRecuperacaoSenha(email))
+    } catch (falha) {
+      definirErro(falha instanceof Error ? falha.message : 'Não foi possível solicitar a recuperação.')
+    } finally {
+      definirEnviando(false)
+    }
+  }
+
+  return (
+    <main className="auth">
+      <Card>
+        <Logo />
+        <form className="form" noValidate onSubmit={(evento) => void enviarFormulario(evento)}>
+          <h1>Recupere sua senha</h1>
+          {mensagem ? (
+            <p className="notice" role="status">{mensagem}</p>
+          ) : (
+            <>
+              <Field
+                name="email"
+                label="E-mail"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(evento) => definirEmail(evento.target.value)}
+                error={erro}
+                required
+              />
+              <Button className="auth-submit" type="submit" disabled={enviando}>
+                {enviando ? 'Enviando...' : 'Enviar instruções'}
+              </Button>
+            </>
+          )}
+          <p className="muted"><Link to={caminhos.login}>Voltar para entrar</Link></p>
+        </form>
+      </Card>
+    </main>
+  )
+}
+
+function RedefinirSenha() {
+  const navegar = useNavigate()
+  const token = new URLSearchParams(useLocation().search).get('token') ?? ''
+  const [novaSenha, definirNovaSenha] = useState('')
+  const [confirmacao, definirConfirmacao] = useState('')
+  const [enviando, definirEnviando] = useState(false)
+  const [erro, definirErro] = useState('')
+
+  async function enviarFormulario(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault()
+    if (!token) return definirErro('O link de recuperação é inválido.')
+    if (novaSenha.length < 8 || novaSenha.length > 72) {
+      return definirErro('A senha deve ter entre 8 e 72 caracteres.')
+    }
+    if (novaSenha !== confirmacao) return definirErro('As senhas não coincidem.')
+
+    definirErro('')
+    definirEnviando(true)
+    try {
+      await redefinirSenha(token, novaSenha)
+      navegar(caminhos.login, { replace: true, state: { senhaRedefinida: true } })
+    } catch (falha) {
+      definirErro(falha instanceof Error ? falha.message : 'Não foi possível redefinir a senha.')
+    } finally {
+      definirEnviando(false)
+    }
+  }
+
+  return (
+    <main className="auth">
+      <Card>
+        <Logo />
+        <form className="form" noValidate onSubmit={(evento) => void enviarFormulario(evento)}>
+          <h1>Defina uma nova senha</h1>
+          <Field
+            name="novaSenha"
+            label="Nova senha"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={72}
+            value={novaSenha}
+            onChange={(evento) => definirNovaSenha(evento.target.value)}
+            required
+          />
+          <Field
+            name="confirmacao"
+            label="Confirme a nova senha"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={72}
+            value={confirmacao}
+            onChange={(evento) => definirConfirmacao(evento.target.value)}
+            error={erro}
+            required
+          />
+          <Button className="auth-submit" type="submit" disabled={enviando}>
+            {enviando ? 'Salvando...' : 'Redefinir senha'}
+          </Button>
         </form>
       </Card>
     </main>
@@ -317,6 +463,8 @@ export function App() {
           <Route path="/" element={<Navigate to={caminhos.login} replace />} />
           <Route path={caminhos.login} element={<Autenticacao key="login" />} />
           <Route path={caminhos.cadastro} element={<Autenticacao key="cadastro" cadastro />} />
+          <Route path={caminhos.esqueciSenha} element={<EsqueciSenha />} />
+          <Route path={caminhos.redefinirSenha} element={<RedefinirSenha />} />
           <Route
             path={caminhos.meusAgendamentos}
             element={
@@ -328,6 +476,14 @@ export function App() {
           <Route
             path={caminhos.novoAgendamento}
             element={<RotaCliente><EscolherNegocioParaAgendar /></RotaCliente>}
+          />
+          <Route
+            path={caminhos.meuPerfil}
+            element={
+              <RotaCliente>
+                <PerfilCliente />
+              </RotaCliente>
+            }
           />
           <Route
             path="/meus-agendamentos/:agendamentoId"

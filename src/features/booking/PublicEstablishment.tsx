@@ -100,6 +100,7 @@ export function PaginaEstabelecimentoPublico() {
         categoria: estabelecimento.categoria,
         endereco: estabelecimento.localizacao,
         imagemUrl: estabelecimento.imagemUrl,
+        logoUrl: estabelecimento.logoUrl,
       }}
       rotaBase={`/estabelecimento/${publicId}`}
       identificadorPublico={publicId}

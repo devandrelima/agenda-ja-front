@@ -59,3 +59,13 @@ export async function cadastrarCliente(dados: CadastroCliente): Promise<void> {
 export async function sair(): Promise<void> {
   await enviar('/api/auth/logout')
 }
+
+export async function solicitarRecuperacaoSenha(email: string): Promise<string> {
+  const resposta = await enviar('/api/auth/senha/solicitar-recuperacao', { email: email.trim() })
+  const dados: { mensagem: string } = await resposta.json()
+  return dados.mensagem
+}
+
+export async function redefinirSenha(token: string, novaSenha: string): Promise<void> {
+  await enviar('/api/auth/senha/redefinir', { token, novaSenha })
+}

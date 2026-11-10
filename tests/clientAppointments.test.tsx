@@ -28,6 +28,31 @@ const reservaConfirmada = {
   status: 'CONFIRMADO',
 }
 
+const negocios = [
+  {
+    id: 4,
+    publicId: reservaPendente.estabelecimentoPublicId,
+    nome: 'Studio Marina',
+    categoria: 'Salão de beleza',
+    localizacao: 'Av. Rio Branco, 214, Centro',
+    imagemUrl: '/assets/negocios/capa-salao.png',
+    logoUrl: '/assets/negocios/logo-salao.svg',
+    mediaAvaliacoes: 4.8,
+    quantidadeAvaliacoes: 124,
+  },
+  {
+    id: 8,
+    publicId: '8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24',
+    nome: 'Barbearia Central',
+    categoria: 'Barbearia',
+    localizacao: 'Centro, Fortaleza - CE',
+    imagemUrl: '/assets/negocios/capa-barbearia.png',
+    logoUrl: '/assets/negocios/logo-barbearia.svg',
+    mediaAvaliacoes: 0,
+    quantidadeAvaliacoes: 0,
+  },
+]
+
 function resposta(dados: unknown, status = 200) {
   return new Response(JSON.stringify(dados), {
     status,
@@ -41,6 +66,7 @@ beforeEach(() => {
     if (caminho === '/api/auth/csrf') return resposta({ token: 'csrf' })
     if (caminho === '/api/clientes/me/agendamentos')
       return resposta([reservaPendente, reservaConfirmada])
+    if (caminho === '/api/estabelecimentos/publico') return resposta(negocios)
     if (caminho === '/api/clientes/me/agendamentos/1') return resposta(reservaPendente)
     if (caminho === '/api/clientes/me/agendamentos/1/confirmacao')
       return resposta({ ...reservaPendente, status: 'CONFIRMADO' })
@@ -71,7 +97,8 @@ it('lista reservas do cliente retornadas pela HU18', async () => {
   )
 })
 
-it('separa negócios já agendados com base na lista da HU18', async () => {
+it('separa negócios já agendados com base na lista da HU18 e permite buscar pelo nome', async () => {
+  const user = userEvent.setup()
   render(
     <MemoryRouter>
       <EscolherNegocioParaAgendar />
@@ -79,12 +106,15 @@ it('separa negócios já agendados com base na lista da HU18', async () => {
   )
 
   expect(await screen.findByRole('heading', { name: 'Já fiz agendamento' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /studio marina/i })).toHaveTextContent('4,8 ★ · 124 comentários')
+  expect(screen.getByRole('link', { name: /studio marina/i })).toHaveTextContent('Av. Rio Branco, 214, Centro')
   expect(screen.getByRole('heading', { name: 'Outros negócios' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /barbearia central/i })).toHaveAttribute(
     'href',
-    '/estabelecimento/8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24/agendar',
+    '/estabelecimento/8e4b93c0-20d2-4baa-b5f2-c0ebf366fc24',
   )
+  await user.type(screen.getByRole('searchbox', { name: 'Buscar negócio' }), 'BaR')
+  expect(screen.getByRole('link', { name: /barbearia central/i })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /studio marina/i })).not.toBeInTheDocument()
 })
 
 it('confirma e cancela uma reserva pendente pelas HUs 18 e 19', async () => {

@@ -11,7 +11,9 @@ export function ProvedorAutenticacao({ children }: PropsWithChildren) {
   const precisaSessao =
     pathname === '/login' ||
     pathname === '/cadastro' ||
-    pathname === caminhos.meusAgendamentos ||
+    pathname.startsWith(caminhos.meusAgendamentos) ||
+    pathname === caminhos.meuPerfil ||
+    pathname.startsWith('/estabelecimento/') ||
     pathname.startsWith('/painel') ||
     caminhoDeAvaliacoesValido(pathname)
   const [sessao, definirSessao] = useState<Sessao | null>(null)

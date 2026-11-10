@@ -9,6 +9,7 @@ export type EstabelecimentoPublico = {
   categoria: string
   localizacao: string
   imagemUrl: string | null
+  logoUrl: string | null
   horariosFuncionamento: HorarioDia[]
 }
 
