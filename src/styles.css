@@ -179,6 +179,7 @@
   background: transparent; color: #b91c1c; font: inherit; font-weight: 700; cursor: pointer;
 }
 .client-cancel-appointment:hover { background: #fef2f2; }
+.client-cancel-appointment + .client-new-booking { margin-top: 22px; }
 .client-appointment-feedback { margin: 24px 0 0; color: #08766e; font-weight: 700; }
 .client-empty { display: grid; place-content: center; gap: 16px; text-align: center; }
 .client-empty h1 { margin: 0; }
