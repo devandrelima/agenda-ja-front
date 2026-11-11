@@ -21,8 +21,8 @@ import {
   AgendamentoPublico,
   PaginaConfirmacaoPublica,
 } from '../features/booking/PublicEstablishment'
+import { Agenda } from '../features/provider/Agenda'
 import {
-  Agenda,
   ConfiguracoesDoNegocio,
   Dashboard,
   LayoutPrestador,

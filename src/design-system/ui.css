@@ -132,6 +132,10 @@
   background: #fef3c7;
   color: #92400e;
 }
+.badge.concluído {
+  background: #e0e7ff;
+  color: #3730a3;
+}
 .badge.cancelado {
   background: #fee2e2;
   color: #991b1b;

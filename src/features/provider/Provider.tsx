@@ -2,16 +2,25 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
-import { repositorioMock } from '../../data/mockRepository'
+import type { AgendamentoDaAgenda } from '../../data/agenda'
+import { listarServicos } from '../../data/services'
 import { prepararCapa } from '../../data/businessCover'
 import { lerLogoDoNegocio, salvarLogoDoNegocio } from '../../data/businessLogo'
 import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, salvarConfiguracao } from '../../data/publicEstablishment'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
-import { paraChaveData } from '../../domain/availability'
+import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { proximosAtendimentos, resumirAgenda } from '../../domain/inicio'
+import { chaveDeHoje, rotuloCurtoDoDia, somarDiasNaChave } from '../../domain/semana'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
 import { HorariosDoNegocio } from './BusinessHours'
 import { DadosDoNegocio } from './BusinessProfile'
+import { propsDeAbrir } from './propsDeAbrir'
+import { useAgendaDoPeriodo } from './useAgendaDoPeriodo'
+import { useReservaAberta } from './useReservaAberta'
+
+/** Quantos dias à frente a página inicial resume e lista. */
+const DIAS_DO_RESUMO = 7
 
 type IconeMenu =
   'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
@@ -110,36 +119,57 @@ export function LayoutPrestador({
     </div>
   )
 }
-function ProximosAtendimentos() {
-  const agendamentos = repositorioMock.buscarAgendamentos()
-  const servicos = repositorioMock.buscarServicos()
-  const profissionais = repositorioMock.buscarProfissionais()
-  const clientes = repositorioMock.buscarClientes()
+function ProximosAtendimentos({
+  agendamentos,
+  erro,
+  hoje,
+  aoTentarNovamente,
+  aoAbrir,
+}: {
+  /** `null` enquanto carrega. */
+  agendamentos: AgendamentoDaAgenda[] | null
+  erro: string
+  hoje: string
+  aoTentarNovamente: () => void
+  aoAbrir: (id: number) => void
+}) {
+  const proximos = agendamentos && proximosAtendimentos(agendamentos)
   return (
     <Card>
       <h2>Próximos atendimentos</h2>
-      {agendamentos.map((agendamento) => {
-        const servico = servicos.find((item) => item.id === agendamento.idServico)!
-        const profissional = profissionais.find((item) => item.id === agendamento.idProfissional)!
-        const cliente = clientes.find((item) => item.id === agendamento.idCliente)!
-        return (
-          <article className="appointment" key={agendamento.id}>
-            <time>
-              {new Date(agendamento.inicio).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </time>
-            <div className="info">
-              <strong>{cliente.nome}</strong>
-              <p>
-                {servico.nome} · {profissional.nome}
-              </p>
-            </div>
-            <Badge status={agendamento.status} />
-          </article>
-        )
-      })}
+      {erro ? (
+        <div role="alert">
+          <p className="auth-error">{erro}</p>
+          <Button variant="secondary" onClick={aoTentarNovamente}>
+            Tentar novamente
+          </Button>
+        </div>
+      ) : proximos === null ? (
+        <Empty>Carregando atendimentos...</Empty>
+      ) : proximos.length === 0 ? (
+        <Empty>Nenhum atendimento nos próximos 7 dias.</Empty>
+      ) : (
+        proximos.map((agendamento) => {
+          const dia = agendamento.dataHoraInicio.slice(0, 10)
+          return (
+            <article
+              className="appointment"
+              key={agendamento.id}
+              {...propsDeAbrir(() => aoAbrir(agendamento.id))}
+            >
+              <time>{agendamento.dataHoraInicio.slice(11, 16)}</time>
+              <div className="info">
+                <strong>{agendamento.clienteNome}</strong>
+                <p>
+                  {agendamento.servicoNome} · {agendamento.profissionalNome} ·{' '}
+                  {dia === hoje ? 'hoje' : rotuloCurtoDoDia(dia)}
+                </p>
+              </div>
+              <Badge status={rotuloDoStatus(agendamento.status)} />
+            </article>
+          )
+        })
+      )}
     </Card>
   )
 }
@@ -372,18 +402,31 @@ export function Dashboard() {
     temporizadorAviso.current = window.setTimeout(() => definirAvisoCopia(null), 3500)
   }
 
-  const agendamentos = repositorioMock.buscarAgendamentos()
-  const servicos = repositorioMock.buscarServicos()
-  const hoje = paraChaveData(new Date())
-  const agendamentosDeHoje = agendamentos.filter((agendamento) =>
-    agendamento.inicio.startsWith(hoje),
-  )
-  const confirmados = agendamentos.filter((agendamento) => agendamento.status === 'Confirmado')
-  const faturamentoPrevisto = confirmados.reduce(
-    (total, agendamento) =>
-      total + (servicos.find((servico) => servico.id === agendamento.idServico)?.valor ?? 0),
-    0,
-  )
+  const estabelecimentoId = sessao?.estabelecimentoId
+  const hoje = chaveDeHoje()
+  const agenda = useAgendaDoPeriodo(estabelecimentoId, {
+    de: hoje,
+    ate: somarDiasNaChave(hoje, DIAS_DO_RESUMO),
+  })
+  const reserva = useReservaAberta(estabelecimentoId, agenda.recarregar)
+  // A agenda traz só o nome do serviço; o valor vem do cadastro. Se falhar, só o faturamento some.
+  const [valorPorServico, definirValorPorServico] = useState<Map<string, number> | null>(null)
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    let ativo = true
+    listarServicos(estabelecimentoId)
+      .then(
+        (servicos) =>
+          ativo &&
+          definirValorPorServico(new Map(servicos.map((item) => [item.nome, Number(item.valor)]))),
+      )
+      .catch(() => undefined)
+    return () => {
+      ativo = false
+    }
+  }, [estabelecimentoId])
+  const resumo = agenda.agendamentos && resumirAgenda(agenda.agendamentos, hoje, valorPorServico)
+  const numero = (valor: number | undefined) => valor ?? '—'
 
   async function copiarLinkDoNegocio() {
     if (sessao?.estabelecimentoId == null) {
@@ -474,14 +517,13 @@ export function Dashboard() {
       )}
       <div className="metric-grid">
         {[
-          ['Agendamentos hoje', agendamentosDeHoje.length],
-          ['Confirmados', confirmados.length],
-          ['Faturamento previsto', formatarMoeda(faturamentoPrevisto)],
+          ['Agendamentos hoje', numero(resumo?.hoje)],
+          ['Confirmados', numero(resumo?.confirmados)],
           [
-            'Aguardando confirmação',
-            agendamentos.filter((agendamento) => agendamento.status === 'Aguardando confirmação')
-              .length,
+            'Faturamento previsto',
+            resumo?.faturamentoPrevisto == null ? '—' : formatarMoeda(resumo.faturamentoPrevisto),
           ],
+          ['Aguardando confirmação', numero(resumo?.aguardando)],
         ].map(([label, value]) => (
           <Card className="metric" key={String(label)}>
             <span className="muted">{label}</span>
@@ -489,89 +531,21 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
-      <section className="section dashboard-section">
-        <ProximosAtendimentos />
-      </section>
-    </>
-  )
-}
-export function Agenda() {
-  const [idProfissional, definirIdProfissional] = useState('')
-  const agendamentos = repositorioMock
-    .buscarAgendamentos()
-    .filter((agendamento) => !idProfissional || agendamento.idProfissional === idProfissional)
-  const servicos = repositorioMock.buscarServicos()
-  const profissionais = repositorioMock.buscarProfissionais()
-  const clientes = repositorioMock.buscarClientes()
-  const datas = Array.from({ length: 5 }, (_, indice) => {
-    const data = new Date()
-    data.setDate(data.getDate() + indice)
-    return paraChaveData(data)
-  })
-  return (
-    <>
-      <header className="topbar">
-        <div>
-          <p className="muted">Semana atual</p>
-          <h1>Agenda</h1>
-        </div>
-        <select
-          aria-label="Filtrar por profissional"
-          value={idProfissional}
-          onChange={(evento) => definirIdProfissional(evento.target.value)}
-        >
-          <option value="">Todos os profissionais</option>
-          {profissionais.map((profissional) => (
-            <option key={profissional.id} value={profissional.id}>
-              {profissional.nome}
-            </option>
-          ))}
-        </select>
-      </header>
-      <Card>
-        <p className="muted">
-          Legenda: <Badge status="Confirmado" /> <Badge status="Aguardando confirmação" />
+      {agenda.atualizacaoFalhou && (
+        <p className="muted" role="status">
+          Não foi possível atualizar os atendimentos agora. Tentaremos novamente em instantes.
         </p>
-        <div className="week">
-          <div className="week-grid">
-            <div className="dayhead">Hora</div>
-            {datas.map((data) => (
-              <div className="dayhead" key={data}>
-                {new Date(`${data}T12:00`).toLocaleDateString('pt-BR', {
-                  weekday: 'short',
-                  day: '2-digit',
-                })}
-              </div>
-            ))}
-            {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].flatMap(
-              (time) => [
-                <div className="slot" key={`${time}-time`}>
-                  {time}
-                </div>,
-                ...datas.map((data) => {
-                  const agendamento = agendamentos.find((item) =>
-                    item.inicio.startsWith(`${data}T${time}`),
-                  )
-                  if (!agendamento) return <div className="slot" key={`${data}-${time}`} />
-                  const cliente = clientes.find((item) => item.id === agendamento.idCliente)!
-                  const servico = servicos.find((item) => item.id === agendamento.idServico)!
-                  return (
-                    <div
-                      className="slot"
-                      key={`${data}-${time}`}
-                      title={`${cliente.nome} — ${servico.nome}`}
-                    >
-                      <strong>{cliente.nome}</strong>
-                      <br />
-                      {servico.nome}
-                    </div>
-                  )
-                }),
-              ],
-            )}
-          </div>
-        </div>
-      </Card>
+      )}
+      <section className="section dashboard-section">
+        <ProximosAtendimentos
+          agendamentos={agenda.agendamentos}
+          erro={agenda.erro}
+          hoje={hoje}
+          aoTentarNovamente={agenda.tentarNovamente}
+          aoAbrir={reserva.abrir}
+        />
+      </section>
+      {reserva.modal}
     </>
   )
 }
