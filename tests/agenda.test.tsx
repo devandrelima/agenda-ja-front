@@ -253,6 +253,76 @@ describe('agenda semanal', () => {
   })
 })
 
+describe('reserva aberta pela agenda', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-11T15:00:00Z') })
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('abre os detalhes ao clicar no bloco e relê a agenda depois de confirmar', async () => {
+    const user = userEvent.setup()
+    let status = 'AGUARDANDO_CONFIRMACAO'
+    const requisicoes = vi.fn(async (caminho: string, opcoes?: RequestInit) => {
+      const url = new URL(caminho, 'http://localhost')
+      const rota = `${opcoes?.method ?? 'GET'} ${url.pathname}`
+      if (rota.endsWith('/profissionais')) return resposta([])
+      if (rota === 'GET /api/admin/estabelecimentos/4/agenda')
+        return resposta([agendamento({ status })])
+      if (rota === 'GET /api/estabelecimentos/4/agendamentos/1')
+        return resposta({
+          id: 1,
+          estabelecimentoNome: 'Ateliê Aurora',
+          servicoNome: 'Corte feminino',
+          profissionalNome: 'Ana Martins',
+          dataHoraInicio: '2026-11-10T10:00:00',
+          dataHoraFim: '2026-11-10T11:00:00',
+          status,
+          valor: 75,
+        })
+      if (rota === 'GET /api/auth/csrf') return resposta({ token: 'token-teste' })
+      if (rota === 'PATCH /api/admin/estabelecimentos/4/agendamentos/1/status') {
+        status = JSON.parse(String(opcoes?.body)).status
+        return new Response(null, { status: 204 })
+      }
+      throw new Error(`Rota inesperada: ${rota}`)
+    })
+    vi.stubGlobal('fetch', requisicoes)
+    renderizar()
+
+    await user.click(await screen.findByRole('button', { name: /Abrir reserva de Marina Souza/ }))
+    const modal = await screen.findByRole('dialog')
+    expect(await within(modal).findByText('Ana Martins')).toBeInTheDocument()
+
+    await user.click(within(modal).getByRole('button', { name: 'Confirmar' }))
+    expect(await within(modal).findByRole('status')).toHaveTextContent('Reserva confirmada.')
+    // A agenda atrás do modal foi relida, sem passar pela tela de carregamento.
+    const bloco = screen.getByText('Marina Souza').closest<HTMLElement>('.agenda-bloco')!
+    await vi.waitFor(() => expect(within(bloco).getByText('Confirmado')).toBeInTheDocument())
+    expect(screen.queryByText('Carregando agenda...')).not.toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('abre pelo teclado', async () => {
+    const user = userEvent.setup()
+    stubFetch((url) =>
+      url.pathname.endsWith('/agenda')
+        ? resposta([agendamento({})])
+        : resposta({ mensagem: 'Erro.' }, 500),
+    )
+    renderizar()
+    ;(await screen.findByRole('button', { name: /Abrir reserva de Marina Souza/ })).focus()
+    await user.keyboard('{Enter}')
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+})
+
 describe('atualização periódica da agenda', () => {
   beforeEach(() => {
     vi.useFakeTimers({ now: new Date('2026-11-11T15:00:00Z') })

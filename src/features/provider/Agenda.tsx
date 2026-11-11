@@ -4,6 +4,7 @@ import { INTERVALO_ATUALIZACAO_MS, listarAgenda, type AgendamentoDaAgenda } from
 import { ErroApi } from '../../data/api'
 import { listarProfissionais, type Profissional } from '../../data/professionals'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { criarFonteApi, type FonteReserva } from '../../data/agendamentos'
 import { Button, Card, Empty } from '../../design-system/ui'
 import {
   chaveDeHoje,
@@ -13,6 +14,7 @@ import {
   somarDiasNaChave,
 } from '../../domain/semana'
 import { CalendarioSemanal } from './CalendarioSemanal'
+import { DetalhesDaReserva } from './ReservaDetalhes'
 
 function mensagemFalha(falha: unknown) {
   if (falha instanceof ErroApi) {
@@ -37,6 +39,9 @@ export function Agenda() {
   const [status, definirStatus] = useState('')
   const [profissionais, definirProfissionais] = useState<Profissional[]>([])
   const [tentativa, definirTentativa] = useState(0)
+  // Aumenta quando o modal altera uma reserva: relê a agenda sem trocar os blocos por "Carregando".
+  const [versao, definirVersao] = useState(0)
+  const [fonteAberta, definirFonteAberta] = useState<FonteReserva | null>(null)
   const [resultado, definirResultado] = useState<{
     chave: string
     agendamentos?: AgendamentoDaAgenda[]
@@ -93,7 +98,7 @@ export function Agenda() {
         })
     }
     const aoVoltarParaAba = () => consultar(true)
-    consultar(false)
+    consultar(versao > 0)
     const intervalo = window.setInterval(() => consultar(true), INTERVALO_ATUALIZACAO_MS)
     document.addEventListener('visibilitychange', aoVoltarParaAba)
     return () => {
@@ -101,7 +106,7 @@ export function Agenda() {
       window.clearInterval(intervalo)
       document.removeEventListener('visibilitychange', aoVoltarParaAba)
     }
-  }, [chave, estabelecimentoId, primeiroDia, ultimoDia, profissionalId, status])
+  }, [chave, estabelecimentoId, primeiroDia, ultimoDia, profissionalId, status, versao])
 
   return (
     <>
@@ -176,10 +181,22 @@ export function Agenda() {
                 Não foi possível atualizar a agenda agora. Tentaremos novamente em instantes.
               </p>
             )}
-            <CalendarioSemanal dias={dias} hoje={hoje} agendamentos={atual.agendamentos} />
+            <CalendarioSemanal
+              dias={dias}
+              hoje={hoje}
+              agendamentos={atual.agendamentos}
+              aoAbrir={(id) => definirFonteAberta(criarFonteApi(estabelecimentoId!, id))}
+            />
           </>
         )}
       </Card>
+      {fonteAberta && (
+        <DetalhesDaReserva
+          fonte={fonteAberta}
+          aoFechar={() => definirFonteAberta(null)}
+          aoAtualizar={() => definirVersao((valor) => valor + 1)}
+        />
+      )}
     </>
   )
 }

@@ -3,6 +3,7 @@ import type { AgendamentoDaAgenda } from '../../data/agenda'
 import { Badge } from '../../design-system/ui'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { cabecalhoDoDia } from '../../domain/semana'
+import { propsDeAbrir } from './useReservaMock'
 
 const PRIMEIRA_HORA = 8
 const ULTIMA_HORA = 19
@@ -29,11 +30,14 @@ export function CalendarioSemanal({
   dias,
   hoje,
   agendamentos,
+  aoAbrir,
 }: {
   /** Chaves `YYYY-MM-DD` das colunas, da primeira à última. */
   dias: string[]
   hoje: string
   agendamentos: AgendamentoDaAgenda[]
+  /** Chamado com o id do agendamento ao clicar no bloco. */
+  aoAbrir?: (id: number) => void
 }) {
   return (
     <div className="week">
@@ -70,7 +74,11 @@ export function CalendarioSemanal({
                         horaDoMomento(agendamento.dataHoraInicio).startsWith(doisDigitos(hora)),
                     )
                     .map((agendamento) => (
-                      <BlocoDeAgendamento key={agendamento.id} agendamento={agendamento} />
+                      <BlocoDeAgendamento
+                        key={agendamento.id}
+                        agendamento={agendamento}
+                        aoAbrir={aoAbrir}
+                      />
                     ))}
                 </div>
               ))}
@@ -82,10 +90,23 @@ export function CalendarioSemanal({
   )
 }
 
-function BlocoDeAgendamento({ agendamento }: { agendamento: AgendamentoDaAgenda }) {
+function BlocoDeAgendamento({
+  agendamento,
+  aoAbrir,
+}: {
+  agendamento: AgendamentoDaAgenda
+  aoAbrir?: (id: number) => void
+}) {
   const horario = `${horaDoMomento(agendamento.dataHoraInicio)} – ${horaDoMomento(agendamento.dataHoraFim)}`
   return (
-    <div className="agenda-bloco" data-status={agendamento.status}>
+    <div
+      className="agenda-bloco"
+      data-status={agendamento.status}
+      {...(aoAbrir && {
+        ...propsDeAbrir(() => aoAbrir(agendamento.id)),
+        'aria-label': `Abrir reserva de ${agendamento.clienteNome}, ${horario}`,
+      })}
+    >
       <strong>{agendamento.clienteNome}</strong>
       <span>{agendamento.servicoNome}</span>
       <span className="agenda-bloco-horario">{horario}</span>
