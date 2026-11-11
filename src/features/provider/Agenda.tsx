@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAutenticacao } from '../../app/useAutenticacao'
-import { listarAgenda, type AgendamentoDaAgenda } from '../../data/agenda'
+import { INTERVALO_ATUALIZACAO_MS, listarAgenda, type AgendamentoDaAgenda } from '../../data/agenda'
 import { ErroApi } from '../../data/api'
 import { listarProfissionais, type Profissional } from '../../data/professionals'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
@@ -41,6 +41,8 @@ export function Agenda() {
     chave: string
     agendamentos?: AgendamentoDaAgenda[]
     erro?: string
+    /** Uma atualização em segundo plano falhou; os blocos mostrados podem estar desatualizados. */
+    atualizacaoFalhou?: boolean
   } | null>(null)
   // Cada consulta tem uma chave; enquanto o resultado guardado é de outra, a tela está carregando.
   const chave = `${estabelecimentoId}|${primeiroDia}|${profissionalId}|${status}|${tentativa}`
@@ -58,19 +60,46 @@ export function Agenda() {
     }
   }, [estabelecimentoId])
 
+  // Carrega a semana e a refaz de tempos em tempos. Uma consulta por vez; em segundo plano uma
+  // falha só avisa, sem apagar o que já está na tela. Trocar de semana ou de filtro descarta
+  // respostas antigas. A agenda inteira é relida (em vez de só as mudanças recentes) para que
+  // reservas remarcadas, canceladas ou fora do filtro também saiam da tela.
   useEffect(() => {
     if (estabelecimentoId == null) return
     let ativo = true
-    listarAgenda(estabelecimentoId, {
-      de: primeiroDia,
-      ate: ultimoDia,
-      profissionalId,
-      status: status ? [status] : [],
-    })
-      .then((agendamentos) => ativo && definirResultado({ chave, agendamentos }))
-      .catch((falha) => ativo && definirResultado({ chave, erro: mensagemFalha(falha) }))
+    let consultando = false
+    function consultar(emSegundoPlano: boolean) {
+      if (consultando || (emSegundoPlano && document.hidden)) return
+      consultando = true
+      listarAgenda(estabelecimentoId!, {
+        de: primeiroDia,
+        ate: ultimoDia,
+        profissionalId,
+        status: status ? [status] : [],
+      })
+        .then((agendamentos) => ativo && definirResultado({ chave, agendamentos }))
+        .catch((falha) => {
+          if (!ativo) return
+          if (emSegundoPlano) {
+            definirResultado((atual) =>
+              atual?.chave === chave ? { ...atual, atualizacaoFalhou: true } : atual,
+            )
+          } else {
+            definirResultado({ chave, erro: mensagemFalha(falha) })
+          }
+        })
+        .finally(() => {
+          consultando = false
+        })
+    }
+    const aoVoltarParaAba = () => consultar(true)
+    consultar(false)
+    const intervalo = window.setInterval(() => consultar(true), INTERVALO_ATUALIZACAO_MS)
+    document.addEventListener('visibilitychange', aoVoltarParaAba)
     return () => {
       ativo = false
+      window.clearInterval(intervalo)
+      document.removeEventListener('visibilitychange', aoVoltarParaAba)
     }
   }, [chave, estabelecimentoId, primeiroDia, ultimoDia, profissionalId, status])
 
@@ -141,7 +170,14 @@ export function Agenda() {
         ) : !atual?.agendamentos ? (
           <Empty>Carregando agenda...</Empty>
         ) : (
-          <CalendarioSemanal dias={dias} hoje={hoje} agendamentos={atual.agendamentos} />
+          <>
+            {atual.atualizacaoFalhou && (
+              <p className="muted" role="status">
+                Não foi possível atualizar a agenda agora. Tentaremos novamente em instantes.
+              </p>
+            )}
+            <CalendarioSemanal dias={dias} hoje={hoje} agendamentos={atual.agendamentos} />
+          </>
         )}
       </Card>
     </>

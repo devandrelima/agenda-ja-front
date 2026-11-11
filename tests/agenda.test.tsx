@@ -1,8 +1,9 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextoAutenticacao } from '../src/app/authState'
+import { INTERVALO_ATUALIZACAO_MS } from '../src/data/agenda'
 import { Agenda } from '../src/features/provider/Agenda'
 
 const sessao = {
@@ -249,5 +250,93 @@ describe('agenda semanal', () => {
     renderizar()
     expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
     expect(screen.getByLabelText('Filtrar por profissional')).toHaveValue('')
+  })
+})
+
+describe('atualização periódica da agenda', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2026-11-11T15:00:00Z') })
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  })
+
+  const passar = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
+
+  it('busca a semana de novo no intervalo e troca os blocos sem tela de carregamento', async () => {
+    let lista = [agendamento({})]
+    const requisicoes = stubFetch(() => resposta(lista))
+    renderizar()
+    await passar(0)
+    expect(screen.getByText('Marina Souza')).toBeInTheDocument()
+
+    // Remarcada para outra semana e substituída por outra reserva: a antiga some da tela.
+    lista = [agendamento({ id: 2, clienteNome: 'Paula Reis' })]
+    await passar(INTERVALO_ATUALIZACAO_MS)
+    expect(screen.getByText('Paula Reis')).toBeInTheDocument()
+    expect(screen.queryByText('Marina Souza')).not.toBeInTheDocument()
+    expect(screen.queryByText('Carregando agenda...')).not.toBeInTheDocument()
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(2)
+  })
+
+  it('não consulta enquanto a aba está oculta e atualiza ao voltar', async () => {
+    const requisicoes = stubFetch(() => resposta([agendamento({})]))
+    renderizar()
+    await passar(0)
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    await passar(INTERVALO_ATUALIZACAO_MS * 2)
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(1)
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(2)
+  })
+
+  it('não empilha consultas enquanto a anterior não terminou', async () => {
+    let liberar: (resposta: Response) => void = () => undefined
+    const requisicoes = stubFetch(() => resposta([]))
+    requisicoes.mockImplementation(async (caminho: string) => {
+      const url = new URL(caminho, 'http://localhost')
+      if (url.pathname.endsWith('/profissionais')) return resposta([])
+      return new Promise<Response>((resolver) => {
+        liberar = resolver
+      })
+    })
+    renderizar()
+    await passar(INTERVALO_ATUALIZACAO_MS * 3)
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(1)
+    await act(async () => liberar(resposta([agendamento({})])))
+    expect(screen.getByText('Marina Souza')).toBeInTheDocument()
+  })
+
+  it('mantém os blocos e avisa quando uma atualização falha, e se recupera depois', async () => {
+    let falhar = false
+    stubFetch(() => (falhar ? resposta({ mensagem: 'Erro.' }, 500) : resposta([agendamento({})])))
+    renderizar()
+    await passar(0)
+
+    falhar = true
+    await passar(INTERVALO_ATUALIZACAO_MS)
+    expect(screen.getByText('Marina Souza')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Não foi possível atualizar a agenda')
+
+    falhar = false
+    await passar(INTERVALO_ATUALIZACAO_MS)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('para de atualizar quando a tela é fechada', async () => {
+    const requisicoes = stubFetch(() => resposta([]))
+    renderizar()
+    await passar(0)
+    cleanup()
+    await passar(INTERVALO_ATUALIZACAO_MS * 2)
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(1)
   })
 })

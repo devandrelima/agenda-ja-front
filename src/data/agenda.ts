@@ -1,5 +1,8 @@
 import { requisitar } from './api'
 
+/** De quanto em quanto tempo a agenda aberta busca as mudanças feitas por outras pessoas. */
+export const INTERVALO_ATUALIZACAO_MS = 30_000
+
 export type AgendamentoDaAgenda = {
   id: number
   clienteNome: string
