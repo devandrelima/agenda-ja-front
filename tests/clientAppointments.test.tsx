@@ -88,8 +88,11 @@ it('lista reservas do cliente retornadas pela HU18', async () => {
     </MemoryRouter>,
   )
 
+  // O título aparece durante o carregamento; os links só depois que a lista chega.
   expect(await screen.findByRole('heading', { name: 'Seus agendamentos' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /studio marina/i })).toHaveTextContent('Aguardando confirmação')
+  expect(await screen.findByRole('link', { name: /studio marina/i })).toHaveTextContent(
+    'Aguardando confirmação',
+  )
   expect(screen.getByRole('link', { name: /vivian unhas/i })).toHaveTextContent('Confirmado')
   expect(screen.getByRole('link', { name: /novo agendamento/i })).toHaveAttribute(
     'href',
