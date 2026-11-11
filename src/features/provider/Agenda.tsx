@@ -3,7 +3,13 @@ import { useAutenticacao } from '../../app/useAutenticacao'
 import { listarAgenda, type AgendamentoDaAgenda } from '../../data/agenda'
 import { ErroApi } from '../../data/api'
 import { Button, Card, Empty } from '../../design-system/ui'
-import { chaveDeHoje, diasDaSemana, inicioDaSemana } from '../../domain/semana'
+import {
+  chaveDeHoje,
+  diasDaSemana,
+  inicioDaSemana,
+  rotuloDaSemana,
+  somarDiasNaChave,
+} from '../../domain/semana'
 import { CalendarioSemanal } from './CalendarioSemanal'
 
 function mensagemFalha(falha: unknown) {
@@ -19,7 +25,8 @@ export function Agenda() {
   const { sessao } = useAutenticacao()
   const estabelecimentoId = sessao?.estabelecimentoId
   const hoje = chaveDeHoje()
-  const dias = diasDaSemana(inicioDaSemana(hoje))
+  const [segunda, definirSegunda] = useState(() => inicioDaSemana(chaveDeHoje()))
+  const dias = diasDaSemana(segunda)
   const primeiroDia = dias[0]
   const ultimoDia = dias[dias.length - 1]
   const [tentativa, definirTentativa] = useState(0)
@@ -47,9 +54,31 @@ export function Agenda() {
     <>
       <header className="topbar">
         <div>
-          <p className="muted">Semana atual</p>
+          <p className="muted">{segunda === inicioDaSemana(hoje) ? 'Semana atual' : 'Semana'}</p>
           <h1>Agenda</h1>
         </div>
+        <nav className="agenda-navegacao" aria-label="Navegar entre semanas">
+          <Button
+            variant="secondary"
+            aria-label="Semana anterior"
+            onClick={() => definirSegunda(somarDiasNaChave(segunda, -7))}
+          >
+            ‹
+          </Button>
+          <Button variant="secondary" onClick={() => definirSegunda(inicioDaSemana(hoje))}>
+            Hoje
+          </Button>
+          <Button
+            variant="secondary"
+            aria-label="Próxima semana"
+            onClick={() => definirSegunda(somarDiasNaChave(segunda, 7))}
+          >
+            ›
+          </Button>
+          <strong className="agenda-semana" aria-live="polite">
+            {rotuloDaSemana(segunda)}
+          </strong>
+        </nav>
       </header>
       <Card>
         {atual?.erro ? (

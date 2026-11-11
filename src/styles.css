@@ -1560,6 +1560,15 @@ a.rating-count:hover {
   font-size: 0.8rem;
   color: var(--muted);
 }
+.agenda-navegacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.agenda-semana {
+  margin-left: 6px;
+}
 .dayhead.today {
   background: var(--selected);
   color: var(--brand);

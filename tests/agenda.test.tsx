@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextoAutenticacao } from '../src/app/authState'
@@ -149,5 +150,39 @@ describe('agenda semanal', () => {
     falhar = false
     screen.getByRole('button', { name: 'Tentar novamente' }).click()
     expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
+  })
+
+  it('navega entre semanas e volta para a semana atual', async () => {
+    const user = userEvent.setup()
+    const requisicoes = stubFetch((url) =>
+      url.searchParams.get('inicio') === '2026-11-16T00:00:00'
+        ? resposta([
+            agendamento({
+              clienteNome: 'Paula Reis',
+              dataHoraInicio: '2026-11-17T09:00:00',
+              dataHoraFim: '2026-11-17T10:00:00',
+            }),
+          ])
+        : resposta([agendamento({})]),
+    )
+    renderizar()
+    expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
+    expect(screen.getByText('9 a 15 de novembro de 2026')).toBeInTheDocument()
+    expect(screen.getByText('Semana atual')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Próxima semana' }))
+    expect(await screen.findByText('Paula Reis')).toBeInTheDocument()
+    expect(screen.queryByText('Marina Souza')).not.toBeInTheDocument()
+    expect(screen.getByText('16 a 22 de novembro de 2026')).toBeInTheDocument()
+    expect(screen.queryByText('Semana atual')).not.toBeInTheDocument()
+    expect(screen.getByText('seg. 16')).toBeInTheDocument()
+    expect(screen.queryByText('qua. 11')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Hoje' }))
+    expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Semana anterior' }))
+    expect(await screen.findByText('2 a 8 de novembro de 2026')).toBeInTheDocument()
+    const ultima = new URL(String(requisicoes.mock.calls.at(-1)![0]), 'http://localhost')
+    expect(ultima.searchParams.get('inicio')).toBe('2026-11-02T00:00:00')
   })
 })
