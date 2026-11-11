@@ -108,10 +108,8 @@ export async function reagendarAgendamento(
   )
 }
 
-/** De onde o modal da reserva lê e para onde grava: a API real ou, na demonstração, o mock. */
+/** De onde o modal da reserva lê e para onde grava. */
 export type FonteReserva = {
-  /** Os dados não vêm do servidor; o modal avisa que são um exemplo. */
-  demonstracao?: boolean
   buscar(): Promise<DetalhesAgendamento>
   alterarStatus(status: NovoStatusAgendamento): Promise<void>
   listarHorarios(reserva: DetalhesAgendamento, data: string): Promise<string[]>

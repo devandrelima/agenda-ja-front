@@ -2243,10 +2243,6 @@ a.rating-count:hover {
   outline: 2px solid var(--brand-light);
   outline-offset: -2px;
 }
-.reserva-demo {
-  margin: -8px 0 16px;
-  font-size: 0.88rem;
-}
 .metric-nota {
   margin: -6px 0 14px;
   font-size: 0.85rem;

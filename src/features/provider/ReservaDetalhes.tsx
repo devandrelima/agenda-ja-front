@@ -146,11 +146,6 @@ export function DetalhesDaReserva({
         <h2 id="reserva-dialog-title">
           {reagendando ? 'Reagendar reserva' : 'Detalhes da reserva'}
         </h2>
-        {fonte.demonstracao && (
-          <p className="muted reserva-demo">
-            Exemplo de demonstração: as alterações valem só nesta sessão do navegador.
-          </p>
-        )}
         {erro ? (
           <>
             <p className="auth-error" role="alert">
