@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { listarAgenda, type AgendamentoDaAgenda } from '../../data/agenda'
 import { ErroApi } from '../../data/api'
+import { listarProfissionais, type Profissional } from '../../data/professionals'
+import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { Button, Card, Empty } from '../../design-system/ui'
 import {
   chaveDeHoje,
@@ -21,6 +23,8 @@ function mensagemFalha(falha: unknown) {
   return falha instanceof Error ? falha.message : 'Não foi possível carregar a agenda.'
 }
 
+const statusFiltraveis = ['AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'CONCLUIDO', 'CANCELADO']
+
 export function Agenda() {
   const { sessao } = useAutenticacao()
   const estabelecimentoId = sessao?.estabelecimentoId
@@ -29,6 +33,9 @@ export function Agenda() {
   const dias = diasDaSemana(segunda)
   const primeiroDia = dias[0]
   const ultimoDia = dias[dias.length - 1]
+  const [profissionalId, definirProfissionalId] = useState('')
+  const [status, definirStatus] = useState('')
+  const [profissionais, definirProfissionais] = useState<Profissional[]>([])
   const [tentativa, definirTentativa] = useState(0)
   const [resultado, definirResultado] = useState<{
     chave: string
@@ -36,19 +43,36 @@ export function Agenda() {
     erro?: string
   } | null>(null)
   // Cada consulta tem uma chave; enquanto o resultado guardado é de outra, a tela está carregando.
-  const chave = `${estabelecimentoId}|${primeiroDia}|${tentativa}`
+  const chave = `${estabelecimentoId}|${primeiroDia}|${profissionalId}|${status}|${tentativa}`
   const atual = resultado?.chave === chave ? resultado : null
+
+  // Os profissionais só alimentam o filtro: se a lista falhar, a agenda continua funcionando.
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    let ativo = true
+    listarProfissionais(estabelecimentoId)
+      .then((lista) => ativo && definirProfissionais(lista))
+      .catch(() => undefined)
+    return () => {
+      ativo = false
+    }
+  }, [estabelecimentoId])
 
   useEffect(() => {
     if (estabelecimentoId == null) return
     let ativo = true
-    listarAgenda(estabelecimentoId, { de: primeiroDia, ate: ultimoDia })
+    listarAgenda(estabelecimentoId, {
+      de: primeiroDia,
+      ate: ultimoDia,
+      profissionalId,
+      status: status ? [status] : [],
+    })
       .then((agendamentos) => ativo && definirResultado({ chave, agendamentos }))
       .catch((falha) => ativo && definirResultado({ chave, erro: mensagemFalha(falha) }))
     return () => {
       ativo = false
     }
-  }, [chave, estabelecimentoId, primeiroDia, ultimoDia])
+  }, [chave, estabelecimentoId, primeiroDia, ultimoDia, profissionalId, status])
 
   return (
     <>
@@ -80,6 +104,32 @@ export function Agenda() {
           </strong>
         </nav>
       </header>
+      <div className="agenda-filtros">
+        <select
+          aria-label="Filtrar por profissional"
+          value={profissionalId}
+          onChange={(evento) => definirProfissionalId(evento.target.value)}
+        >
+          <option value="">Todos os profissionais</option>
+          {profissionais.map((profissional) => (
+            <option key={profissional.id} value={profissional.id}>
+              {profissional.nome}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filtrar por status"
+          value={status}
+          onChange={(evento) => definirStatus(evento.target.value)}
+        >
+          <option value="">Todos os status</option>
+          {statusFiltraveis.map((codigo) => (
+            <option key={codigo} value={codigo}>
+              {rotuloDoStatus(codigo)}
+            </option>
+          ))}
+        </select>
+      </div>
       <Card>
         {atual?.erro ? (
           <div role="alert">

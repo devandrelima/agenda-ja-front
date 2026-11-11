@@ -18,6 +18,10 @@ export type FiltrosDaAgenda = {
   de: string
   /** Último dia (`YYYY-MM-DD`), inclusive. */
   ate: string
+  /** Só os agendamentos deste profissional; sem valor, todos. */
+  profissionalId?: number | string
+  /** Códigos de status aceitos (`CONFIRMADO`...); vazio ou ausente, todos. */
+  status?: string[]
 }
 
 /**
@@ -26,9 +30,11 @@ export type FiltrosDaAgenda = {
  */
 export async function listarAgenda(
   estabelecimentoId: number | string,
-  { de, ate }: FiltrosDaAgenda,
+  { de, ate, profissionalId, status = [] }: FiltrosDaAgenda,
 ): Promise<AgendamentoDaAgenda[]> {
   const consulta = new URLSearchParams({ inicio: `${de}T00:00:00`, fim: `${ate}T23:59:59` })
+  if (profissionalId) consulta.set('profissionalId', String(profissionalId))
+  for (const codigo of status) consulta.append('status', codigo)
   const resposta = await requisitar(
     `/api/admin/estabelecimentos/${encodeURIComponent(estabelecimentoId)}/agenda?${consulta}`,
   )

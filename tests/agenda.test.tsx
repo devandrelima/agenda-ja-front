@@ -32,11 +32,34 @@ function resposta(dados: unknown, status = 200) {
   })
 }
 
-function stubFetch(tratar: (url: URL) => Response) {
-  const requisicoes = vi.fn(async (caminho: string) => tratar(new URL(caminho, 'http://localhost')))
+const profissional = (id: number, nome: string) => ({
+  id,
+  nome,
+  especialidades: [],
+  idsServicos: [],
+  diasDeAtendimento: [1],
+  diasDeFolga: [],
+  estabelecimentoId: 4,
+})
+
+function stubFetch(tratar: (url: URL) => Response, profissionais?: Response) {
+  const requisicoes = vi.fn(async (caminho: string) => {
+    const url = new URL(caminho, 'http://localhost')
+    if (url.pathname.endsWith('/profissionais'))
+      return (
+        profissionais ?? resposta([profissional(1, 'Ana Martins'), profissional(2, 'Clara Nunes')])
+      )
+    return tratar(url)
+  })
   vi.stubGlobal('fetch', requisicoes)
   return requisicoes
 }
+
+/** URLs das consultas à agenda (ignora a lista de profissionais do filtro). */
+const consultasDaAgenda = (requisicoes: ReturnType<typeof stubFetch>) =>
+  requisicoes.mock.calls
+    .map(([caminho]) => new URL(String(caminho), 'http://localhost'))
+    .filter((url) => url.pathname.endsWith('/agenda'))
 
 function renderizar() {
   render(
@@ -85,8 +108,8 @@ describe('agenda semanal', () => {
     const requisicoes = stubFetch(() => resposta([]))
     renderizar()
     await screen.findByRole('table', { name: 'Agenda da semana' })
-    expect(requisicoes).toHaveBeenCalledTimes(1)
-    const url = new URL(String(requisicoes.mock.calls[0][0]), 'http://localhost')
+    expect(consultasDaAgenda(requisicoes)).toHaveLength(1)
+    const [url] = consultasDaAgenda(requisicoes)
     expect(url.pathname).toBe('/api/admin/estabelecimentos/4/agenda')
     expect(url.searchParams.get('inicio')).toBe('2026-11-09T00:00:00')
     expect(url.searchParams.get('fim')).toBe('2026-11-15T23:59:59')
@@ -182,7 +205,49 @@ describe('agenda semanal', () => {
     expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Semana anterior' }))
     expect(await screen.findByText('2 a 8 de novembro de 2026')).toBeInTheDocument()
-    const ultima = new URL(String(requisicoes.mock.calls.at(-1)![0]), 'http://localhost')
+    const ultima = consultasDaAgenda(requisicoes).at(-1)!
     expect(ultima.searchParams.get('inicio')).toBe('2026-11-02T00:00:00')
+  })
+
+  it('filtra por profissional e por status na consulta', async () => {
+    const user = userEvent.setup()
+    const requisicoes = stubFetch((url) =>
+      resposta(
+        url.searchParams.get('profissionalId') === '2'
+          ? [agendamento({ id: 3, clienteNome: 'Paula Reis', profissionalId: 2 })]
+          : [agendamento({})],
+      ),
+    )
+    renderizar()
+    expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
+    expect(consultasDaAgenda(requisicoes)[0].searchParams.has('profissionalId')).toBe(false)
+    expect(consultasDaAgenda(requisicoes)[0].searchParams.has('status')).toBe(false)
+
+    await user.selectOptions(
+      await screen
+        .findByRole('option', { name: 'Clara Nunes' })
+        .then(() => screen.getByLabelText('Filtrar por profissional')),
+      'Clara Nunes',
+    )
+    expect(await screen.findByText('Paula Reis')).toBeInTheDocument()
+    expect(screen.queryByText('Marina Souza')).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Filtrar por status'), 'Cancelado')
+    await screen.findByRole('table')
+    const ultima = consultasDaAgenda(requisicoes).at(-1)!
+    expect(ultima.searchParams.get('profissionalId')).toBe('2')
+    expect(ultima.searchParams.getAll('status')).toEqual(['CANCELADO'])
+
+    await user.selectOptions(screen.getByLabelText('Filtrar por profissional'), '')
+    await user.selectOptions(screen.getByLabelText('Filtrar por status'), '')
+    await screen.findByText('Marina Souza')
+    expect(consultasDaAgenda(requisicoes).at(-1)!.searchParams.has('status')).toBe(false)
+  })
+
+  it('mantém a agenda funcionando quando a lista de profissionais falha', async () => {
+    stubFetch(() => resposta([agendamento({})]), resposta({ mensagem: 'Erro.' }, 500))
+    renderizar()
+    expect(await screen.findByText('Marina Souza')).toBeInTheDocument()
+    expect(screen.getByLabelText('Filtrar por profissional')).toHaveValue('')
   })
 })

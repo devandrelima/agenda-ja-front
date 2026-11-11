@@ -1566,6 +1566,12 @@ a.rating-count:hover {
   align-items: center;
   gap: 8px;
 }
+.agenda-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
 .agenda-semana {
   margin-left: 6px;
 }
