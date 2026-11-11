@@ -531,9 +531,6 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
-      <p className="muted metric-nota">
-        Confirmados, faturamento e pendências consideram os próximos {DIAS_DO_RESUMO} dias.
-      </p>
       {agenda.atualizacaoFalhou && (
         <p className="muted" role="status">
           Não foi possível atualizar os atendimentos agora. Tentaremos novamente em instantes.
