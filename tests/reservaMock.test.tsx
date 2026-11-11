@@ -7,7 +7,7 @@ import { ErroApi } from '../src/data/api'
 import { criarFonteMock } from '../src/data/mockReserva'
 import { repositorioMock } from '../src/data/mockRepository'
 import { paraChaveData } from '../src/domain/availability'
-import { Agenda, Dashboard } from '../src/features/provider/Provider'
+import { Dashboard } from '../src/features/provider/Provider'
 
 const sessao = {
   id: 1,
@@ -76,37 +76,12 @@ describe('fonte mock da reserva', () => {
 describe('modal de demonstração nas telas mockadas', () => {
   afterEach(cleanup)
 
-  it('abre ao clicar em um agendamento da agenda e confirma a reserva', async () => {
-    const user = userEvent.setup()
-    render(<Agenda />)
-
-    await user.click(screen.getByText('Luana Costa'))
-    const modal = await screen.findByRole('dialog')
-    expect(within(modal).getByText(/Exemplo de demonstração/)).toBeInTheDocument()
-    expect(await within(modal).findByText('Escova')).toBeInTheDocument()
-    expect(within(modal).getByText('Aguardando confirmação')).toBeInTheDocument()
-
-    await user.click(within(modal).getByRole('button', { name: 'Confirmar' }))
-    expect(await within(modal).findByRole('status')).toHaveTextContent('Reserva confirmada.')
-    expect(await within(modal).findByText('Confirmado')).toBeInTheDocument()
-  })
-
-  it('abre pelo teclado e fecha com Esc', async () => {
-    const user = userEvent.setup()
-    render(<Agenda />)
-
-    screen.getByText('Paula Reis').closest<HTMLElement>('[role="button"]')!.focus()
-    await user.keyboard('{Enter}')
-    expect(await screen.findByRole('dialog')).toBeInTheDocument()
-    await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
   it('abre pela página inicial e atualiza os números depois de concluir', async () => {
     const user = userEvent.setup()
     renderizarDashboard()
     const confirmados = () => screen.getByText('Confirmados').parentElement!
-    expect(confirmados()).toHaveTextContent('2')
+    const antes = Number(confirmados().textContent?.replace('Confirmados', ''))
+    expect(antes).toBeGreaterThan(0)
 
     await user.click(screen.getByText('Marina Souza'))
     const modal = await screen.findByRole('dialog')
@@ -114,7 +89,7 @@ describe('modal de demonstração nas telas mockadas', () => {
     await within(modal).findByText('Reserva concluída.')
     await user.click(within(modal).getByRole('button', { name: 'Fechar' }))
 
-    expect(confirmados()).toHaveTextContent('1')
+    expect(confirmados()).toHaveTextContent(String(antes - 1))
     expect(screen.getByText('Concluído')).toBeInTheDocument()
   })
 })

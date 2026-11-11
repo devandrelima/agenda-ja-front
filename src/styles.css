@@ -1539,8 +1539,8 @@ a.rating-count:hover {
 }
 .week-grid {
   display: grid;
-  grid-template-columns: 70px repeat(5, minmax(145px, 1fr));
-  min-width: 760px;
+  grid-template-columns: 70px repeat(7, minmax(140px, 1fr));
+  min-width: 1050px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -1555,10 +1555,45 @@ a.rating-count:hover {
   text-align: center;
 }
 .slot {
-  height: 70px;
+  min-height: 70px;
   border-top: 1px solid var(--border);
   font-size: 0.8rem;
   color: var(--muted);
+}
+.dayhead.today {
+  background: var(--selected);
+  color: var(--brand);
+}
+.slot-hour {
+  text-align: center;
+}
+.agenda-bloco {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 6px;
+  padding: 7px 8px;
+  border-left: 3px solid var(--brand-light);
+  border-radius: 6px;
+  background: var(--selected);
+  color: var(--text);
+}
+.agenda-bloco strong {
+  overflow-wrap: anywhere;
+}
+.agenda-bloco .badge {
+  justify-self: start;
+  margin-top: 3px;
+}
+.agenda-bloco-horario {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.agenda-bloco[data-status='CANCELADO'] {
+  opacity: 0.65;
+  border-left-color: #ef4444;
+}
+.agenda-bloco[data-status='CANCELADO'] strong {
+  text-decoration: line-through;
 }
 .booking {
   padding: 24px 0 60px;
