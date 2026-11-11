@@ -181,6 +181,11 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
               E-mail atualizado. Entre novamente para continuar.
             </p>
           )}
+          {!cadastro && localizacao.state?.contaDesativada && (
+            <p className="notice" role="status">
+              Conta desativada. Suas reservas futuras foram canceladas.
+            </p>
+          )}
           {cadastro && perfil === 'GESTOR' && (
             <>
               <Field

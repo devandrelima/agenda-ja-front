@@ -28,8 +28,11 @@ function renderizar() {
   )
 }
 
+let falhaDesativacao = false
+
 beforeEach(() => {
   chamadas = []
+  falhaDesativacao = false
   encerrar.mockClear()
   vi.stubGlobal('fetch', vi.fn(async (entrada: RequestInfo | URL, opcoes?: RequestInit) => {
     const caminho = String(entrada)
@@ -39,6 +42,10 @@ beforeEach(() => {
     if (caminho === '/api/clientes/me' && metodo === 'GET') return resposta(perfil)
     if (caminho === '/api/clientes/me' && metodo === 'PUT')
       return resposta({ ...perfil, ...JSON.parse(opcoes!.body as string) })
+    if (caminho === '/api/clientes/me' && metodo === 'DELETE')
+      return falhaDesativacao
+        ? resposta({ mensagem: 'Falha ao desativar.' }, 500)
+        : new Response(null, { status: 204 })
     return resposta({ mensagem: 'Rota não esperada.' }, 404)
   }))
 })
@@ -75,4 +82,37 @@ it('valida o e-mail antes de enviar', async () => {
   await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Informe um e-mail válido.')
   expect(chamadas.some((c) => c.metodo === 'PUT')).toBe(false)
+})
+
+it('só desativa a conta depois da confirmação e volta ao login', async () => {
+  const user = userEvent.setup()
+  renderizar()
+
+  await user.click(await screen.findByRole('button', { name: 'Desativar minha conta' }))
+  const dialogo = await screen.findByRole('dialog', { name: 'Desativar conta?' })
+  expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(false)
+
+  await user.click(screen.getByRole('button', { name: 'Manter conta' }))
+  expect(dialogo).not.toBeInTheDocument()
+  expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(false)
+
+  await user.click(screen.getByRole('button', { name: 'Desativar minha conta' }))
+  await user.click(await screen.findByRole('button', { name: 'Desativar conta' }))
+
+  expect(await screen.findByText('Tela de login')).toBeInTheDocument()
+  expect(chamadas.filter((c) => c.metodo === 'DELETE')).toHaveLength(1)
+  expect(encerrar).toHaveBeenCalled()
+})
+
+it('mantém o diálogo aberto com a mensagem quando a desativação falha', async () => {
+  const user = userEvent.setup()
+  falhaDesativacao = true
+  renderizar()
+
+  await user.click(await screen.findByRole('button', { name: 'Desativar minha conta' }))
+  await user.click(await screen.findByRole('button', { name: 'Desativar conta' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Falha ao desativar.')
+  expect(screen.getByRole('dialog', { name: 'Desativar conta?' })).toBeInTheDocument()
+  expect(encerrar).not.toHaveBeenCalled()
 })

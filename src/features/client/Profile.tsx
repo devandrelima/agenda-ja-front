@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button, Field, Logo } from '../../design-system/ui'
-import { atualizarMeuPerfil, buscarMeuPerfil, type PerfilCliente } from '../../data/clientProfile'
+import { atualizarMeuPerfil, buscarMeuPerfil, desativarMinhaConta, type PerfilCliente } from '../../data/clientProfile'
 import { ErroApi } from '../../data/auth'
 import { emailValido, formatarTelefone, telefoneValido } from '../../domain/contact'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
+import { ConfirmarDesativacao } from './ConfirmDeactivate'
 
 const TAMANHO_MAXIMO_FOTO = 5_000_000
 
@@ -32,6 +33,9 @@ export function PerfilCliente() {
   const [salvando, definirSalvando] = useState(false)
   const [erro, definirErro] = useState('')
   const [aviso, definirAviso] = useState('')
+  const [confirmandoDesativacao, definirConfirmandoDesativacao] = useState(false)
+  const [desativando, definirDesativando] = useState(false)
+  const [erroDesativacao, definirErroDesativacao] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -105,6 +109,23 @@ export function PerfilCliente() {
     }
   }
 
+  async function desativar() {
+    definirErroDesativacao('')
+    definirDesativando(true)
+    try {
+      await desativarMinhaConta()
+      try {
+        await encerrar()
+      } catch {
+        // a conta já foi desativada; a sessão local é descartada de qualquer forma
+      }
+      navegar(caminhos.login, { replace: true, state: { contaDesativada: true } })
+    } catch (falha) {
+      definirErroDesativacao(falha instanceof Error ? falha.message : 'Não foi possível desativar sua conta.')
+      definirDesativando(false)
+    }
+  }
+
   return (
     <main className="client-appointments-page">
       <section className="client-appointments-shell client-profile-shell" aria-labelledby="client-profile-title">
@@ -140,9 +161,18 @@ export function PerfilCliente() {
             {aviso && <p className="client-appointment-feedback" role="status">{aviso}</p>}
             <Button className="auth-submit" type="submit" disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar alterações'}</Button>
             <Button className="client-logout-button" type="button" variant="ghost" onClick={() => void deslogar()}>Deslogar</Button>
+            <Button className="client-deactivate-button" type="button" variant="ghost" onClick={() => { definirErroDesativacao(''); definirConfirmandoDesativacao(true) }}>Desativar minha conta</Button>
           </form>
         )}
       </section>
+      {confirmandoDesativacao && (
+        <ConfirmarDesativacao
+          desativando={desativando}
+          erro={erroDesativacao}
+          aoCancelar={() => definirConfirmandoDesativacao(false)}
+          aoConfirmar={() => void desativar()}
+        />
+      )}
     </main>
   )
 }
