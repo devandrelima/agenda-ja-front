@@ -2244,6 +2244,8 @@ a.rating-count:hover {
   outline-offset: -2px;
 }
 .metric-nota {
-  margin: -6px 0 14px;
-  font-size: 0.85rem;
+  margin: 14px 0 0;
+  /* Alinha com o texto dos cartões acima: borda de 1px mais o padding de 20px. */
+  padding: 0 21px;
+  font-size: 0.95rem;
 }
