@@ -50,3 +50,9 @@ export function cabecalhoDoDia(chave: string) {
     porExtenso: formatarDiaMes(chave, { weekday: 'long', day: 'numeric', month: 'long' }),
   }
 }
+
+/** Ex.: `qui. 12`. */
+export function rotuloCurtoDoDia(chave: string): string {
+  const { diaDaSemana, diaDoMes } = cabecalhoDoDia(chave)
+  return `${diaDaSemana} ${diaDoMes}`
+}

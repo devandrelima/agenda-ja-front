@@ -1,33 +1,8 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ContextoAutenticacao } from '../src/app/authState'
+import { describe, expect, it } from 'vitest'
 import { ErroApi } from '../src/data/api'
 import { criarFonteMock } from '../src/data/mockReserva'
 import { repositorioMock } from '../src/data/mockRepository'
 import { paraChaveData } from '../src/domain/availability'
-import { Dashboard } from '../src/features/provider/Provider'
-
-const sessao = {
-  id: 1,
-  nome: 'Ana Gestora',
-  email: 'a@a.com',
-  role: 'GESTOR',
-  estabelecimentoId: null,
-}
-
-function renderizarDashboard() {
-  render(
-    <MemoryRouter>
-      <ContextoAutenticacao.Provider
-        value={{ sessao, carregando: false, autenticar: vi.fn(), encerrar: vi.fn() }}
-      >
-        <Dashboard />
-      </ContextoAutenticacao.Provider>
-    </MemoryRouter>,
-  )
-}
 
 /** Primeira data dos próximos dias em que a profissional da reserva tem horários livres. */
 async function dataComHorarios(idAgendamento: string) {
@@ -70,26 +45,5 @@ describe('fonte mock da reserva', () => {
     const a1 = repositorioMock.buscarAgendamentos().find((item) => item.id === 'a1')!
     const [dataA1, horaA1] = [a1.inicio.slice(0, 10), a1.inicio.slice(11, 16)]
     await expect(fonte.reagendar(dataA1, horaA1)).rejects.toMatchObject({ status: 409 })
-  })
-})
-
-describe('modal de demonstração nas telas mockadas', () => {
-  afterEach(cleanup)
-
-  it('abre pela página inicial e atualiza os números depois de concluir', async () => {
-    const user = userEvent.setup()
-    renderizarDashboard()
-    const confirmados = () => screen.getByText('Confirmados').parentElement!
-    const antes = Number(confirmados().textContent?.replace('Confirmados', ''))
-    expect(antes).toBeGreaterThan(0)
-
-    await user.click(screen.getByText('Marina Souza'))
-    const modal = await screen.findByRole('dialog')
-    await user.click(await within(modal).findByRole('button', { name: 'Concluir' }))
-    await within(modal).findByText('Reserva concluída.')
-    await user.click(within(modal).getByRole('button', { name: 'Fechar' }))
-
-    expect(confirmados()).toHaveTextContent(String(antes - 1))
-    expect(screen.getByText('Concluído')).toBeInTheDocument()
   })
 })

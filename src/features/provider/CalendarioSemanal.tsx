@@ -3,7 +3,7 @@ import type { AgendamentoDaAgenda } from '../../data/agenda'
 import { Badge } from '../../design-system/ui'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { cabecalhoDoDia } from '../../domain/semana'
-import { propsDeAbrir } from './useReservaMock'
+import { propsDeAbrir } from './propsDeAbrir'
 
 const PRIMEIRA_HORA = 8
 const ULTIMA_HORA = 19

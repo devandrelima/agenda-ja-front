@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { listarProfissionais, type Profissional } from '../../data/professionals'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
-import { criarFonteApi, type FonteReserva } from '../../data/agendamentos'
 import { Button, Card, Empty } from '../../design-system/ui'
 import {
   chaveDeHoje,
@@ -12,7 +11,7 @@ import {
   somarDiasNaChave,
 } from '../../domain/semana'
 import { CalendarioSemanal } from './CalendarioSemanal'
-import { DetalhesDaReserva } from './ReservaDetalhes'
+import { useReservaAberta } from './useReservaAberta'
 import { useAgendaDoPeriodo } from './useAgendaDoPeriodo'
 
 const statusFiltraveis = ['AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'CONCLUIDO', 'CANCELADO']
@@ -28,7 +27,6 @@ export function Agenda() {
   const [profissionalId, definirProfissionalId] = useState('')
   const [status, definirStatus] = useState('')
   const [profissionais, definirProfissionais] = useState<Profissional[]>([])
-  const [fonteAberta, definirFonteAberta] = useState<FonteReserva | null>(null)
   // Os profissionais só alimentam o filtro: se a lista falhar, a agenda continua funcionando.
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -50,6 +48,8 @@ export function Agenda() {
       status,
     },
   )
+
+  const reserva = useReservaAberta(estabelecimentoId, recarregar)
 
   return (
     <>
@@ -128,18 +128,12 @@ export function Agenda() {
               dias={dias}
               hoje={hoje}
               agendamentos={agendamentos}
-              aoAbrir={(id) => definirFonteAberta(criarFonteApi(estabelecimentoId!, id))}
+              aoAbrir={reserva.abrir}
             />
           </>
         )}
       </Card>
-      {fonteAberta && (
-        <DetalhesDaReserva
-          fonte={fonteAberta}
-          aoFechar={() => definirFonteAberta(null)}
-          aoAtualizar={recarregar}
-        />
-      )}
+      {reserva.modal}
     </>
   )
 }
