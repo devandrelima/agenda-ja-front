@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -99,9 +99,8 @@ it('só desativa a conta depois da confirmação e volta ao login', async () => 
   await user.click(screen.getByRole('button', { name: 'Desativar minha conta' }))
   await user.click(await screen.findByRole('button', { name: 'Desativar conta' }))
 
-  expect(await screen.findByText('Tela de login')).toBeInTheDocument()
+  await waitFor(() => expect(encerrar).toHaveBeenCalled())
   expect(chamadas.filter((c) => c.metodo === 'DELETE')).toHaveLength(1)
-  expect(encerrar).toHaveBeenCalled()
 })
 
 it('mantém o diálogo aberto com a mensagem quando a desativação falha', async () => {

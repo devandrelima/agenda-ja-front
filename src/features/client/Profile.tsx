@@ -87,8 +87,8 @@ export function PerfilCliente() {
       definirEmail(atualizado.email)
       definirFotoUrl(atualizado.fotoUrl)
       if (atualizado.email !== perfil.email) {
+        navegar(caminhos.meuPerfil, { replace: true, state: { perfilAtualizado: true } })
         await encerrar()
-        navegar(caminhos.login, { replace: true, state: { perfilAtualizado: true } })
         return
       }
       definirAviso('Informações atualizadas com sucesso.')
@@ -114,12 +114,12 @@ export function PerfilCliente() {
     definirDesativando(true)
     try {
       await desativarMinhaConta()
+      navegar(caminhos.meuPerfil, { replace: true, state: { contaDesativada: true } })
       try {
         await encerrar()
       } catch {
         // a conta já foi desativada; a sessão local é descartada de qualquer forma
       }
-      navegar(caminhos.login, { replace: true, state: { contaDesativada: true } })
     } catch (falha) {
       definirErroDesativacao(falha instanceof Error ? falha.message : 'Não foi possível desativar sua conta.')
       definirDesativando(false)
