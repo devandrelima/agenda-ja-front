@@ -181,6 +181,11 @@ function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
               E-mail atualizado. Entre novamente para continuar.
             </p>
           )}
+          {!cadastro && localizacao.state?.contaDesativada && (
+            <p className="notice" role="status">
+              Conta desativada. Suas reservas futuras foram canceladas.
+            </p>
+          )}
           {cadastro && perfil === 'GESTOR' && (
             <>
               <Field
@@ -445,13 +450,18 @@ function RotaProtegida({ children }: PropsWithChildren) {
 
 function RotaCliente({ children }: PropsWithChildren) {
   const { sessao, carregando } = useAutenticacao()
+  const localizacao = useLocation()
   if (carregando)
     return (
       <main className="auth" role="status">
         Carregando sessão...
       </main>
     )
-  if (sessao?.role !== 'CLIENTE') return <Navigate to={caminhos.login} replace />
+  if (sessao?.role !== 'CLIENTE') {
+    // avisos de perfil sobrevivem ao redirecionamento causado pelo fim da sessão
+    const { contaDesativada, perfilAtualizado } = localizacao.state ?? {}
+    return <Navigate to={caminhos.login} replace state={{ contaDesativada, perfilAtualizado }} />
+  }
   return children
 }
 

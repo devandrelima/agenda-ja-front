@@ -81,6 +81,7 @@
 .client-profile-form .field input { width: 100%; min-height: 48px; border-radius: 12px; }
 .client-profile-form .auth-submit { width: 100%; min-height: 52px; margin-top: 4px; border-radius: 13px; }
 .client-logout-button { justify-self: center; color: #b91c1c; }
+.client-deactivate-button { justify-self: center; margin-top: -8px; color: #b91c1c; font-size: .9rem; }
 .client-appointments-intro {
   margin: 60px 10px 64px;
 }

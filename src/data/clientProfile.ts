@@ -24,3 +24,8 @@ export async function atualizarMeuPerfil(dados: PerfilClienteAtualizacao): Promi
   })
   return resposta.json()
 }
+
+export async function desativarMinhaConta(): Promise<void> {
+  const token = await tokenCsrf()
+  await requisitar('/api/clientes/me', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': token } })
+}
