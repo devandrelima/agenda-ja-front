@@ -146,6 +146,7 @@ export function ClienteDetalhe() {
   const [cliente, definirCliente] = useState<ClienteHistorico>()
   const [carregando, definirCarregando] = useState(true)
   const [erro, definirErro] = useState('')
+  const [naoEncontrado, definirNaoEncontrado] = useState(false)
   const [tentativa, definirTentativa] = useState(0)
 
   useEffect(() => {
@@ -154,7 +155,11 @@ export function ClienteDetalhe() {
     let ativo = true
     buscarHistoricoDoCliente(estabelecimentoId, idNumerico)
       .then((dados) => ativo && definirCliente(dados))
-      .catch((falha) => ativo && definirErro(mensagemFalha(falha)))
+      .catch((falha) => {
+        if (!ativo) return
+        definirNaoEncontrado(falha instanceof ErroApi && falha.status === 404)
+        definirErro(mensagemFalha(falha))
+      })
       .finally(() => ativo && definirCarregando(false))
     return () => {
       ativo = false
@@ -180,17 +185,19 @@ export function ClienteDetalhe() {
           <p className="auth-error" role="alert">
             {erroExibido}
           </p>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              definirErro('')
-              definirCarregando(true)
-              definirTentativa((atual) => atual + 1)
-            }}
-          >
-            Tentar novamente
-          </Button>
+          {idValido && !naoEncontrado && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                definirErro('')
+                definirCarregando(true)
+                definirTentativa((atual) => atual + 1)
+              }}
+            >
+              Tentar novamente
+            </Button>
+          )}
         </Card>
       ) : (
         <>

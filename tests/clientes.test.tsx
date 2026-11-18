@@ -106,6 +106,7 @@ it('informa quando o cliente não existe neste estabelecimento', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => json({}, 404)))
   renderizar('/painel/clientes/99')
   expect(await screen.findByRole('alert')).toHaveTextContent('Cliente não encontrado.')
+  expect(screen.queryByRole('button', { name: 'Tentar novamente' })).not.toBeInTheDocument()
 })
 
 it('rejeita um identificador inválido sem chamar a API', async () => {
@@ -114,4 +115,5 @@ it('rejeita um identificador inválido sem chamar a API', async () => {
   renderizar('/painel/clientes/abc')
   expect(await screen.findByRole('alert')).toHaveTextContent('Cliente não encontrado.')
   expect(fetchFalso).not.toHaveBeenCalled()
+  expect(screen.queryByRole('button', { name: 'Tentar novamente' })).not.toBeInTheDocument()
 })
