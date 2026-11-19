@@ -1214,6 +1214,49 @@ a.rating-count:hover {
 .dashboard-section {
   padding: 20px 0;
 }
+.report-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 190px) minmax(0, 190px) auto;
+  align-items: end;
+  gap: 16px;
+}
+.report-filter .field {
+  margin: 0;
+}
+.report-metrics {
+  margin-top: 24px;
+}
+.popular-services {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+  counter-reset: services;
+}
+.popular-services li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  counter-increment: services;
+}
+.popular-services li::before {
+  content: counter(services);
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  color: var(--brand);
+  font-weight: 700;
+  background: #e6f5f3;
+  border-radius: 50%;
+}
+.popular-services li strong { margin-right: auto; }
+.popular-services li span { color: var(--muted); font-size: .9rem; white-space: nowrap; }
 .business-cover-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 436px;
@@ -1939,6 +1982,8 @@ a.rating-count:hover {
   }
 }
 @media (max-width: 700px) {
+  .report-filter { grid-template-columns: 1fr; }
+  .report-filter .button { width: 100%; }
   .business-profile-form {
     grid-template-columns: 1fr;
   }

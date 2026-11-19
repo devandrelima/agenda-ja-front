@@ -29,6 +29,7 @@ import {
   ModuloFuturo,
 } from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
+import { Relatorios } from '../features/provider/Reports'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
 import { Servicos } from '../features/provider/Services'
 import {
@@ -46,7 +47,6 @@ import { caminhoDeAvaliacoesValido, caminhos } from './paths'
 
 const modulosFuturos = [
   { caminho: 'clientes', titulo: 'Clientes' },
-  { caminho: 'relatorios', titulo: 'Relatórios' },
 ]
 
 function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
@@ -577,6 +577,16 @@ export function App() {
               <RotaProtegida>
                 <LayoutPrestador>
                   <Servicos />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/painel/relatorios"
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <Relatorios />
                 </LayoutPrestador>
               </RotaProtegida>
             }
