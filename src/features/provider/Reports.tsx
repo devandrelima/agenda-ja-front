@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { buscarRelatorio, type RelatorioOperacional } from '../../data/operational'
+import { chaveDeHoje } from '../../domain/semana'
 import { Button, Card, Empty, Field } from '../../design-system/ui'
 
-const dataHoje = () => new Date().toISOString().slice(0, 10)
+const dataHoje = chaveDeHoje
 const inicioDoMes = () => `${dataHoje().slice(0, 8)}01`
 const moeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
