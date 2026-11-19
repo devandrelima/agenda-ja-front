@@ -67,6 +67,20 @@ it('lista os clientes com a contagem de agendamentos e filtra pelo nome', async 
   expect(screen.getByText(/nenhum cliente encontrado/i)).toBeInTheDocument()
 })
 
+it('combina a busca por nome com a quantidade mínima de agendamentos', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => json(resumos)))
+  const user = userEvent.setup()
+  renderizar('/painel/clientes')
+
+  await screen.findByRole('link', { name: /maria josé/i })
+  await user.type(screen.getByRole('spinbutton', { name: 'Quantidade mínima de agendamentos' }), '2')
+  expect(screen.getByRole('link', { name: /maria josé/i })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /joão pedro/i })).not.toBeInTheDocument()
+
+  await user.type(screen.getByRole('searchbox', { name: 'Buscar cliente por nome' }), 'joao')
+  expect(screen.getByText(/nenhum cliente encontrado com esses filtros/i)).toBeInTheDocument()
+})
+
 it('mostra o estado vazio quando não há clientes', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => json([])))
   renderizar('/painel/clientes')

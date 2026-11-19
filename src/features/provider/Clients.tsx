@@ -11,7 +11,12 @@ import {
 } from '../../data/clients'
 import { Badge, Button, Card, Empty } from '../../design-system/ui'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
-import { filtrarClientesPorNome, linkWhatsapp, rotuloDeVisitas } from '../../domain/clients'
+import {
+  filtrarClientesPorNome,
+  filtrarClientesPorQuantidade,
+  linkWhatsapp,
+  rotuloDeVisitas,
+} from '../../domain/clients'
 import { formatarTelefone } from '../../domain/contact'
 
 const formatarValor = (valor: number) =>
@@ -51,6 +56,7 @@ export function Clientes() {
   const estabelecimentoId = sessao?.estabelecimentoId
   const [clientes, definirClientes] = useState<ClienteResumo[]>([])
   const [busca, definirBusca] = useState('')
+  const [minimo, definirMinimo] = useState('')
   const [carregando, definirCarregando] = useState(true)
   const [erro, definirErro] = useState('')
   const [tentativa, definirTentativa] = useState(0)
@@ -69,7 +75,7 @@ export function Clientes() {
 
   if (estabelecimentoId == null) return <SemEstabelecimento titulo="Clientes" />
 
-  const visiveis = filtrarClientesPorNome(clientes, busca)
+  const visiveis = filtrarClientesPorQuantidade(filtrarClientesPorNome(clientes, busca), minimo)
 
   return (
     <>
@@ -99,16 +105,29 @@ export function Clientes() {
         <Empty>Nenhum cliente com agendamentos neste estabelecimento ainda.</Empty>
       ) : (
         <>
-          <input
-            className="client-search"
-            type="search"
-            aria-label="Buscar cliente por nome"
-            placeholder="Buscar cliente por nome"
-            value={busca}
-            onChange={(evento) => definirBusca(evento.target.value)}
-          />
+          <div className="client-filters">
+            <input
+              className="client-search"
+              type="search"
+              aria-label="Buscar cliente por nome"
+              placeholder="Buscar cliente por nome"
+              value={busca}
+              onChange={(evento) => definirBusca(evento.target.value)}
+            />
+            <input
+              className="client-search client-min-count"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              aria-label="Quantidade mínima de agendamentos"
+              placeholder="Mín. de agendamentos"
+              value={minimo}
+              onChange={(evento) => definirMinimo(evento.target.value)}
+            />
+          </div>
           {visiveis.length === 0 ? (
-            <Empty>Nenhum cliente encontrado para “{busca.trim()}”.</Empty>
+            <Empty>Nenhum cliente encontrado com esses filtros.</Empty>
           ) : (
             <div className="service-list">
               {visiveis.map((cliente) => (

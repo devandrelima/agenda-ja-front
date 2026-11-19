@@ -10,6 +10,13 @@ export function filtrarClientesPorNome(clientes: ClienteResumo[], busca: string)
   return clientes.filter((cliente) => semAcento(cliente.nome).includes(termo))
 }
 
+/** Mantém quem tem ao menos `minimo` agendamentos; texto vazio ou inválido não filtra. */
+export function filtrarClientesPorQuantidade(clientes: ClienteResumo[], minimo: string) {
+  const valor = Number(minimo)
+  if (!minimo.trim() || !Number.isFinite(valor)) return clientes
+  return clientes.filter((cliente) => cliente.totalVisitas >= valor)
+}
+
 export function rotuloDeVisitas(total: number) {
   return total === 1 ? '1 agendamento' : `${total} agendamentos`
 }

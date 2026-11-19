@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import type { ClienteResumo } from '../src/data/clients'
-import { filtrarClientesPorNome, linkWhatsapp, rotuloDeVisitas } from '../src/domain/clients'
+import { filtrarClientesPorNome, filtrarClientesPorQuantidade, linkWhatsapp, rotuloDeVisitas } from '../src/domain/clients'
 
 const cliente = (id: number, nome: string): ClienteResumo => ({
   id,
@@ -32,4 +32,16 @@ it('monta o link do WhatsApp com o DDI do Brasil', () => {
   expect(linkWhatsapp('85999998888')).toBe('https://wa.me/5585999998888')
   expect(linkWhatsapp('(85) 9 9999-8888')).toBe('https://wa.me/5585999998888')
   expect(linkWhatsapp('5585999998888')).toBe('https://wa.me/5585999998888')
+})
+
+it('filtra pela quantidade mínima de agendamentos', () => {
+  const lista = [
+    { ...cliente(1, 'A'), totalVisitas: 1 },
+    { ...cliente(2, 'B'), totalVisitas: 3 },
+    { ...cliente(3, 'C'), totalVisitas: 5 },
+  ]
+  expect(filtrarClientesPorQuantidade(lista, '3').map((c) => c.id)).toEqual([2, 3])
+  expect(filtrarClientesPorQuantidade(lista, '6')).toEqual([])
+  expect(filtrarClientesPorQuantidade(lista, '0')).toHaveLength(3)
+  expect(filtrarClientesPorQuantidade(lista, '')).toHaveLength(3)
 })

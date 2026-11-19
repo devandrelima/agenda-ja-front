@@ -2245,10 +2245,21 @@ a.rating-count:hover {
   outline-offset: -2px;
 }
 
+.client-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.client-filters .client-search:first-child {
+  flex: 1 1 240px;
+}
+.client-min-count {
+  flex: 0 1 200px;
+}
 .client-search {
   width: 100%;
   min-height: 44px;
-  margin-bottom: 16px;
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
