@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useContext, useEffect, useState, type ReactElement } from 'react'
 import {
   Link,
   Navigate,
@@ -24,6 +24,7 @@ import { caminhos } from '../../app/paths'
 import { Card, Steps } from '../../design-system/ui'
 import { Agendamento, MarcaAgendaJa, PaginaEstabelecimento } from './Booking'
 import { ConfirmacaoDoAgendamento } from './BookingConfirmation'
+import { ContextoAutenticacao } from '../../app/authState'
 import { PaginaAvaliacoes } from '../reviews/Reviews'
 
 const formatarMoeda = (valor: number) =>
@@ -121,6 +122,7 @@ function mensagemDaConfirmacao(falha: unknown) {
 export function PaginaConfirmacaoPublica() {
   const { estabelecimentoId: publicId, agendamentoId } = useParams()
   const localizacao = useLocation()
+  const sessao = useContext(ContextoAutenticacao)?.sessao
   const valido = Boolean(
     publicId &&
     identificadorPublicoValido(publicId) &&
@@ -171,6 +173,7 @@ export function PaginaConfirmacaoPublica() {
         <ConfirmacaoDoAgendamento
           detalhes={resultado.detalhes}
           nomeCliente={nomeCliente}
+          emailCliente={sessao?.role === 'CLIENTE' ? sessao.email : undefined}
           caminhoDoEstabelecimento={rotaBase}
         />
       </div>

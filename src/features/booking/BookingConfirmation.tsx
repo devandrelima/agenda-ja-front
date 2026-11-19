@@ -3,6 +3,7 @@ import { caminhos } from '../../app/paths'
 import type { DetalhesAgendamento } from '../../data/agendamentos'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { Badge, Card } from '../../design-system/ui'
+import { AvisoDeLembrete } from '../reminders/ReminderNotice'
 
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -13,10 +14,12 @@ const formatarHora = (data: Date) =>
 export function ConfirmacaoDoAgendamento({
   detalhes,
   nomeCliente,
+  emailCliente,
   caminhoDoEstabelecimento,
 }: {
   detalhes: DetalhesAgendamento
   nomeCliente?: string
+  emailCliente?: string
   caminhoDoEstabelecimento: string
 }) {
   const confirmado = detalhes.status === 'CONFIRMADO'
@@ -81,6 +84,12 @@ export function ConfirmacaoDoAgendamento({
           <dd>{formatarMoeda(detalhes.valor)}</dd>
         </div>
       </dl>
+      <AvisoDeLembrete
+        status={detalhes.status}
+        inicio={detalhes.dataHoraInicio}
+        destinatario="cliente"
+        email={emailCliente}
+      />
       <div className="form-actions confirmation-actions">
         <Link className="button secondary" to={caminhoDoEstabelecimento}>
           Voltar ao estabelecimento

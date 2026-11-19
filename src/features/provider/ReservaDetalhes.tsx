@@ -10,6 +10,7 @@ import { ErroApi } from '../../data/api'
 import { ReagendarReserva } from './ReagendarReserva'
 import { mensagemFalhaReserva } from './reservaErros'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { AvisoDeLembrete } from '../reminders/ReminderNotice'
 
 type AcaoStatus = {
   status: NovoStatusAgendamento
@@ -195,6 +196,11 @@ export function DetalhesDaReserva({
               <dt>Valor</dt>
               <dd>{formatarMoeda(reserva.valor)}</dd>
             </dl>
+            <AvisoDeLembrete
+              status={reserva.status}
+              inicio={reserva.dataHoraInicio}
+              destinatario="gestor"
+            />
             {feedback && (
               <p className="notice" role="status">
                 {feedback}
