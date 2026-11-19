@@ -2255,7 +2255,7 @@ a.rating-count:hover {
   flex: 1 1 240px;
 }
 .client-min-count {
-  flex: 0 1 200px;
+  flex: 0 0 230px;
 }
 .client-search {
   width: 100%;
