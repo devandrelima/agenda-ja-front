@@ -26,11 +26,11 @@ import {
   ConfiguracoesDoNegocio,
   Dashboard,
   LayoutPrestador,
-  ModuloFuturo,
 } from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
 import { Relatorios } from '../features/provider/Reports'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
+import { ClienteDetalhe, Clientes } from '../features/provider/Clients'
 import { Servicos } from '../features/provider/Services'
 import {
   cadastrarCliente,
@@ -44,10 +44,6 @@ import { emailValido, telefoneValido } from '../domain/contact'
 import { ProvedorAutenticacao } from './AuthContext'
 import { useAutenticacao } from './useAutenticacao'
 import { caminhoDeAvaliacoesValido, caminhos } from './paths'
-
-const modulosFuturos = [
-  { caminho: 'clientes', titulo: 'Clientes' },
-]
 
 function Autenticacao({ cadastro = false }: { cadastro?: boolean }) {
   const navegar = useNavigate()
@@ -591,19 +587,26 @@ export function App() {
               </RotaProtegida>
             }
           />
-          {modulosFuturos.map(({ caminho, titulo }) => (
-            <Route
-              key={caminho}
-              path={`/painel/${caminho}`}
-              element={
-                <RotaProtegida>
-                  <LayoutPrestador>
-                    <ModuloFuturo titulo={titulo} />
-                  </LayoutPrestador>
-                </RotaProtegida>
-              }
-            />
-          ))}
+          <Route
+            path={caminhos.clientes}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <Clientes />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={`${caminhos.clientes}/:clienteId`}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <ClienteDetalhe />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ProvedorAutenticacao>

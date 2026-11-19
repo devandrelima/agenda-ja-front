@@ -12,6 +12,7 @@ export const caminhos = {
   configuracoes: '/painel/configuracoes',
   profissionais: '/painel/profissionais',
   servicos: '/painel/servicos',
+  clientes: '/painel/clientes',
   estabelecimento: '/estabelecimento/atelie-aurora',
   avaliacoes: '/estabelecimento/atelie-aurora/avaliacoes',
   disponibilidade: '/estabelecimento/atelie-aurora/disponibilidade',
