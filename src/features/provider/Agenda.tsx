@@ -81,32 +81,40 @@ export function Agenda() {
           </strong>
         </nav>
       </header>
-      <div className="agenda-filtros">
-        <select
-          aria-label="Filtrar por profissional"
-          value={profissionalId}
-          onChange={(evento) => definirProfissionalId(evento.target.value)}
-        >
-          <option value="">Todos os profissionais</option>
-          {profissionais.map((profissional) => (
-            <option key={profissional.id} value={profissional.id}>
-              {profissional.nome}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filtrar por status"
-          value={status}
-          onChange={(evento) => definirStatus(evento.target.value)}
-        >
-          <option value="">Todos os status</option>
-          {statusFiltraveis.map((codigo) => (
-            <option key={codigo} value={codigo}>
-              {rotuloDoStatus(codigo)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Card className="agenda-filtros" aria-label="Filtros da agenda">
+        <div className="agenda-filtro">
+          <label htmlFor="filtro-profissional">Profissional</label>
+          <select
+            id="filtro-profissional"
+            aria-label="Filtrar por profissional"
+            value={profissionalId}
+            onChange={(evento) => definirProfissionalId(evento.target.value)}
+          >
+            <option value="">Todos os profissionais</option>
+            {profissionais.map((profissional) => (
+              <option key={profissional.id} value={profissional.id}>
+                {profissional.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="agenda-filtro">
+          <label htmlFor="filtro-status">Status</label>
+          <select
+            id="filtro-status"
+            aria-label="Filtrar por status"
+            value={status}
+            onChange={(evento) => definirStatus(evento.target.value)}
+          >
+            <option value="">Todos os status</option>
+            {statusFiltraveis.map((codigo) => (
+              <option key={codigo} value={codigo}>
+                {rotuloDoStatus(codigo)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Card>
       <Card>
         {erro ? (
           <div role="alert">

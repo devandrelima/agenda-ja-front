@@ -2,25 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
-import type { AgendamentoDaAgenda } from '../../data/agenda'
-import { listarServicos } from '../../data/services'
+import { buscarDashboard, type DashboardResumo, type ProximoAtendimento } from '../../data/operational'
 import { prepararCapa } from '../../data/businessCover'
 import { lerLogoDoNegocio, salvarLogoDoNegocio } from '../../data/businessLogo'
 import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, salvarConfiguracao } from '../../data/publicEstablishment'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
-import { proximosAtendimentos, resumirAgenda } from '../../domain/inicio'
-import { chaveDeHoje, rotuloCurtoDoDia, somarDiasNaChave } from '../../domain/semana'
+import { chaveDeHoje, rotuloCurtoDoDia } from '../../domain/semana'
 import { Badge, Button, Card, Empty, Logo } from '../../design-system/ui'
 import { ConfirmarSaida } from '../auth/ConfirmLogout'
 import { HorariosDoNegocio } from './BusinessHours'
 import { DadosDoNegocio } from './BusinessProfile'
 import { propsDeAbrir } from './propsDeAbrir'
-import { useAgendaDoPeriodo } from './useAgendaDoPeriodo'
 import { useReservaAberta } from './useReservaAberta'
-
-/** Quantos dias à frente a página inicial resume e lista. */
-const DIAS_DO_RESUMO = 7
 
 type IconeMenu =
   'inicio' | 'agenda' | 'profissionais' | 'servicos' | 'clientes' | 'relatorios' | 'sair'
@@ -120,20 +114,19 @@ export function LayoutPrestador({
   )
 }
 function ProximosAtendimentos({
-  agendamentos,
+  atendimentos,
   erro,
   hoje,
   aoTentarNovamente,
   aoAbrir,
 }: {
   /** `null` enquanto carrega. */
-  agendamentos: AgendamentoDaAgenda[] | null
+  atendimentos: ProximoAtendimento[] | null
   erro: string
   hoje: string
   aoTentarNovamente: () => void
   aoAbrir: (id: number) => void
 }) {
-  const proximos = agendamentos && proximosAtendimentos(agendamentos)
   return (
     <Card>
       <h2>Próximos atendimentos</h2>
@@ -144,20 +137,20 @@ function ProximosAtendimentos({
             Tentar novamente
           </Button>
         </div>
-      ) : proximos === null ? (
+      ) : atendimentos === null ? (
         <Empty>Carregando atendimentos...</Empty>
-      ) : proximos.length === 0 ? (
-        <Empty>Nenhum atendimento nos próximos 7 dias.</Empty>
+      ) : atendimentos.length === 0 ? (
+        <Empty>Nenhum atendimento previsto para hoje.</Empty>
       ) : (
-        proximos.map((agendamento) => {
-          const dia = agendamento.dataHoraInicio.slice(0, 10)
+        atendimentos.map((agendamento) => {
+          const dia = agendamento.horarioInicio.slice(0, 10)
           return (
             <article
               className="appointment"
-              key={agendamento.id}
-              {...propsDeAbrir(() => aoAbrir(agendamento.id))}
+              key={agendamento.agendamentoId}
+              {...propsDeAbrir(() => aoAbrir(agendamento.agendamentoId))}
             >
-              <time>{agendamento.dataHoraInicio.slice(11, 16)}</time>
+              <time>{agendamento.horarioInicio.slice(11, 16)}</time>
               <div className="info">
                 <strong>{agendamento.clienteNome}</strong>
                 <p>
@@ -393,6 +386,9 @@ export function Dashboard() {
   const [copiandoLink, definirCopiandoLink] = useState(false)
   const [abrindoAgendamento, definirAbrindoAgendamento] = useState(false)
   const temporizadorAviso = useRef<number | undefined>(undefined)
+  const [resumo, definirResumo] = useState<DashboardResumo | null>(null)
+  const [erroDashboard, definirErroDashboard] = useState('')
+  const [versaoDashboard, definirVersaoDashboard] = useState(0)
 
   useEffect(() => () => window.clearTimeout(temporizadorAviso.current), [])
 
@@ -402,30 +398,23 @@ export function Dashboard() {
     temporizadorAviso.current = window.setTimeout(() => definirAvisoCopia(null), 3500)
   }
 
-  const estabelecimentoId = sessao?.estabelecimentoId
   const hoje = chaveDeHoje()
-  const agenda = useAgendaDoPeriodo(estabelecimentoId, {
-    de: hoje,
-    ate: somarDiasNaChave(hoje, DIAS_DO_RESUMO),
-  })
-  const reserva = useReservaAberta(estabelecimentoId, agenda.recarregar)
-  // A agenda traz só o nome do serviço; o valor vem do cadastro. Se falhar, só o faturamento some.
-  const [valorPorServico, definirValorPorServico] = useState<Map<string, number> | null>(null)
+  const estabelecimentoId = sessao?.estabelecimentoId
   useEffect(() => {
     if (estabelecimentoId == null) return
     let ativo = true
-    listarServicos(estabelecimentoId)
-      .then(
-        (servicos) =>
-          ativo &&
-          definirValorPorServico(new Map(servicos.map((item) => [item.nome, Number(item.valor)]))),
-      )
-      .catch(() => undefined)
+    buscarDashboard(estabelecimentoId, hoje)
+      .then((dados) => {
+        if (!ativo) return
+        definirErroDashboard('')
+        definirResumo(dados)
+      })
+      .catch((falha) => ativo && definirErroDashboard(falha instanceof Error ? falha.message : 'Não foi possível carregar o dashboard.'))
     return () => {
       ativo = false
     }
-  }, [estabelecimentoId])
-  const resumo = agenda.agendamentos && resumirAgenda(agenda.agendamentos, hoje, valorPorServico)
+  }, [estabelecimentoId, hoje, versaoDashboard])
+  const reserva = useReservaAberta(estabelecimentoId, () => definirVersaoDashboard((versao) => versao + 1))
   const numero = (valor: number | undefined) => valor ?? '—'
 
   async function copiarLinkDoNegocio() {
@@ -517,13 +506,13 @@ export function Dashboard() {
       )}
       <div className="metric-grid">
         {[
-          ['Agendamentos hoje', numero(resumo?.hoje)],
+          ['Agendamentos hoje', numero(resumo?.totalReservas)],
           ['Confirmados', numero(resumo?.confirmados)],
           [
             'Faturamento previsto',
-            resumo?.faturamentoPrevisto == null ? '—' : formatarMoeda(resumo.faturamentoPrevisto),
+            resumo == null ? '—' : formatarMoeda(resumo.faturamentoPrevisto),
           ],
-          ['Aguardando confirmação', numero(resumo?.aguardando)],
+          ['Aguardando confirmação', numero(resumo?.pendentes)],
         ].map(([label, value]) => (
           <Card className="metric" key={String(label)}>
             <span className="muted">{label}</span>
@@ -531,17 +520,12 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
-      {agenda.atualizacaoFalhou && (
-        <p className="muted" role="status">
-          Não foi possível atualizar os atendimentos agora. Tentaremos novamente em instantes.
-        </p>
-      )}
       <section className="section dashboard-section">
         <ProximosAtendimentos
-          agendamentos={agenda.agendamentos}
-          erro={agenda.erro}
+          atendimentos={resumo?.proximosAtendimentos ?? (erroDashboard ? [] : null)}
+          erro={erroDashboard}
           hoje={hoje}
-          aoTentarNovamente={agenda.tentarNovamente}
+          aoTentarNovamente={() => definirVersaoDashboard((versao) => versao + 1)}
           aoAbrir={reserva.abrir}
         />
       </section>

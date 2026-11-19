@@ -1214,6 +1214,49 @@ a.rating-count:hover {
 .dashboard-section {
   padding: 20px 0;
 }
+.report-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 190px) minmax(0, 190px) auto;
+  align-items: end;
+  gap: 16px;
+}
+.report-filter .field {
+  margin: 0;
+}
+.report-metrics {
+  margin-top: 24px;
+}
+.popular-services {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+  counter-reset: services;
+}
+.popular-services li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  counter-increment: services;
+}
+.popular-services li::before {
+  content: counter(services);
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  color: var(--brand);
+  font-weight: 700;
+  background: #e6f5f3;
+  border-radius: 50%;
+}
+.popular-services li strong { margin-right: auto; }
+.popular-services li span { color: var(--muted); font-size: .9rem; white-space: nowrap; }
 .business-cover-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 436px;
@@ -1341,6 +1384,37 @@ a.rating-count:hover {
   display: grid;
   gap: 12px;
 }
+.agenda-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.agenda-filtro {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 230px);
+}
+.agenda-filtro label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.agenda-filtro select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+}
+.agenda-filtro select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .service-list {
   display: grid;
   gap: 12px;
@@ -1371,9 +1445,19 @@ a.rating-count:hover {
   justify-content: flex-end;
   gap: 8px;
 }
+.professional-edit-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .button.ghost.service-delete-trigger,
 .button.ghost.service-delete-trigger:hover,
-.button.ghost.service-delete-trigger:focus-visible {
+.button.ghost.service-delete-trigger:focus-visible,
+.button.ghost.professional-delete-trigger,
+.button.ghost.professional-delete-trigger:hover,
+.button.ghost.professional-delete-trigger:focus-visible {
   color: var(--danger);
 }
 .button.primary.service-delete-button {
@@ -1383,11 +1467,26 @@ a.rating-count:hover {
 .button.primary.service-delete-button:hover {
   filter: brightness(0.9);
 }
+.button.primary.professional-delete-button {
+  background: var(--danger);
+  color: #fff;
+}
+.button.primary.professional-delete-button:hover {
+  filter: brightness(0.9);
+}
 .service-delete-dialog > p {
   margin: 0 0 20px;
   color: var(--muted);
 }
 .service-delete-dialog .auth-error {
+  margin-bottom: 16px;
+  color: var(--danger);
+}
+.professional-delete-dialog > p {
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+.professional-delete-dialog .auth-error {
   margin-bottom: 16px;
   color: var(--danger);
 }
@@ -1939,6 +2038,8 @@ a.rating-count:hover {
   }
 }
 @media (max-width: 700px) {
+  .report-filter { grid-template-columns: 1fr; }
+  .report-filter .button { width: 100%; }
   .business-profile-form {
     grid-template-columns: 1fr;
   }
@@ -2204,8 +2305,36 @@ a.rating-count:hover {
 .reserva-dialog {
   width: min(100%, 480px);
 }
-.reserva-dialog .form-actions {
+.reserva-acoes {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.reserva-acoes-principais {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.reserva-cancelar {
+  grid-column: 1 / -1;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.reserva-cancelar:hover:not(:disabled) {
+  background: #fff1f2;
+}
+@media (max-width: 420px) {
+  .reserva-acoes,
+  .reserva-acoes-principais {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .reserva-acoes > .button,
+  .reserva-acoes-principais > .button {
+    width: 100%;
+  }
 }
 .reserva-dialog .auth-error,
 .reserva-dialog .notice {

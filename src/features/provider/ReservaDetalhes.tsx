@@ -221,39 +221,53 @@ export function DetalhesDaReserva({
                 </Button>
               </div>
             ) : (
-              <div className="form-actions">
+              <div className="reserva-acoes">
                 <Button type="button" variant="ghost" autoFocus onClick={aoFechar}>
                   Fechar
                 </Button>
-                {acoes.map((acao) => (
+                <div className="reserva-acoes-principais">
+                  {acoes
+                    .filter((acao) => acao.status !== 'CANCELADO')
+                    .map((acao) => (
+                      <Button
+                        key={acao.status}
+                        type="button"
+                        variant={acao.secundaria ? 'secondary' : 'primary'}
+                        disabled={executando}
+                        onClick={() => void executar(acao)}
+                      >
+                        {acao.rotulo}
+                      </Button>
+                    ))}
+                  {acoes.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={executando}
+                      onClick={() => {
+                        definirFeedback('')
+                        definirErroAcao('')
+                        definirReagendando(true)
+                      }}
+                    >
+                      Reagendar
+                    </Button>
+                  )}
+                </div>
+                {acoes
+                  .filter((acao) => acao.status === 'CANCELADO')
+                  .map((acao) => (
                   <Button
                     key={acao.status}
                     type="button"
-                    variant={acao.secundaria ? 'secondary' : 'primary'}
+                    className="reserva-cancelar"
+                    variant="secondary"
                     disabled={executando}
-                    onClick={() =>
-                      acao.status === 'CANCELADO'
-                        ? definirConfirmandoCancelamento(true)
-                        : void executar(acao)
-                    }
+                    onClick={() => definirConfirmandoCancelamento(true)}
                   >
                     {acao.rotulo}
                   </Button>
                 ))}
-                {acoes.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={executando}
-                    onClick={() => {
-                      definirFeedback('')
-                      definirErroAcao('')
-                      definirReagendando(true)
-                    }}
-                  >
-                    Reagendar
-                  </Button>
-                )}
               </div>
             )}
           </>

@@ -8,6 +8,7 @@ import {
   atualizarDisponibilidade,
   buscarDisponibilidade,
   cadastrarProfissional,
+  desativarProfissional,
   editarProfissional,
   listarProfissionais,
 } from '../../data/professionals'
@@ -262,12 +263,14 @@ function FormularioProfissional({
   servicos,
   aoSalvar,
   aoVoltar,
+  aoApagar,
 }: {
   profissional?: Profissional
   disponibilidade: Disponibilidade
   servicos: Servico[]
   aoSalvar: (dados: DadosProfissional, disponibilidade: Disponibilidade) => Promise<void>
   aoVoltar: () => void
+  aoApagar?: () => void
 }) {
   const [turnos, definirTurnos] = useState<Turno[]>(() =>
     disponibilidade.jornadas.map((jornada) => ({ ...jornada, chave: novaChave() })),
@@ -318,7 +321,7 @@ function FormularioProfissional({
     try {
       await aoSalvar(
         {
-          nome: profissional?.nome ?? String(form.get('nome')).trim(),
+          nome: String(form.get('nome')).trim(),
           // As especialidades são os serviços que o profissional realiza.
           especialidades: nomesDosServicos(idsServicos, servicos),
           idsServicos,
@@ -338,17 +341,14 @@ function FormularioProfissional({
   return (
     <Card>
       <form className="form" onSubmit={(evento) => void enviar(evento)}>
-        {profissional ? (
-          <h2>{profissional.nome}</h2>
-        ) : (
-          <Field
-            name="nome"
-            label="Nome do profissional"
-            maxLength={100}
-            error={errosCampos.nome}
-            required
-          />
-        )}
+        <Field
+          name="nome"
+          label="Nome do profissional"
+          defaultValue={profissional?.nome}
+          maxLength={100}
+          error={errosCampos.nome}
+          required
+        />
         <fieldset className="checkbox-group">
           <legend>Serviços</legend>
           {servicos.length ? (
@@ -433,7 +433,20 @@ function FormularioProfissional({
           <Button type="button" variant="ghost" onClick={aoVoltar} disabled={enviando}>
             Voltar
           </Button>
-          <Button disabled={enviando}>{enviando ? 'Salvando...' : 'Salvar'}</Button>
+          <div className="professional-edit-actions">
+            {profissional && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="professional-delete-trigger"
+                onClick={aoApagar}
+                disabled={enviando}
+              >
+                Apagar
+              </Button>
+            )}
+            <Button disabled={enviando}>{enviando ? 'Salvando...' : 'Salvar'}</Button>
+          </div>
         </div>
       </form>
     </Card>
@@ -456,6 +469,9 @@ export function Profissionais() {
   const [erroDisponibilidade, definirErroDisponibilidade] = useState('')
   const consultaDisponibilidade = useRef(0)
   const [mensagem, definirMensagem] = useState('')
+  const [confirmandoId, definirConfirmandoId] = useState<number | null>(null)
+  const [desativandoId, definirDesativandoId] = useState<number | null>(null)
+  const [erroDesativacao, definirErroDesativacao] = useState('')
   const [folgasDe, definirFolgasDe] = useState<Profissional | null>(null)
   const gatilhoFolgas = useRef<HTMLElement | null>(null)
 
@@ -519,6 +535,23 @@ export function Profissionais() {
     definirEmEdicao(null)
   }
 
+  async function desativar(profissional: Profissional) {
+    if (estabelecimentoId == null) return
+    definirDesativandoId(profissional.id)
+    definirErroDesativacao('')
+    try {
+      await desativarProfissional(estabelecimentoId, profissional.id)
+      definirProfissionais((atuais) => atuais.filter((atual) => atual.id !== profissional.id))
+      definirConfirmandoId(null)
+      definirMensagem(`${profissional.nome} foi removido(a) da equipe.`)
+      fecharFormulario()
+    } catch (falha) {
+      definirErroDesativacao(mensagemFalha(falha))
+    } finally {
+      definirDesativandoId(null)
+    }
+  }
+
   async function salvar(dados: DadosProfissional, novaDisponibilidade: Disponibilidade) {
     if (estabelecimentoId == null || !emEdicao) return
     let salvo: Profissional
@@ -580,6 +613,14 @@ export function Profissionais() {
             servicos={servicos}
             aoSalvar={salvar}
             aoVoltar={fecharFormulario}
+            aoApagar={
+              profissional
+                ? () => {
+                    definirConfirmandoId(profissional.id)
+                    definirErroDesativacao('')
+                  }
+                : undefined
+            }
           />
         ) : erroDisponibilidade ? (
           <Card>
@@ -602,6 +643,55 @@ export function Profissionais() {
         ) : (
           <p role="status">Carregando horários...</p>
         )}
+        {profissional && confirmandoId === profissional.id &&
+          createPortal(
+            <div
+              className="modal-backdrop"
+              onMouseDown={(evento) => {
+                if (evento.target === evento.currentTarget && desativandoId == null) {
+                  definirConfirmandoId(null)
+                  definirErroDesativacao('')
+                }
+              }}
+            >
+              <section
+                className="card modal professional-delete-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="professional-delete-title"
+                aria-describedby="professional-delete-description"
+              >
+                <h2 id="professional-delete-title">Apagar profissional?</h2>
+                <p id="professional-delete-description">
+                  Tem certeza de que deseja apagar “{profissional.nome}”? Ele deixará de aparecer na equipe.
+                </p>
+                {erroDesativacao && <p className="auth-error" role="alert">{erroDesativacao}</p>}
+                <div className="form-actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={desativandoId != null}
+                    onClick={() => {
+                      definirConfirmandoId(null)
+                      definirErroDesativacao('')
+                    }}
+                    autoFocus
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    className="professional-delete-button"
+                    disabled={desativandoId != null}
+                    onClick={() => void desativar(profissional)}
+                  >
+                    {desativandoId != null ? 'Apagando...' : 'Apagar profissional'}
+                  </Button>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )}
       </>
     )
   }

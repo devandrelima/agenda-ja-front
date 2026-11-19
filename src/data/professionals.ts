@@ -83,6 +83,14 @@ export function editarProfissional(
   )
 }
 
+export async function desativarProfissional(estabelecimentoId: number, profissionalId: number) {
+  const token = await tokenCsrf()
+  await requisitar(`${caminhoProfissionais(estabelecimentoId)}/${profissionalId}`, {
+    method: 'DELETE',
+    headers: { 'X-CSRF-TOKEN': token },
+  })
+}
+
 function caminhoDisponibilidade(estabelecimentoId: number, profissionalId: number) {
   return `${caminhoProfissionais(estabelecimentoId)}/${profissionalId}/disponibilidade`
 }
