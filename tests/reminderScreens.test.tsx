@@ -117,10 +117,28 @@ it('mostra o lembrete no detalhe do cliente e o omite para reservas canceladas',
   expect(await screen.findByRole('note')).toHaveTextContent('Reservas canceladas não recebem lembrete.')
 })
 
-it('informa ao gestor o lembrete previsto para a reserva', async () => {
+it('mostra ao gestor o canal do cliente quando o backend informa e o lembrete previsto', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () =>
+      json(detalhes('CONFIRMADO', { clienteEmail: 'maria@exemplo.com', clienteTelefone: '85999998888' })),
+    ),
+  )
+  render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
+
+  expect(await screen.findByRole('link', { name: 'maria@exemplo.com' })).toHaveAttribute(
+    'href',
+    'mailto:maria@exemplo.com',
+  )
+  expect(screen.getByRole('link', { name: '85999998888' })).toHaveAttribute('href', 'tel:+5585999998888')
+  expect(screen.getByRole('note')).toHaveTextContent(/O cliente receberá um lembrete por e-mail \(maria@exemplo\.com\)/)
+})
+
+it('não exibe linhas de contato quando o backend não informa o canal do cliente', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => json(detalhes('CONFIRMADO'))))
   render(<DetalhesDaReserva fonte={criarFonteApi(4, 31)} aoFechar={() => {}} />)
 
   await screen.findByText('Corte feminino')
+  expect(screen.queryByText(/do cliente$/)).not.toBeInTheDocument()
   expect(screen.getByRole('note')).toHaveTextContent('O cliente receberá um lembrete por e-mail na véspera')
 })

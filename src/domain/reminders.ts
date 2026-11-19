@@ -49,3 +49,20 @@ export function mensagemDoLembrete(
       return null
   }
 }
+
+export type CanalDoCliente = { rotulo: string; valor: string; href: string }
+
+/** Canais de contato do cliente que o backend informou; vazio quando não há nenhum. */
+export function canaisDoCliente(contato: {
+  email?: string | null
+  telefone?: string | null
+}): CanalDoCliente[] {
+  const canais: CanalDoCliente[] = []
+  const email = contato.email?.trim()
+  if (email) canais.push({ rotulo: 'E-mail', valor: email, href: `mailto:${email}` })
+  const digitos = contato.telefone?.replace(/\D/g, '') ?? ''
+  if (digitos) {
+    canais.push({ rotulo: 'Telefone', valor: contato.telefone as string, href: `tel:+55${digitos}` })
+  }
+  return canais
+}

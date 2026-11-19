@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { estadoDoLembrete, mensagemDoLembrete } from '../src/domain/reminders'
+import { canaisDoCliente, estadoDoLembrete, mensagemDoLembrete } from '../src/domain/reminders'
 
 // 10/11/2026, 10h (horário local)
 const agora = new Date(2026, 10, 10, 10, 0, 0)
@@ -44,4 +44,13 @@ it('escreve a mensagem para o cliente e para o gestor, com o e-mail quando exist
   expect(mensagemDoLembrete(estado, { destinatario: 'gestor' })).toBe(
     'O cliente receberá um lembrete por e-mail na véspera, 12/11, às 8h.',
   )
+})
+
+it('lista só os canais do cliente que existem', () => {
+  expect(canaisDoCliente({})).toEqual([])
+  expect(canaisDoCliente({ email: ' ', telefone: null })).toEqual([])
+  expect(canaisDoCliente({ email: 'ana@exemplo.com', telefone: '(85) 9 9999-8888' })).toEqual([
+    { rotulo: 'E-mail', valor: 'ana@exemplo.com', href: 'mailto:ana@exemplo.com' },
+    { rotulo: 'Telefone', valor: '(85) 9 9999-8888', href: 'tel:+5585999998888' },
+  ])
 })
