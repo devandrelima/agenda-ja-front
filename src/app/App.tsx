@@ -30,6 +30,7 @@ import {
 } from '../features/provider/Provider'
 import { Profissionais } from '../features/provider/Professionals'
 import { Button, Card, Field, Logo, PhoneField } from '../design-system/ui'
+import { ClienteDetalhe, Clientes } from '../features/provider/Clients'
 import { Servicos } from '../features/provider/Services'
 import {
   cadastrarCliente,
@@ -45,7 +46,6 @@ import { useAutenticacao } from './useAutenticacao'
 import { caminhoDeAvaliacoesValido, caminhos } from './paths'
 
 const modulosFuturos = [
-  { caminho: 'clientes', titulo: 'Clientes' },
   { caminho: 'relatorios', titulo: 'Relatórios' },
 ]
 
@@ -577,6 +577,26 @@ export function App() {
               <RotaProtegida>
                 <LayoutPrestador>
                   <Servicos />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={caminhos.clientes}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <Clientes />
+                </LayoutPrestador>
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path={`${caminhos.clientes}/:clienteId`}
+            element={
+              <RotaProtegida>
+                <LayoutPrestador>
+                  <ClienteDetalhe />
                 </LayoutPrestador>
               </RotaProtegida>
             }
