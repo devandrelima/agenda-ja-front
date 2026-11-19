@@ -2249,8 +2249,36 @@ a.rating-count:hover {
 .reserva-dialog {
   width: min(100%, 480px);
 }
-.reserva-dialog .form-actions {
+.reserva-acoes {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.reserva-acoes-principais {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.reserva-cancelar {
+  grid-column: 1 / -1;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.reserva-cancelar:hover:not(:disabled) {
+  background: #fff1f2;
+}
+@media (max-width: 420px) {
+  .reserva-acoes,
+  .reserva-acoes-principais {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .reserva-acoes > .button,
+  .reserva-acoes-principais > .button {
+    width: 100%;
+  }
 }
 .reserva-dialog .auth-error,
 .reserva-dialog .notice {
