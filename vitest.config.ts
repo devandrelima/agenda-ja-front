@@ -6,6 +6,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.ts?(x)'],
+    // O build do Jenkins roda com cobertura num container lento: o padrão de 5 s estoura em testes
+    // de tela que passam em segundos localmente.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     reporters: ['default', 'junit'],
     outputFile: { junit: 'reports/unit/junit.xml' },
     coverage: {
