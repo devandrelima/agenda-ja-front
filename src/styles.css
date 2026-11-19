@@ -1384,6 +1384,37 @@ a.rating-count:hover {
   display: grid;
   gap: 12px;
 }
+.agenda-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.agenda-filtro {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 230px);
+}
+.agenda-filtro label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.agenda-filtro select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+}
+.agenda-filtro select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .service-list {
   display: grid;
   gap: 12px;
@@ -1414,9 +1445,19 @@ a.rating-count:hover {
   justify-content: flex-end;
   gap: 8px;
 }
+.professional-edit-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .button.ghost.service-delete-trigger,
 .button.ghost.service-delete-trigger:hover,
-.button.ghost.service-delete-trigger:focus-visible {
+.button.ghost.service-delete-trigger:focus-visible,
+.button.ghost.professional-delete-trigger,
+.button.ghost.professional-delete-trigger:hover,
+.button.ghost.professional-delete-trigger:focus-visible {
   color: var(--danger);
 }
 .button.primary.service-delete-button {
@@ -1426,11 +1467,26 @@ a.rating-count:hover {
 .button.primary.service-delete-button:hover {
   filter: brightness(0.9);
 }
+.button.primary.professional-delete-button {
+  background: var(--danger);
+  color: #fff;
+}
+.button.primary.professional-delete-button:hover {
+  filter: brightness(0.9);
+}
 .service-delete-dialog > p {
   margin: 0 0 20px;
   color: var(--muted);
 }
 .service-delete-dialog .auth-error {
+  margin-bottom: 16px;
+  color: var(--danger);
+}
+.professional-delete-dialog > p {
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+.professional-delete-dialog .auth-error {
   margin-bottom: 16px;
   color: var(--danger);
 }

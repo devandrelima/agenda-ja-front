@@ -204,6 +204,32 @@ describe('tela de profissionais', () => {
     })
   })
 
+  it('permite alterar o nome e apagar um profissional após confirmação', async () => {
+    const user = userEvent.setup()
+    const requisicoes = stubFetch({
+      ...rotasPadrao(),
+      [`DELETE ${base}/profissionais/1`]: () => new Response(null, { status: 204 }),
+    })
+    renderizar()
+    await user.click(await screen.findByRole('button', { name: 'Ver detalhes de Ana Martins' }))
+    const nome = screen.getByLabelText('Nome do profissional')
+    expect(nome).toHaveValue('Ana Martins')
+
+    await user.clear(nome)
+    await user.type(nome, 'Ana Souza')
+    await user.click(screen.getByRole('button', { name: 'Apagar' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Apagar profissional?' })
+    expect(dialogo).toHaveTextContent('Ana Martins')
+    await user.click(within(dialogo).getByRole('button', { name: 'Apagar profissional' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Ana Martins foi removido(a) da equipe.')
+    expect(metodosChamados(requisicoes)).toContain(`DELETE ${base}/profissionais/1`)
+    const [, opcoes] = requisicoes.mock.calls.find(
+      ([url, opcoes]) => url === `${base}/profissionais/1` && opcoes?.method === 'DELETE',
+    )!
+    expect(new Headers(opcoes?.headers).get('X-CSRF-TOKEN')).toBe('token-teste')
+  })
+
   it.each([
     ['sem serviço', [], 'Selecione ao menos um serviço.'],
     ['sem turnos', ['Escova'], 'Adicione ao menos um turno de atendimento.'],
