@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge, Button } from '../../design-system/ui'
 import {
@@ -10,6 +10,8 @@ import { ErroApi } from '../../data/api'
 import { ReagendarReserva } from './ReagendarReserva'
 import { mensagemFalhaReserva } from './reservaErros'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { canaisDoCliente } from '../../domain/reminders'
+import { AvisoDeLembrete } from '../reminders/ReminderNotice'
 
 type AcaoStatus = {
   status: NovoStatusAgendamento
@@ -194,7 +196,23 @@ export function DetalhesDaReserva({
               </dd>
               <dt>Valor</dt>
               <dd>{formatarMoeda(reserva.valor)}</dd>
+              {canaisDoCliente({ email: reserva.clienteEmail, telefone: reserva.clienteTelefone }).map(
+                (canal) => (
+                  <Fragment key={canal.rotulo}>
+                    <dt>{canal.rotulo} do cliente</dt>
+                    <dd>
+                      <a href={canal.href}>{canal.valor}</a>
+                    </dd>
+                  </Fragment>
+                ),
+              )}
             </dl>
+            <AvisoDeLembrete
+              status={reserva.status}
+              inicio={reserva.dataHoraInicio}
+              destinatario="gestor"
+              email={reserva.clienteEmail}
+            />
             {feedback && (
               <p className="notice" role="status">
                 {feedback}

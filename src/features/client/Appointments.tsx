@@ -12,6 +12,7 @@ import {
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { ConfirmarCancelamento } from './ConfirmCancel'
 import { ContextoAutenticacao } from '../../app/authState'
+import { AvisoDeLembrete } from '../reminders/ReminderNotice'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -108,6 +109,7 @@ export function MeusAgendamentos() {
 
 export function DetalheDoAgendamento() {
   const { agendamentoId } = useParams()
+  const autenticacao = useContext(ContextoAutenticacao)
   const [agendamento, definirAgendamento] = useState<MeuAgendamento>()
   const [carregando, definirCarregando] = useState(() => Boolean(agendamentoId))
   const [erro, definirErro] = useState('')
@@ -208,6 +210,12 @@ export function DetalheDoAgendamento() {
           </div>
           <div><dt>Valor</dt><dd>{agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</dd></div>
         </dl>
+        <AvisoDeLembrete
+          status={agendamento.status}
+          inicio={agendamento.inicio}
+          destinatario="cliente"
+          email={autenticacao?.sessao?.email}
+        />
         {aviso && <p className="client-appointment-feedback" role="status">{aviso}</p>}
         {pendente && <button className="client-confirm-appointment" type="button" onClick={() => void confirmar()} disabled={confirmando}>{confirmando ? 'Confirmando...' : 'Confirmar agendamento'}</button>}
         {agendamentoAtivo && (

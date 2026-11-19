@@ -55,6 +55,9 @@ export type DetalhesAgendamento = {
   dataHoraFim: string
   status: string
   valor: number
+  /** Canais do cliente; só chegam quando o backend os informa para o gestor. */
+  clienteEmail?: string | null
+  clienteTelefone?: string | null
 }
 
 /** Detalhes de uma reserva. Só o cliente dono ou o gestor do estabelecimento podem consultar. */
