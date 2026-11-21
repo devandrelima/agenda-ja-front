@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
@@ -313,7 +313,7 @@ function WhatsAppDoNegocio() {
   const [erro, definirErro] = useState('')
   const [versaoQr, definirVersaoQr] = useState(() => Date.now())
 
-  async function atualizarStatus() {
+  const atualizarStatus = useCallback(async () => {
     if (estabelecimentoId == null) return
     try {
       definirErro('')
@@ -322,13 +322,16 @@ function WhatsAppDoNegocio() {
       definirStatus(null)
       definirErro(falha instanceof Error ? falha.message : 'Não foi possível consultar o WhatsApp.')
     }
-  }
+  }, [estabelecimentoId])
 
   useEffect(() => {
-    void atualizarStatus()
+    const primeiraConsulta = window.setTimeout(() => void atualizarStatus(), 0)
     const intervalo = window.setInterval(() => void atualizarStatus(), 5000)
-    return () => window.clearInterval(intervalo)
-  }, [estabelecimentoId])
+    return () => {
+      window.clearTimeout(primeiraConsulta)
+      window.clearInterval(intervalo)
+    }
+  }, [atualizarStatus])
 
   const conectado = status === 'WORKING'
   const aguardandoQr = status === 'SCAN_QR_CODE' || status === 'SCAN_QR'
