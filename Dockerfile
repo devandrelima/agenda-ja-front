@@ -5,7 +5,13 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY . ./
+# O estágio de CI não executa E2E. Copiar somente os arquivos usados por lint,
+# testes unitários e Vite evita que arquivos transitórios/independentes entrem
+# na camada do build do Docker.
+COPY eslint.config.js tsconfig.json tsconfig.app.json vite.config.ts vitest.config.ts index.html ./
+COPY public ./public
+COPY src ./src
+COPY tests ./tests
 RUN mkdir -p /app/reports \
     && npm run lint -- --format json --output-file /app/reports/eslint.json \
     && npm run typecheck \
