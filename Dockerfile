@@ -13,7 +13,8 @@ COPY public ./public
 COPY src ./src
 COPY tests ./tests
 RUN mkdir -p /app/reports \
-    && npm run lint -- --format json --output-file /app/reports/eslint.json \
+    && (npm run lint -- --format json --output-file /app/reports/eslint.json \
+      || (cat /app/reports/eslint.json && exit 1)) \
     && npm run typecheck \
     && npm run test:coverage \
     && npm run build
