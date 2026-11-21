@@ -25,6 +25,16 @@ export async function buscarEstabelecimentoAdmin(id: number): Promise<Estabeleci
   return resposta.json()
 }
 
+export async function buscarStatusWhatsApp(estabelecimentoId: number): Promise<string> {
+  const resposta = await requisitar(`/api/admin/estabelecimentos/${estabelecimentoId}/whatsapp`)
+  const dados: { status?: unknown } = await resposta.json()
+  return typeof dados.status === 'string' ? dados.status : 'UNKNOWN'
+}
+
+export function urlQrCodeWhatsApp(estabelecimentoId: number, versao: number) {
+  return `/api/admin/estabelecimentos/${estabelecimentoId}/whatsapp/qr?v=${versao}`
+}
+
 export async function salvarConfiguracao(id: number, tipo: 'dados' | 'capa' | 'horarios', dados: unknown) {
   await requisitar(`/api/admin/estabelecimentos/${id}/${tipo}`, {
     method: 'PUT',
