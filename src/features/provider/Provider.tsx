@@ -5,7 +5,7 @@ import { useAutenticacao } from '../../app/useAutenticacao'
 import { buscarDashboard, type DashboardResumo, type ProximoAtendimento } from '../../data/operational'
 import { prepararCapa } from '../../data/businessCover'
 import { lerLogoDoNegocio, salvarLogoDoNegocio } from '../../data/businessLogo'
-import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, salvarConfiguracao } from '../../data/publicEstablishment'
+import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, buscarStatusWhatsApp, salvarConfiguracao, urlQrCodeWhatsApp } from '../../data/publicEstablishment'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { chaveDeHoje, rotuloCurtoDoDia } from '../../domain/semana'
@@ -305,6 +305,69 @@ function LogoDoNegocio() {
     </Card>
   )
 }
+
+function WhatsAppDoNegocio() {
+  const { sessao } = useAutenticacao()
+  const estabelecimentoId = sessao?.estabelecimentoId
+  const [status, definirStatus] = useState<string | null>(null)
+  const [erro, definirErro] = useState('')
+  const [versaoQr, definirVersaoQr] = useState(() => Date.now())
+
+  async function atualizarStatus() {
+    if (estabelecimentoId == null) return
+    try {
+      definirErro('')
+      definirStatus(await buscarStatusWhatsApp(estabelecimentoId))
+    } catch (falha) {
+      definirStatus(null)
+      definirErro(falha instanceof Error ? falha.message : 'Não foi possível consultar o WhatsApp.')
+    }
+  }
+
+  useEffect(() => {
+    void atualizarStatus()
+    const intervalo = window.setInterval(() => void atualizarStatus(), 5000)
+    return () => window.clearInterval(intervalo)
+  }, [estabelecimentoId])
+
+  const conectado = status === 'WORKING'
+  const aguardandoQr = status === 'SCAN_QR_CODE' || status === 'SCAN_QR'
+
+  return (
+    <Card className="whatsapp-settings-card">
+      <div className="whatsapp-settings-heading">
+        <div>
+          <h2>WhatsApp do negócio</h2>
+          <p className="muted">Conecte o número que enviará as notificações aos clientes.</p>
+        </div>
+        <span className={`whatsapp-status ${conectado ? 'is-connected' : ''}`}>
+          {conectado ? 'Conectado' : status ?? 'Verificando...'}
+        </span>
+      </div>
+      {aguardandoQr && estabelecimentoId != null && (
+        <div className="whatsapp-qr-area">
+          <img
+            className="whatsapp-qr-code"
+            src={urlQrCodeWhatsApp(estabelecimentoId, versaoQr)}
+            alt="QR Code para conectar o WhatsApp do negócio"
+          />
+          <p>Abra o WhatsApp no celular, vá em dispositivos conectados e escaneie este código.</p>
+        </div>
+      )}
+      {conectado && <p className="whatsapp-success">O WhatsApp está conectado e pronto para receber notificações quando os envios forem habilitados.</p>}
+      {!conectado && !aguardandoQr && !erro && status != null && <p className="muted">A sessão ainda não está pronta para pareamento.</p>}
+      <div className="whatsapp-settings-actions">
+        <Button type="button" variant="secondary" onClick={() => { definirVersaoQr(Date.now()); void atualizarStatus() }}>
+          Atualizar QR Code
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => void atualizarStatus()}>
+          Atualizar status
+        </Button>
+      </div>
+      {erro && <p className="auth-error" role="alert">{erro}</p>}
+    </Card>
+  )
+}
 export function ConfiguracoesDoNegocio() {
   const navegar = useNavigate()
   const { encerrar } = useAutenticacao()
@@ -349,6 +412,9 @@ export function ConfiguracoesDoNegocio() {
       </section>
       <section className="section dashboard-section">
         <HorariosDoNegocio />
+      </section>
+      <section className="section dashboard-section">
+        <WhatsAppDoNegocio />
       </section>
       <footer className="settings-footer">
         <Button

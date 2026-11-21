@@ -1292,6 +1292,15 @@ a.rating-count:hover {
 .business-logo-card .auth-error { margin: 12px 0 0; }
 .business-logo-preview { width: 110px; height: 110px; flex: 0 0 110px; border-radius: 50%; object-fit: cover; border: 3px solid #d9f3ef; }
 .business-logo-placeholder { display: grid; place-items: center; background: #d9f3ef; color: #087a74; font-weight: 800; }
+.whatsapp-settings-card { display: grid; gap: 20px; }
+.whatsapp-settings-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.whatsapp-settings-heading h2 { margin: 0 0 6px; }
+.whatsapp-status { display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border-radius: 999px; background: #fff2c9; color: #8a4a0b; font-size: .84rem; font-weight: 700; white-space: nowrap; }
+.whatsapp-status.is-connected { background: #d8f8e7; color: #16734a; }
+.whatsapp-qr-area { display: grid; justify-items: center; gap: 12px; padding: 22px; border: 1px solid #cce8e5; border-radius: 18px; background: #f4fbfa; text-align: center; }
+.whatsapp-qr-area p, .whatsapp-success { margin: 0; color: #4b5d78; }
+.whatsapp-qr-code { width: min(100%, 260px); aspect-ratio: 1; padding: 12px; border-radius: 12px; background: #fff; image-rendering: pixelated; }
+.whatsapp-settings-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .business-profile-list {
   display: grid;
   margin: 18px 0 0;
