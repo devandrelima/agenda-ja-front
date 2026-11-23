@@ -2,8 +2,9 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { DetalheDoAgendamento, MeusAgendamentos } from '../src/features/client/Appointments'
+import { DetalheDoAgendamento, MeusAgendamentos, ordenarMeusAgendamentos } from '../src/features/client/Appointments'
 import { EscolherNegocioParaAgendar } from '../src/features/client/BusinessPicker'
+import type { MeuAgendamento } from '../src/data/clientAppointments'
 
 const reservaPendente = {
   id: 1,
@@ -101,6 +102,36 @@ it('lista reservas do cliente retornadas pela HU18', async () => {
     '/novo-agendamento',
   )
   expect(await screen.findByAltText('Foto de perfil')).toHaveAttribute('src', 'data:image/png;base64,foto')
+})
+
+it('prioriza pendentes pelo horário mais próximo, depois confirmados, concluídos e cancelados', () => {
+  const agendamento = (id: string, status: MeuAgendamento['status'], inicio: string): MeuAgendamento => ({
+    id,
+    estabelecimentoId: 1,
+    estabelecimento: 'Salão',
+    servico: 'Corte',
+    profissional: 'Dani',
+    localizacao: 'Centro',
+    publicId: 'salao',
+    inicio,
+    fim: inicio,
+    status,
+    valor: 20,
+  })
+  const ordenados = ordenarMeusAgendamentos([
+    agendamento('cancelado', 'CANCELADO', '2026-11-01T08:00:00'),
+    agendamento('confirmado', 'CONFIRMADO', '2026-11-05T08:00:00'),
+    agendamento('pendente-distante', 'AGUARDANDO_CONFIRMACAO', '2026-11-08T08:00:00'),
+    agendamento('concluido', 'CONCLUIDO', '2026-10-01T08:00:00'),
+    agendamento('pendente-proximo', 'AGUARDANDO_CONFIRMACAO', '2026-11-04T08:00:00'),
+  ])
+  expect(ordenados.map(({ id }) => id)).toEqual([
+    'pendente-proximo',
+    'pendente-distante',
+    'confirmado',
+    'concluido',
+    'cancelado',
+  ])
 })
 
 it('separa negócios já agendados com base na lista da HU18 e permite buscar pelo nome', async () => {

@@ -23,6 +23,22 @@ function formatarHora(data: string) {
   return new Date(data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+const prioridadeDoStatus: Record<MeuAgendamento['status'], number> = {
+  AGUARDANDO_CONFIRMACAO: 0,
+  CONFIRMADO: 1,
+  CONCLUIDO: 2,
+  CANCELADO: 3,
+}
+
+/** Agrupa a lista pelo estado mais útil ao cliente e, dentro de cada grupo, pelo próximo horário. */
+export function ordenarMeusAgendamentos(agendamentos: MeuAgendamento[]) {
+  return [...agendamentos].sort((primeiro, segundo) => {
+    const diferencaDeStatus = prioridadeDoStatus[primeiro.status] - prioridadeDoStatus[segundo.status]
+    if (diferencaDeStatus !== 0) return diferencaDeStatus
+    return new Date(primeiro.inicio).getTime() - new Date(segundo.inicio).getTime()
+  })
+}
+
 function CabecalhoCliente() {
   const [fotoUrl, definirFotoUrl] = useState<string | null>(null)
 
@@ -104,7 +120,7 @@ export function MeusAgendamentos() {
         {carregando && <p role="status">Carregando agendamentos...</p>}
         {erro && <p className="auth-error" role="alert">{erro}</p>}
         {!carregando && !erro && <ul className="client-appointments-list" aria-label="Lista de agendamentos">
-          {agendamentos.map((agendamento) => (
+          {ordenarMeusAgendamentos(agendamentos).map((agendamento) => (
             <li key={agendamento.id}>
               <Link to={caminhoDoMeuAgendamento(agendamento.id)} aria-label={`Ver agendamento em ${agendamento.estabelecimento}`}>
                 <span className="client-appointment-copy"><ResumoDoAgendamento agendamento={agendamento} /></span>
