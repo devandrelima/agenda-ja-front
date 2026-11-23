@@ -4,7 +4,6 @@ import { caminhos } from '../../app/paths'
 import { useAutenticacao } from '../../app/useAutenticacao'
 import { buscarDashboard, type DashboardResumo, type ProximoAtendimento } from '../../data/operational'
 import { prepararCapa } from '../../data/businessCover'
-import { lerLogoDoNegocio, salvarLogoDoNegocio } from '../../data/businessLogo'
 import { buscarEstabelecimentoAdmin, buscarIdentificadorPublico, buscarStatusWhatsApp, salvarConfiguracao, urlQrCodeWhatsApp } from '../../data/publicEstablishment'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 import { rotuloDoStatus } from '../../domain/appointmentStatus'
@@ -272,11 +271,17 @@ function CapaDoNegocio() {
 function LogoDoNegocio() {
   const { sessao } = useAutenticacao()
   const estabelecimentoId = sessao?.estabelecimentoId
-  const [logo, definirLogo] = useState<string | null>(() =>
-    estabelecimentoId == null ? null : lerLogoDoNegocio(estabelecimentoId),
-  )
+  const [logo, definirLogo] = useState<string | null>(null)
   const campoArquivo = useRef<HTMLInputElement>(null)
   const [erro, definirErro] = useState('')
+  const [salvando, definirSalvando] = useState(false)
+
+  useEffect(() => {
+    if (estabelecimentoId == null) return
+    buscarEstabelecimentoAdmin(estabelecimentoId)
+      .then((dados) => definirLogo(dados.logoUrl))
+      .catch(() => definirErro('Não foi possível carregar a logo.'))
+  }, [estabelecimentoId])
 
   async function escolherLogo(evento: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0]
@@ -284,11 +289,28 @@ function LogoDoNegocio() {
     if (!arquivo || estabelecimentoId == null) return
     try {
       definirErro('')
+      definirSalvando(true)
       const imagemUrl = await prepararCapa(arquivo)
-      salvarLogoDoNegocio(estabelecimentoId, imagemUrl)
+      await salvarConfiguracao(estabelecimentoId, 'logo', { imagemUrl })
       definirLogo(imagemUrl)
     } catch (falha) {
       definirErro(falha instanceof Error ? falha.message : 'Não foi possível salvar a logo.')
+    } finally {
+      definirSalvando(false)
+    }
+  }
+
+  async function removerLogo() {
+    if (estabelecimentoId == null) return
+    try {
+      definirErro('')
+      definirSalvando(true)
+      await salvarConfiguracao(estabelecimentoId, 'logo', { imagemUrl: null })
+      definirLogo(null)
+    } catch (falha) {
+      definirErro(falha instanceof Error ? falha.message : 'Não foi possível remover a logo.')
+    } finally {
+      definirSalvando(false)
     }
   }
 
@@ -298,7 +320,8 @@ function LogoDoNegocio() {
         <h2>Logo do negócio</h2>
         <p className="muted">Aparece ao lado do nome na página pública e na escolha de agendamento.</p>
         <input ref={campoArquivo} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Escolher logo do negócio" onChange={(evento) => void escolherLogo(evento)} />
-        <Button type="button" variant="secondary" onClick={() => campoArquivo.current?.click()}>Adicionar logo</Button>
+        <Button type="button" variant="secondary" disabled={salvando} onClick={() => campoArquivo.current?.click()}>{salvando ? 'Salvando...' : (logo ? 'Trocar logo' : 'Adicionar logo')}</Button>
+        {logo && <Button type="button" variant="secondary" disabled={salvando} onClick={() => void removerLogo()}>Remover logo</Button>}
         {erro && <p className="auth-error" role="alert">{erro}</p>}
       </div>
       {logo ? <img className="business-logo-preview" src={logo} alt="Logo do negócio" /> : <span className="business-logo-preview business-logo-placeholder" aria-hidden="true">Logo</span>}

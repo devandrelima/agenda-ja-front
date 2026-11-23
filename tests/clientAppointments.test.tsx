@@ -64,6 +64,8 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (entrada: RequestInfo | URL) => {
     const caminho = String(entrada)
     if (caminho === '/api/auth/csrf') return resposta({ token: 'csrf' })
+    if (caminho === '/api/clientes/me')
+      return resposta({ id: 9, nome: 'Paula Reis', telefone: '85999998888', email: 'paula@exemplo.com', fotoUrl: 'data:image/png;base64,foto' })
     if (caminho === '/api/clientes/me/agendamentos')
       return resposta([reservaPendente, reservaConfirmada])
     if (caminho === '/api/estabelecimentos/publico') return resposta(negocios)
@@ -98,6 +100,7 @@ it('lista reservas do cliente retornadas pela HU18', async () => {
     'href',
     '/novo-agendamento',
   )
+  expect(await screen.findByAltText('Foto de perfil')).toHaveAttribute('src', 'data:image/png;base64,foto')
 })
 
 it('separa negócios já agendados com base na lista da HU18 e permite buscar pelo nome', async () => {

@@ -35,7 +35,7 @@ export function urlQrCodeWhatsApp(estabelecimentoId: number, versao: number) {
   return `/api/admin/estabelecimentos/${estabelecimentoId}/whatsapp/qr?v=${versao}`
 }
 
-export async function salvarConfiguracao(id: number, tipo: 'dados' | 'capa' | 'horarios', dados: unknown) {
+export async function salvarConfiguracao(id: number, tipo: 'dados' | 'capa' | 'logo' | 'horarios', dados: unknown) {
   await requisitar(`/api/admin/estabelecimentos/${id}/${tipo}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': await tokenCsrf() },

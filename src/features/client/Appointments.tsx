@@ -13,6 +13,7 @@ import { rotuloDoStatus } from '../../domain/appointmentStatus'
 import { ConfirmarCancelamento } from './ConfirmCancel'
 import { ContextoAutenticacao } from '../../app/authState'
 import { AvisoDeLembrete } from '../reminders/ReminderNotice'
+import { buscarMeuPerfil } from '../../data/clientProfile'
 
 function formatarData(data: string) {
   return new Date(data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
@@ -23,14 +24,32 @@ function formatarHora(data: string) {
 }
 
 function CabecalhoCliente() {
+  const [fotoUrl, definirFotoUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let ativo = true
+    buscarMeuPerfil()
+      .then((perfil) => {
+        if (ativo) definirFotoUrl(perfil.fotoUrl)
+      })
+      .catch(() => {
+        // A página continua utilizável com o ícone padrão se o perfil não puder ser carregado.
+      })
+    return () => { ativo = false }
+  }, [])
+
   return (
     <header className="client-appointments-header">
       <Logo />
       <Link className="client-avatar" aria-label="Abrir perfil" to={caminhos.meuPerfil}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21c.8-4.1 3.5-6.2 8-6.2s7.2 2.1 8 6.2" />
-        </svg>
+        {fotoUrl ? (
+          <img src={fotoUrl} alt="Foto de perfil" />
+        ) : (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c.8-4.1 3.5-6.2 8-6.2s7.2 2.1 8 6.2" />
+          </svg>
+        )}
       </Link>
     </header>
   )

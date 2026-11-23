@@ -29,7 +29,6 @@ import { buscarResumoAvaliacoes, type ResumoAvaliacoesApi } from '../../data/rev
 import { nomesDias, resumirHorario, useHorariosFuncionamento } from '../../data/businessHours'
 import { useCapaNegocio } from '../../data/businessCover'
 import { useDadosNegocioDemo } from '../../data/businessProfile'
-import { useLogoDoNegocio } from '../../data/businessLogo'
 import imagemPlaceholder from '../../assets/placeholder-imagem.svg'
 const formatarMoeda = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -70,7 +69,6 @@ export function PaginaEstabelecimento({
 }) {
   const autenticacao = useContext(ContextoAutenticacao)
   const avaliacoesLocais = useAvaliacoesDemo(identificadorPublico)
-  const logoLocal = useLogoDoNegocio(estabelecimentoId)
   const [resumoRemoto, definirResumoRemoto] = useState<ResumoAvaliacoesApi | null>(null)
   useEffect(() => {
     if (estabelecimentoId == null) return
@@ -104,7 +102,7 @@ export function PaginaEstabelecimento({
   const rotuloAvaliacoes = quantidadeAvaliacoes === 1 ? 'avaliação' : 'avaliações'
   const caminhoAvaliacoes = `${rotaBase}/avaliacoes`
   const imagemUrl = dados ? dados.imagemUrl : capaDemo
-  const logoDoNegocio = dados?.logoUrl ?? logoLocal
+  const logoDoNegocio = dados?.logoUrl
   const caminhoServicos = dados ? `${rotaBase}/servicos` : caminhos.disponibilidade
   const caminhoAgendamento = dados ? `${rotaBase}/agendar` : caminhos.agendamento
   return (
@@ -415,8 +413,8 @@ export function Agendamento({
   const hoje = paraChaveData(new Date())
   const datas = useMemo(
     () =>
-      Array.from({ length: 6 }, (_, indice) =>
-        paraChaveData(adicionarDias(new Date(`${hoje}T12:00`), indice + 1)),
+      Array.from({ length: 7 }, (_, indice) =>
+        paraChaveData(adicionarDias(new Date(`${hoje}T12:00`), indice)),
       ),
     [hoje],
   )

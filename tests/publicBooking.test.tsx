@@ -9,6 +9,7 @@ import { ContextoAutenticacao } from '../src/app/authState'
 const caminhoProfissionais = '/api/estabelecimentos/4/servicos/1/profissionais'
 
 const dataBase = new Date('2026-11-02T12:00:00')
+const hoje = paraChaveData(dataBase)
 const amanha = paraChaveData(adicionarDias(dataBase, 1))
 const depoisDeAmanha = paraChaveData(adicionarDias(dataBase, 2))
 const rotuloDaData = (data: string) =>
@@ -268,6 +269,20 @@ describe('agendamento de um estabelecimento real', () => {
     await user.click(await screen.findByRole('button', { name: rotuloDaData(depoisDeAmanha) }))
     expect(screen.queryByRole('button', { name: rotuloDaData(amanha) })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '10:00' })).toBeInTheDocument()
+  })
+
+  it('inclui hoje quando ainda há horários disponíveis', async () => {
+    stubApi({
+      profissionais: [() => resposta([profissional(7, 'Lucas Mendes')])],
+      disponibilidade: (parametros) =>
+        resposta(parametros.get('data') === hoje ? ['13:00'] : []),
+    })
+    const user = await abrirProfissionais()
+
+    await user.click(await screen.findByRole('button', { name: /lucas mendes/i }))
+    await user.click(await screen.findByRole('button', { name: rotuloDaData(hoje) }))
+
+    expect(screen.getByRole('button', { name: '13:00' })).toBeInTheDocument()
   })
 
   it('avisa quando não há horários nos próximos dias', async () => {
