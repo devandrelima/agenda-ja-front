@@ -9,7 +9,7 @@ import {
   listarMeusAgendamentos,
   type MeuAgendamento,
 } from '../../data/clientAppointments'
-import { rotuloDoStatus } from '../../domain/appointmentStatus'
+import { ordenarMeusAgendamentos, rotuloDoStatus } from '../../domain/appointmentStatus'
 import { ConfirmarCancelamento } from './ConfirmCancel'
 import { ContextoAutenticacao } from '../../app/authState'
 import { AvisoDeLembrete } from '../reminders/ReminderNotice'
@@ -21,22 +21,6 @@ function formatarData(data: string) {
 
 function formatarHora(data: string) {
   return new Date(data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-}
-
-const prioridadeDoStatus: Record<MeuAgendamento['status'], number> = {
-  AGUARDANDO_CONFIRMACAO: 0,
-  CONFIRMADO: 1,
-  CONCLUIDO: 2,
-  CANCELADO: 3,
-}
-
-/** Agrupa a lista pelo estado mais útil ao cliente e, dentro de cada grupo, pelo próximo horário. */
-export function ordenarMeusAgendamentos(agendamentos: MeuAgendamento[]) {
-  return [...agendamentos].sort((primeiro, segundo) => {
-    const diferencaDeStatus = prioridadeDoStatus[primeiro.status] - prioridadeDoStatus[segundo.status]
-    if (diferencaDeStatus !== 0) return diferencaDeStatus
-    return new Date(primeiro.inicio).getTime() - new Date(segundo.inicio).getTime()
-  })
 }
 
 function CabecalhoCliente() {
